@@ -32,7 +32,10 @@ export function defaultDocument(): HouseDocument {
 
 /** Completa campos que faltarem (ex.: documento salvo antes de uma atualização do catálogo). */
 function mergeDefaults<T>(base: T, saved: unknown): T {
-  if (Array.isArray(base)) return (Array.isArray(saved) ? saved : base) as T;
+  if (Array.isArray(base)) {
+    const savedArray = Array.isArray(saved) ? saved : [];
+    return base.map((item, index) => mergeDefaults(item, savedArray[index])) as T;
+  }
   if (base && typeof base === 'object') {
     const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
     if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
