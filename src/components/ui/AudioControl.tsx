@@ -78,8 +78,11 @@ export function AudioProvider({ tracks, children }: { tracks: Track[]; children:
   }, []);
 
   useEffect(() => {
+    // Não baixe a primeira faixa ao abrir a casa. Em links compartilhados,
+    // o carregamento só deve começar quando a pessoa apertar play.
+    if (!wantsPlay.current) return;
     void loadTrack(track).then((ok) => {
-      if (ok && wantsPlay.current) void audioRef.current?.play().catch(() => setPlaying(false));
+      if (ok) void audioRef.current?.play().catch(() => setPlaying(false));
     });
   }, [track, loadTrack]);
 

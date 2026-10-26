@@ -1,4 +1,4 @@
-import { authFetch, CASINHA_ID, cloudConfigured, uploadToCloud } from './auth';
+import { authFetch, CASINHA_ID, cloudConfigured, SUPABASE_URL, SUPABASE_BUCKET, uploadToCloud } from './auth';
 
 /**
  * Arquivos enviados pelo Backoffice (fotos, vídeos, músicas).
@@ -43,6 +43,12 @@ export function isMediaRef(src: string | undefined): src is string {
   return typeof src === 'string' && src.startsWith(PREFIX);
 }
 
+function mediaParts(ref: string) {
+  const value = ref.slice(PREFIX.length);
+  const separator = value.indexOf('@');
+  return separator < 0 ? { id: value, storagePath: undefined } : { id: value.slice(0, separator), storagePath: value.slice(separator + 1) };
+}
+
 function newId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -67,7 +73,9 @@ export async function putMedia(file: Blob): Promise<string> {
       const data = (await response.json().catch(() => ({}))) as { error?: string };
       throw new Error(data.error || `O arquivo foi enviado, mas o registro falhou (HTTP ${response.status}).`);
     }
-    return PREFIX + id;
+    // A URL direta evita uma ida extra à Vercel e uma consulta ao banco quando
+    // outra pessoa abre o link compartilhado.
+    return `${PREFIX}${id}@${storagePath}`;
   }
 
   try {
@@ -101,7 +109,7 @@ export async function putMedia(file: Blob): Promise<string> {
 
 export async function deleteMedia(ref: string): Promise<void> {
   if (!isMediaRef(ref)) return;
-  const id = ref.slice(PREFIX.length);
+  const { id } = mediaParts(ref);
   await authFetch(`${API_BASE}/api/media/${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => undefined);
   await tx('readwrite', (s) => s.delete(id));
   const url = urlCache.get(ref);
@@ -115,8 +123,26 @@ export async function resolveMedia(src: string | undefined): Promise<string | un
   if (!isMediaRef(src)) return src;
   const cached = urlCache.get(src);
   if (cached) return cached;
-  const id = src.slice(PREFIX.length);
+  const { id, storagePath } = mediaParts(src);
   const apiUrl = `${API_BASE}/api/media/${encodeURIComponent(id)}`;
+
+  if (cloudConfigured && storagePath && SUPABASE_URL) {
+    const encodedPath = storagePath.split('/').map((part) => encodeURIComponent(part)).join('/');
+    const directUrl = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${encodedPath}`;
+    urlCache.set(src, directUrl);
+    return directUrl;
+  }
+
+  // Em produção, a API já é o resolvedor da mídia: ela responde com um
+  // redirect para o objeto no Storage. Fazer um HEAD antes do GET atrasava
+  // cada vídeo/áudio e ainda podia renovar a sessão desnecessariamente.
+  // Entregamos a URL imediatamente e deixamos o elemento <audio>/<video>
+  // fazer uma única requisição.
+  if (cloudConfigured) {
+    urlCache.set(src, apiUrl);
+    return apiUrl;
+  }
+
   try {
     const response = await authFetch(apiUrl, { method: 'HEAD', cache: 'no-store' });
     if (response.ok) {
