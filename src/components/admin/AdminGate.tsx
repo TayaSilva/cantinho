@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import { AdminApp } from './AdminApp';
-import { cloudConfigured, getSession, signIn, signOut, type AuthSession } from '../../services/auth';
+import { cloudConfigured, getSession, hasRecoveryToken, signIn, signOut, updatePassword, type AuthSession } from '../../services/auth';
 
 export function AdminGate({ path }: { path: string }) {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [loading, setLoading] = useState(cloudConfigured);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [recovery, setRecovery] = useState(hasRecoveryToken);
 
   useEffect(() => {
     if (!cloudConfigured) return;
@@ -22,6 +24,56 @@ export function AdminGate({ path }: { path: string }) {
   }, []);
 
   if (!cloudConfigured) return <AdminApp path={path} />;
+  if (recovery) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-stone-50 px-4 font-admin text-stone-900">
+        <form
+          className="flex w-full max-w-sm flex-col gap-5 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            if (password.length < 6) {
+              setError('A senha precisa ter pelo menos 6 caracteres.');
+              return;
+            }
+            if (password !== confirmPassword) {
+              setError('As senhas não coincidem.');
+              return;
+            }
+            setBusy(true);
+            setError(null);
+            try {
+              await updatePassword(password);
+              setRecovery(false);
+              setPassword('');
+              setConfirmPassword('');
+            } catch (cause) {
+              setError(cause instanceof Error ? cause.message : 'Não foi possível trocar a senha.');
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <div>
+            <p className="text-xs font-semibold tracking-[.08em] text-rose-700 uppercase">Casinha Admin</p>
+            <h1 className="mt-1 text-2xl font-bold">Criar nova senha</h1>
+            <p className="mt-2 text-sm leading-relaxed text-stone-600">Defina uma senha nova para acessar o backoffice.</p>
+          </div>
+          <label className="flex flex-col gap-1.5 text-sm font-medium">
+            Nova senha
+            <input className="rounded-lg border border-stone-300 px-3 py-2 font-normal outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100" type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm font-medium">
+            Confirmar nova senha
+            <input className="rounded-lg border border-stone-300 px-3 py-2 font-normal outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required />
+          </label>
+          {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+          <button type="submit" disabled={busy} className="rounded-lg bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-700 disabled:opacity-50">
+            {busy ? 'Salvando…' : 'Salvar nova senha'}
+          </button>
+        </form>
+      </main>
+    );
+  }
   if (loading) return <main className="flex min-h-dvh items-center justify-center bg-stone-50 text-sm text-stone-600">Carregando acesso…</main>;
   if (session) return <AdminApp path={path} onLogout={() => void signOut()} />;
 

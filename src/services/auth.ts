@@ -6,6 +6,30 @@ export const cloudConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 const SESSION_KEY = 'casinha:supabase-session';
 
+export function hasRecoveryToken(): boolean {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  return params.get('type') === 'recovery' && Boolean(params.get('access_token'));
+}
+
+export async function updatePassword(password: string): Promise<void> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error('Autenticação cloud não configurada.');
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const accessToken = params.get('access_token');
+  if (!accessToken) throw new Error('O link de recuperação expirou ou é inválido.');
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    method: 'PUT',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${accessToken}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ password }),
+  });
+  const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!response.ok) throw new Error(typeof data.msg === 'string' ? data.msg : 'Não foi possível trocar a senha.');
+  window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+}
+
 export interface AuthSession {
   access_token: string;
   refresh_token: string;
