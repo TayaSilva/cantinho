@@ -63,7 +63,10 @@ export async function putMedia(file: Blob): Promise<string> {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ id, storagePath, name: originalName, type: file.type || 'application/octet-stream', size: file.size }),
     });
-    if (!response.ok) throw new Error('O arquivo foi enviado, mas não pôde ser registrado.');
+    if (!response.ok) {
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(data.error || `O arquivo foi enviado, mas o registro falhou (HTTP ${response.status}).`);
+    }
     return PREFIX + id;
   }
 
