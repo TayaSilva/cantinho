@@ -1,0 +1,283 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------
+ * Tema: cores, fontes e animações da casinha.
+ * Mudou a paleta? Troque aqui e tudo acompanha.
+ * ------------------------------------------------------------------ */
+@theme {
+  --font-pixel: "Pixelify Sans", ui-monospace, monospace;
+  --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --font-admin: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --color-wall: #f4d9c6;      /* parede principal */
+  --color-wall-2: #e7bcac;    /* parede secundária */
+  --color-wood: #a7755b;      /* madeira */
+  --color-wood-dark: #8a5d46;
+  --color-rug: #c98190;       /* tapete */
+  --color-sofa: #ba8293;      /* sofá */
+  --color-light: #ffd89a;     /* luz ambiente */
+  --color-highlight: #f8e6b5; /* destaques interativos */
+  --color-ink: #46353f;       /* texto da interface */
+  --color-ink-deep: #1e161d;
+  --color-paper: #fff6e8;
+  --color-plum: #8a5d6b;
+  --color-muted: #6e5862;
+  --color-night: #2f2330;     /* fundo ao redor da casa */
+  --color-night-2: #3f2f3b;
+  --color-night-3: #5a4450;
+  --color-tv: #6b5560;
+
+  --animate-fade-in: fade-in 0.4s ease both;
+  --animate-reveal: reveal 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-modal-in: modal-in 0.22s steps(4) both;
+  --animate-pop-in: pop-in 0.25s steps(3) both;
+  --animate-photo-in: photo-in 0.35s ease both;
+  --animate-page-turn: page-turn 0.35s steps(5) both;
+  --animate-bob: bob 2.4s ease-in-out infinite;
+  --animate-hop: hop 0.6s steps(4) both;
+
+  @keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes reveal { from { opacity: 0; transform: translateY(24px) scale(0.96) } to { opacity: 1; transform: none } }
+  @keyframes modal-in { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: none } }
+  @keyframes pop-in { from { opacity: 0; translate: 0 6px } to { opacity: 1; translate: 0 0 } }
+  @keyframes photo-in { from { opacity: 0; transform: scale(0.98) } to { opacity: 1; transform: none } }
+  @keyframes page-turn { from { opacity: 0; transform: perspective(900px) rotateY(-8deg) } to { opacity: 1; transform: none } }
+  @keyframes bob { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+  @keyframes hop { 0%, 100% { translate: 0 0 } 40% { translate: 0 -2.5% } }
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--color-night);
+    font-family: var(--font-sans);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  /* Mantém a pixel art nítida ao escalar PNGs. */
+  .pixelated {
+    image-rendering: pixelated;
+  }
+
+  /* Contorno pixelado ao passar o mouse / focar um objeto da cena. */
+  .hotspot {
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .hotspot:hover,
+  .hotspot:focus-visible {
+    background: rgb(248 230 181 / 0.14);
+    box-shadow:
+      0 0 0 3px var(--color-highlight),
+      0 0 0 6px rgb(70 53 63 / 0.6);
+  }
+
+  /* Rolagem da cena com zoom (mobile). */
+  .scene-viewport {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-night-3) transparent;
+  }
+
+  /* Linhas de TV de tubo sobre o vídeo. */
+  .crt-lines {
+    background: repeating-linear-gradient(0deg, rgb(0 0 0 / 0.1) 0 2px, transparent 2px 4px);
+  }
+
+  /* Barra de progresso do rádio. */
+  .pixel-range {
+    appearance: none;
+    width: 100%;
+    height: 14px;
+    background: var(--color-wall);
+    border: 3px solid var(--color-ink);
+    cursor: pointer;
+  }
+  .pixel-range::-webkit-slider-thumb {
+    appearance: none;
+    width: 12px;
+    height: 18px;
+    background: var(--color-rug);
+    border: 3px solid var(--color-ink);
+  }
+  .pixel-range::-moz-range-thumb {
+    width: 8px;
+    height: 14px;
+    border-radius: 0;
+    background: var(--color-rug);
+    border: 3px solid var(--color-ink);
+  }
+  .pixel-range:focus-visible {
+    outline: 3px solid var(--color-rug);
+    outline-offset: 2px;
+  }
+}
+
+/* ------------------------------------------------------------------
+ * Pequenos sinais de vida na cena (todas discretas).
+ * ------------------------------------------------------------------ */
+.twinkle { animation: twinkle 3.2s steps(3) infinite; }
+.twinkle-1 { animation-delay: 1s; }
+.twinkle-2 { animation-delay: 2.1s; }
+@keyframes twinkle { 0%, 100% { opacity: 1 } 50% { opacity: 0.35 } }
+
+.eye { transform-box: fill-box; transform-origin: center; animation: blink 5.2s infinite; }
+.eye-late { animation-delay: 1.9s; }
+.eye-slow { animation-duration: 7s; animation-delay: 0.6s; }
+@keyframes blink { 0%, 93%, 100% { transform: scaleY(1) } 95% { transform: scaleY(0.15) } }
+
+.pet-tail { animation: tail 1.6s steps(2) infinite; }
+@keyframes tail { 0%, 100% { transform: translate(0, 0) } 50% { transform: translate(-1px, 0.5px) } }
+.pet-body { transform-box: fill-box; transform-origin: 50% 100%; animation: breathe 2.8s ease-in-out infinite; }
+@keyframes breathe { 0%, 100% { transform: scaleY(1) } 50% { transform: scaleY(1.07) } }
+
+.curtain { animation: sway 6s ease-in-out infinite; }
+.curtain-late { animation-delay: 1.5s; }
+@keyframes sway { 0%, 100% { transform: translateX(0) } 50% { transform: translateX(0.4px) } }
+
+.cloud-drift { animation: drift 14s steps(14) infinite alternate; }
+@keyframes drift { from { transform: translateX(-4px) } to { transform: translateX(6px) } }
+
+.music-note { animation: floaty 1.8s steps(4) infinite; }
+.music-note-late { animation-delay: 0.9s; }
+@keyframes floaty { 0% { transform: translate(0, 2px); opacity: 0 } 30% { opacity: 1 } 100% { transform: translate(2px, -5px); opacity: 0 } }
+
+.eq-bar { transform-box: fill-box; transform-origin: 50% 100%; animation: eq 0.9s steps(3) infinite; }
+@keyframes eq { 0%, 100% { transform: scaleY(0.35) } 50% { transform: scaleY(1) } }
+
+/* ------------------------------------------------------------------
+ * Livro de cartas: folha virando em 3D.
+ * A folha gira presa à lombada; a frente mostra a página atual e o verso
+ * mostra a página seguinte. Sombras acompanham o giro.
+ * ------------------------------------------------------------------ */
+.book-stage { perspective: 2200px; perspective-origin: 50% 40%; }
+.book-leaf {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+  animation-duration: var(--flip-duration, 850ms);
+  animation-timing-function: cubic-bezier(0.45, 0.05, 0.3, 1);
+  animation-fill-mode: both;
+}
+.book-leaf-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+}
+.book-leaf-back { transform: rotateY(180deg); }
+
+/* folha da direita indo para a esquerda (próxima) */
+.book-leaf-next { right: 0; width: 50%; transform-origin: left center; animation-name: leaf-next; }
+@keyframes leaf-next {
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(-180deg); }
+}
+/* folha da esquerda voltando para a direita (anterior) */
+.book-leaf-prev { left: 0; width: 50%; transform-origin: right center; animation-name: leaf-prev; }
+@keyframes leaf-prev {
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(180deg); }
+}
+/* celular (uma página só): a folha sai para a esquerda ou volta dela */
+.book-leaf-single-next { inset-inline: 0; transform-origin: left center; animation-name: leaf-next; }
+.book-leaf-single-prev { inset-inline: 0; transform-origin: left center; animation-name: leaf-in; }
+@keyframes leaf-in {
+  from { transform: rotateY(-180deg); }
+  to { transform: rotateY(0deg); }
+}
+
+/* sombra que escurece a folha no meio do giro */
+.book-leaf-shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: leaf-shade var(--flip-duration, 850ms) ease-in-out both;
+}
+.book-leaf-front .book-leaf-shade { background: linear-gradient(to left, rgb(70 53 63 / 0.35), rgb(70 53 63 / 0) 70%); }
+.book-leaf-back .book-leaf-shade { background: linear-gradient(to right, rgb(70 53 63 / 0.35), rgb(70 53 63 / 0) 70%); }
+@keyframes leaf-shade {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+/* sombra projetada na página que está sendo revelada */
+.book-cast-shadow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  pointer-events: none;
+  animation: cast-shadow var(--flip-duration, 850ms) ease-out both;
+}
+@keyframes cast-shadow {
+  0% { opacity: 0.55; }
+  100% { opacity: 0; }
+}
+/* lombada: dobra no meio do livro aberto */
+.book-spine {
+  background: linear-gradient(to right, rgb(70 53 63 / 0) 0%, rgb(70 53 63 / 0.18) 45%, rgb(70 53 63 / 0.32) 50%, rgb(70 53 63 / 0.18) 55%, rgb(70 53 63 / 0) 100%);
+}
+/* cantinho dobrado da página */
+.page-corner {
+  background: linear-gradient(225deg, var(--color-wood-dark) 0 48%, #e9d3a0 50% 100%);
+  box-shadow: -2px 2px 0 rgb(70 53 63 / 0.25);
+  transition: width 0.15s steps(3), height 0.15s steps(3);
+}
+.page-corner:hover,
+.page-corner:focus-visible { width: 2.75rem; height: 2.75rem; }
+.page-corner-left {
+  background: linear-gradient(135deg, var(--color-wood-dark) 0 48%, #e9d3a0 50% 100%);
+  box-shadow: 2px 2px 0 rgb(70 53 63 / 0.25);
+}
+
+/* Respeita quem prefere menos movimento. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ------------------------------------------------------------------
+ * Pet: pulo ao clique, Zz dormindo, animação desligável
+ * ------------------------------------------------------------------ */
+.pet-hop { animation: pet-hop 0.5s steps(4) 2; }
+@keyframes pet-hop { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
+.pet-ears { animation: ears 4s steps(2) infinite; }
+@keyframes ears { 0%, 90%, 100% { transform: translateY(0) } 95% { transform: translateY(-0.6px) } }
+.pet-wing { animation: tail 1.2s steps(2) infinite; }
+.pet-zzz { animation: floaty 2.6s steps(5) infinite; }
+.pet-static,
+.pet-static * { animation: none !important; }
+
+/* ------------------------------------------------------------------
+ * Editor: áreas clicáveis e destaque da seleção
+ * ------------------------------------------------------------------ */
+.editor-region { fill: transparent; cursor: pointer; outline: none; }
+.editor-region:hover { fill: rgb(255 255 255 / 0.1); }
+.editor-region:focus-visible { fill: rgb(244 169 192 / 0.18); }
+.selection-outline,
+.selection-outline * {
+  fill: rgb(244 169 192 / 0.12);
+  stroke: #f4a9c0;
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+  pointer-events: none;
+}
+.tvscreen { animation: flicker 4s steps(2) infinite; }
+@keyframes flicker { 0%, 100% { opacity: 1 } 50% { opacity: 0.92 } }
+.sparkle { animation: twinkle 1.2s steps(2) infinite; }
