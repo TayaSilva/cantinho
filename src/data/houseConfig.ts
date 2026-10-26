@@ -117,7 +117,7 @@ export const editorHitboxes: Partial<Record<EditorTarget, Rect[]>> = {
   tv: [{ x: 189, y: 72, w: 52, h: 68 }],
   radio: [{ x: 235, y: 98, w: 31, h: 54 }],
   sofa: [{ x: 69, y: 87, w: 70, h: 58 }],
-  sofa2: [{ x: 166, y: 125, w: 73, h: 50 }],
+  sofa2: [{ x: 161, y: 155, w: 75, h: 62 }],
   cushions: [{ x: 92, y: 92, w: 14, h: 18 }, { x: 122, y: 84, w: 14, h: 18 }],
   lamp: [{ x: 52, y: 92, w: 30, h: 62 }],
   table: [{ x: 108, y: 120, w: 49, h: 37 }],
@@ -238,7 +238,8 @@ export const defaultAppearance: HouseAppearance = {
 
 /** Lugar de cada personagem no sofá (eixo c da grade isométrica). */
 export const CHARACTER_SEATS = [52, 68, 52, 68] as const;
-export const SECOND_SOFA_TRANSFORM = 'translate(100 62) scale(.62)';
+// Mesmo modelo e escala do sofá principal; apenas deslocado para o lado do baú.
+export const SECOND_SOFA_TRANSFORM = 'translate(92 72)';
 
 /** Posição do pet no tapete. */
 export const PET_POSITION = { a: 60, c: 74 } as const;

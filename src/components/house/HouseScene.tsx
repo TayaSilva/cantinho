@@ -273,10 +273,10 @@ export function HouseScene({
                 id={`character${i + 1}`}
                 label={c.name}
                 ariaLabel={`Falar com ${c.name}`}
-                hitbox={i < 2 ? characterHitbox(CHARACTER_SEATS[i]) : { x: i === 2 ? 190 : 205, y: 143, w: 15, h: 27 }}
+                hitbox={i < 2 ? characterHitbox(CHARACTER_SEATS[i]) : i === 2 ? { x: 197, y: 157, w: 20, h: 31 } : { x: 181, y: 165, w: 20, h: 31 }}
                 showLabel={showLabels}
                 onActivate={() => {
-                  const p = i < 2 ? characterAnchor(CHARACTER_SEATS[i]) : { x: i === 2 ? 198 : 213, y: 140 };
+                  const p = i < 2 ? characterAnchor(CHARACTER_SEATS[i]) : i === 2 ? { x: 207, y: 154 } : { x: 191, y: 162 };
                   say(phrases[i], p.x, p.y);
                 }}
               />
@@ -328,8 +328,8 @@ const FLOOR = pts([iso(0, 0), iso(120, 0), iso(120, 120), iso(0, 120)]);
 export function targetRects(appearance: HouseAppearance, target: EditorTarget): Rect[] {
   if (target === 'character1') return [characterHitbox(CHARACTER_SEATS[0])];
   if (target === 'character2') return [characterHitbox(CHARACTER_SEATS[1])];
-  if (target === 'character3') return [{ x: 190, y: 143, w: 15, h: 27 }];
-  if (target === 'character4') return [{ x: 205, y: 143, w: 15, h: 27 }];
+  if (target === 'character3') return [{ x: 197, y: 157, w: 20, h: 31 }];
+  if (target === 'character4') return [{ x: 181, y: 165, w: 20, h: 31 }];
   if (target === 'pet') return appearance.pet.enabled ? [petHitbox(appearance.pet)] : [];
   if (target in appearance.furniture) {
     const key = target as keyof HouseAppearance['furniture'];
