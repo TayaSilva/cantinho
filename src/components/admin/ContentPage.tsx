@@ -210,12 +210,18 @@ function TextsSection({ doc, edit }: { doc: HouseDocument; edit: Edit }) {
         <TextField label="Frase do animalzinho" value={c.phrases.pet} hint="Use {nome} para mostrar o nome do animal." onChange={(v) => edit((x) => void (x.phrases.pet = v), 'pp')} />
       </Card>
       <Card className="flex flex-col gap-5 p-5 sm:p-6">
-        <h2 className="text-sm font-semibold text-stone-900">Rádio e calendário</h2>
+        <h2 className="text-sm font-semibold text-stone-900">Rádio</h2>
         <TextField label="Nome da playlist" value={c.playlist.name} onChange={(v) => edit((x) => void (x.playlist.name = v), 'pl')} />
         <Toggle label="Continuar tocando ao fechar o rádio" checked={c.playlist.keepPlayingOnClose} onChange={(v) => edit((x) => void (x.playlist.keepPlayingOnClose = v))} />
+      </Card>
+      <Card className="flex flex-col gap-5 p-5 sm:p-6">
+        <div>
+          <h2 className="text-sm font-semibold text-stone-900">Contador de dias</h2>
+          <p className="mt-1 text-xs leading-relaxed text-stone-500">Edita o bloco destacado no topo do Calendário: o número de dias é calculado automaticamente a partir da data.</p>
+        </div>
         <div className="grid gap-5 sm:grid-cols-2">
-          <TextField label="Juntos desde" type="date" value={c.togetherSince.date} onChange={(v) => edit((x) => void (x.togetherSince.date = v), 'ts.date')} />
-          <TextField label="Texto do contador" value={c.togetherSince.label} hint="Ex.: “dias juntos”, “dias de amizade”." onChange={(v) => edit((x) => void (x.togetherSince.label = v), 'ts.label')} />
+          <TextField label="Data inicial" type="date" value={c.togetherSince.date} hint="A data usada para calcular o total." onChange={(v) => edit((x) => void (x.togetherSince.date = v), 'ts.date')} />
+          <TextField label="Texto depois do número" value={c.togetherSince.label} hint="Ex.: “dias juntos” ou “dias de amizade”." onChange={(v) => edit((x) => void (x.togetherSince.label = v), 'ts.label')} />
         </div>
       </Card>
     </>
