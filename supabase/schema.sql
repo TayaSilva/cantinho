@@ -33,6 +33,18 @@ alter table public.admin_users enable row level security;
 alter table public.house_documents enable row level security;
 alter table public.media enable row level security;
 
+create or replace function public.is_admin(check_user_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.admin_users where user_id = check_user_id);
+$$;
+
+revoke all on function public.is_admin(uuid) from public;
+grant execute on function public.is_admin(uuid) to authenticated;
+
 drop policy if exists "users can verify own admin access" on public.admin_users;
 create policy "users can verify own admin access"
   on public.admin_users for select
@@ -64,19 +76,15 @@ values ('casinha-media', 'casinha-media', true)
 on conflict (id) do update set public = true;
 
 drop policy if exists "admins upload casinha media" on storage.objects;
+drop policy if exists "authenticated can upload casinha media" on storage.objects;
 create policy "admins upload casinha media"
   on storage.objects for insert
   to authenticated
-  with check (
-    bucket_id = 'casinha-media'
-    and exists (select 1 from public.admin_users where user_id = auth.uid())
-  );
+  with check (bucket_id = 'casinha-media' and public.is_admin(auth.uid()));
 
 drop policy if exists "admins delete casinha media" on storage.objects;
+drop policy if exists "authenticated can delete casinha media" on storage.objects;
 create policy "admins delete casinha media"
   on storage.objects for delete
   to authenticated
-  using (
-    bucket_id = 'casinha-media'
-    and exists (select 1 from public.admin_users where user_id = auth.uid())
-  );
+  using (bucket_id = 'casinha-media' and public.is_admin(auth.uid()));
