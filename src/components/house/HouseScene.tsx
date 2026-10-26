@@ -3,6 +3,7 @@ import type { KeyboardEvent, ReactNode } from 'react';
 import { getOption, str } from '../../data/catalog';
 import {
   CHARACTER_SEATS,
+  SECOND_SOFA_TRANSFORM,
   editorHitboxes,
   MUSIC_NOTES,
   ROOM_OUTLINE,
@@ -86,14 +87,22 @@ export function SceneSvg({ appearance, theme, runtime, children }: SceneSvgProps
       {f.tv.visible && <TV opt={opt('tv', 'tv')} on={runtime.tvOn} />}
       {f.radio.visible && <Radio opt={opt('radio', 'radio')} />}
       {f.plants.visible && <Plant opt={plantOpt} origin={[108, 3]} size={9} />}
-      <SofaBack opt={opt('sofa', 'sofa')} />
+      {f.sofa.visible && <SofaBack opt={opt('sofa', 'sofa')} />}
+      {f.sofa2.visible && <SofaBack opt={opt('sofa2', 'sofa')} transform={SECOND_SOFA_TRANSFORM} />}
       {f.cushions.visible && <Cushions opt={opt('cushions', 'cushions')} />}
 
       {/* 5. personagens */}
-      {appearance.characters.map((look, i) => (
+      {appearance.characters.slice(0, 2).map((look, i) => (
         <Character key={i} look={look} seat={CHARACTER_SEATS[i]} index={i} />
       ))}
-      <SofaFront opt={opt('sofa', 'sofa')} />
+      {f.sofa2.visible && (
+        <g transform={SECOND_SOFA_TRANSFORM}>
+          <Character look={appearance.characters[2]} seat={CHARACTER_SEATS[2]} index={2} />
+          <Character look={appearance.characters[3]} seat={CHARACTER_SEATS[3]} index={3} />
+        </g>
+      )}
+      {f.sofa.visible && <SofaFront opt={opt('sofa', 'sofa')} />}
+      {f.sofa2.visible && <SofaFront opt={opt('sofa2', 'sofa')} transform={SECOND_SOFA_TRANSFORM} />}
       {f.lamp.visible && <Lamp opt={lampOpt} on={runtime.lampOn} />}
       {f.table.visible && <Table opt={opt('table', 'table')} items={deco.tableItems} />}
 
@@ -230,7 +239,7 @@ export function HouseScene({
   const pet = appearance.pet;
   const sceneWidth = fitWidth * zoom;
   const editor = mode === 'editor';
-  const phrases = [content.phrases.character1, content.phrases.character2];
+  const phrases = [content.phrases.character1, content.phrases.character2, content.phrases.character3, content.phrases.character4];
 
   return (
     <div ref={viewportRef} className="scene-viewport relative flex size-full overflow-auto overscroll-contain">
@@ -264,10 +273,10 @@ export function HouseScene({
                 id={`character${i + 1}`}
                 label={c.name}
                 ariaLabel={`Falar com ${c.name}`}
-                hitbox={characterHitbox(CHARACTER_SEATS[i])}
+                hitbox={i < 2 ? characterHitbox(CHARACTER_SEATS[i]) : { x: i === 2 ? 190 : 205, y: 143, w: 15, h: 27 }}
                 showLabel={showLabels}
                 onActivate={() => {
-                  const p = characterAnchor(CHARACTER_SEATS[i]);
+                  const p = i < 2 ? characterAnchor(CHARACTER_SEATS[i]) : { x: i === 2 ? 198 : 213, y: 140 };
                   say(phrases[i], p.x, p.y);
                 }}
               />
@@ -319,6 +328,8 @@ const FLOOR = pts([iso(0, 0), iso(120, 0), iso(120, 120), iso(0, 120)]);
 export function targetRects(appearance: HouseAppearance, target: EditorTarget): Rect[] {
   if (target === 'character1') return [characterHitbox(CHARACTER_SEATS[0])];
   if (target === 'character2') return [characterHitbox(CHARACTER_SEATS[1])];
+  if (target === 'character3') return [{ x: 190, y: 143, w: 15, h: 27 }];
+  if (target === 'character4') return [{ x: 205, y: 143, w: 15, h: 27 }];
   if (target === 'pet') return appearance.pet.enabled ? [petHitbox(appearance.pet)] : [];
   if (target in appearance.furniture) {
     const key = target as keyof HouseAppearance['furniture'];
@@ -328,7 +339,7 @@ export function targetRects(appearance: HouseAppearance, target: EditorTarget): 
 }
 
 /** Ordem de empilhamento: o que vem depois fica por cima. */
-const REGION_ORDER: EditorTarget[] = ['rug', 'window', 'frame', 'calendar', 'plants', 'bookshelf', 'tv', 'radio', 'sofa', 'cushions', 'character1', 'character2', 'lamp', 'table', 'pet', 'chest'];
+const REGION_ORDER: EditorTarget[] = ['rug', 'window', 'frame', 'calendar', 'plants', 'bookshelf', 'tv', 'radio', 'sofa', 'sofa2', 'cushions', 'character1', 'character2', 'character3', 'character4', 'lamp', 'table', 'pet', 'chest'];
 
 function EditorRegions({ appearance, selected, onSelect }: { appearance: HouseAppearance; selected: EditorTarget | null; onSelect?: (t: EditorTarget) => void }) {
   const props = (target: EditorTarget) => ({
@@ -380,7 +391,7 @@ function SelectionChip({ appearance, target }: { appearance: HouseAppearance; ta
   if (rects.length === 0) return null;
   const r = rects[0];
   const name =
-    target === 'character1' ? `Personagem 1 · ${appearance.characters[0].name}` : target === 'character2' ? `Personagem 2 · ${appearance.characters[1].name}` : target === 'pet' ? `Animalzinho · ${appearance.pet.name}` : targetLabels[target];
+    target === 'character1' ? `Personagem 1 · ${appearance.characters[0].name}` : target === 'character2' ? `Personagem 2 · ${appearance.characters[1].name}` : target === 'character3' ? `Personagem 3 · ${appearance.characters[2].name}` : target === 'character4' ? `Personagem 4 · ${appearance.characters[3].name}` : target === 'pet' ? `Animalzinho · ${appearance.pet.name}` : targetLabels[target];
   return (
     <div
       className="pointer-events-none absolute -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-full bg-white px-2.5 py-1 font-sans text-xs font-semibold text-stone-900 shadow-md"

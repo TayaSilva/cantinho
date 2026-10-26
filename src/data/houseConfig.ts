@@ -51,7 +51,7 @@ export const visitorHotspots: VisitorHotspot[] = [
  * Elementos selecionáveis no editor visual
  * ------------------------------------------------------------------ */
 
-export type EditorCategory = 'ambiente' | 'moveis' | 'personagem1' | 'personagem2' | 'animal' | 'decoracoes';
+export type EditorCategory = 'ambiente' | 'moveis' | 'personagem1' | 'personagem2' | 'personagem3' | 'personagem4' | 'animal' | 'decoracoes';
 
 export type EditorTarget =
   | 'walls'
@@ -61,12 +61,16 @@ export type EditorTarget =
   | FurnitureKey
   | 'character1'
   | 'character2'
+  | 'character3'
+  | 'character4'
   | 'pet';
 
 export function categoryOf(target: EditorTarget): EditorCategory {
   if (target === 'walls' || target === 'floor' || target === 'window' || target === 'lighting') return 'ambiente';
   if (target === 'character1') return 'personagem1';
   if (target === 'character2') return 'personagem2';
+  if (target === 'character3') return 'personagem3';
+  if (target === 'character4') return 'personagem4';
   if (target === 'pet') return 'animal';
   return 'moveis';
 }
@@ -77,6 +81,7 @@ export const targetLabels: Record<EditorTarget, string> = {
   window: 'Janela',
   lighting: 'Iluminação',
   sofa: 'Sofá',
+  sofa2: 'Sofá 2',
   table: 'Mesa',
   rug: 'Tapete',
   bookshelf: 'Estante',
@@ -90,11 +95,13 @@ export const targetLabels: Record<EditorTarget, string> = {
   cushions: 'Almofadas',
   character1: 'Personagem 1',
   character2: 'Personagem 2',
+  character3: 'Personagem 3',
+  character4: 'Personagem 4',
   pet: 'Animalzinho',
 };
 
 /** Ordem dos móveis no painel. */
-export const furnitureOrder: FurnitureKey[] = ['sofa', 'cushions', 'table', 'rug', 'bookshelf', 'tv', 'radio', 'frame', 'calendar', 'lamp', 'chest', 'plants'];
+export const furnitureOrder: FurnitureKey[] = ['sofa', 'sofa2', 'cushions', 'table', 'rug', 'bookshelf', 'tv', 'radio', 'frame', 'calendar', 'lamp', 'chest', 'plants'];
 
 /** Objetos interativos: podem ser ocultados, mas o conteúdo continua salvo. */
 export const interactiveFurniture: FurnitureKey[] = ['bookshelf', 'tv', 'radio', 'frame', 'calendar', 'lamp', 'chest'];
@@ -110,6 +117,7 @@ export const editorHitboxes: Partial<Record<EditorTarget, Rect[]>> = {
   tv: [{ x: 189, y: 72, w: 52, h: 68 }],
   radio: [{ x: 235, y: 98, w: 31, h: 54 }],
   sofa: [{ x: 69, y: 87, w: 70, h: 58 }],
+  sofa2: [{ x: 166, y: 125, w: 73, h: 50 }],
   cushions: [{ x: 92, y: 92, w: 14, h: 18 }, { x: 122, y: 84, w: 14, h: 18 }],
   lamp: [{ x: 52, y: 92, w: 30, h: 62 }],
   table: [{ x: 108, y: 120, w: 49, h: 37 }],
@@ -155,6 +163,7 @@ export const defaultAppearance: HouseAppearance = {
   },
   furniture: {
     sofa: { model: 'sofa.classico', visible: true },
+    sofa2: { model: 'sofa.classico', visible: true },
     table: { model: 'table.madeira', visible: true },
     rug: { model: 'rug.classico', visible: true },
     bookshelf: { model: 'shelf.alta', visible: true },
@@ -189,6 +198,26 @@ export const defaultAppearance: HouseAppearance = {
       accessory: 'acc.nenhum',
       expression: 'face.sorriso',
     },
+    {
+      name: 'Pessoa 3',
+      skinTone: 'skin.1',
+      hairStyle: 'hair.chanel',
+      hairColor: 'hairColor.branco',
+      outfit: 'outfit.jaqueta',
+      outfitColor: 'outfitColor.azul',
+      accessory: 'acc.nenhum',
+      expression: 'face.sorriso',
+    },
+    {
+      name: 'Pessoa 4',
+      skinTone: 'skin.4',
+      hairStyle: 'hair.rabo',
+      hairColor: 'hairColor.castanho-claro',
+      outfit: 'outfit.macacao',
+      outfitColor: 'outfitColor.rosa',
+      accessory: 'acc.nenhum',
+      expression: 'face.sorriso',
+    },
   ],
   pet: {
     enabled: true,
@@ -208,7 +237,8 @@ export const defaultAppearance: HouseAppearance = {
 };
 
 /** Lugar de cada personagem no sofá (eixo c da grade isométrica). */
-export const CHARACTER_SEATS = [52, 68] as const;
+export const CHARACTER_SEATS = [52, 68, 52, 68] as const;
+export const SECOND_SOFA_TRANSFORM = 'translate(100 62) scale(.62)';
 
 /** Posição do pet no tapete. */
 export const PET_POSITION = { a: 60, c: 74 } as const;

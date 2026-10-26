@@ -574,14 +574,14 @@ function sofaGeometry(variant: string) {
 }
 
 /** Parte de trás do sofá (encosto, braço do fundo, assento). Os personagens sentam por cima. */
-export function SofaBack({ opt }: { opt: AssetOption }) {
+export function SofaBack({ opt, transform }: { opt: AssetOption; transform?: string }) {
   const color = str(opt, 'color');
   const variant = str(opt, 'variant');
   const g = sofaGeometry(variant);
   const cushion = shade(color, -0.12);
   const tufted = variant === 'tufted' || variant === 'chesterfield';
   return (
-    <g>
+    <g transform={transform}>
       {g.legs &&
         [
           [1, 43],
@@ -604,12 +604,12 @@ export function SofaBack({ opt }: { opt: AssetOption }) {
 }
 
 /** Braço da frente do sofá (desenhado depois dos personagens). */
-export function SofaFront({ opt }: { opt: AssetOption }) {
+export function SofaFront({ opt, transform }: { opt: AssetOption; transform?: string }) {
   const color = str(opt, 'color');
   const variant = str(opt, 'variant');
   const g = sofaGeometry(variant);
   return (
-    <g>
+    <g transform={transform}>
       <IsoBox a={[0, 20]} c={[90 - g.armW, 90]} z={[g.base, g.arm]} color={color} />
       {variant === 'chesterfield' && <IsoBox a={[0, 20]} c={[83.5, 90.5]} z={[g.arm, g.arm + 2]} color={shade(color, -0.1)} />}
     </g>

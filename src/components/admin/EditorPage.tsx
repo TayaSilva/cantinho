@@ -21,6 +21,8 @@ const CATEGORIES: { id: EditorCategory; label: string; icon: 'home' | 'sofa' | '
   { id: 'moveis', label: 'Móveis', icon: 'sofa' },
   { id: 'personagem1', label: 'Personagem 1', icon: 'person' },
   { id: 'personagem2', label: 'Personagem 2', icon: 'person' },
+  { id: 'personagem3', label: 'Personagem 3', icon: 'person' },
+  { id: 'personagem4', label: 'Personagem 4', icon: 'person' },
   { id: 'animal', label: 'Animalzinho', icon: 'paw' },
   { id: 'decoracoes', label: 'Decorações', icon: 'star' },
 ];
@@ -28,6 +30,7 @@ const CATEGORIES: { id: EditorCategory; label: string; icon: 'home' | 'sofa' | '
 /** Tipo do catálogo usado por cada móvel. */
 const FURNITURE_TYPE: Record<FurnitureKey, ElementType> = {
   sofa: 'sofa',
+  sofa2: 'sofa',
   table: 'table',
   rug: 'rug',
   bookshelf: 'bookshelf',
@@ -183,8 +186,8 @@ export function EditorPage({ draft }: { draft: HouseDraft }) {
               }}
             />
           )}
-          {(category === 'personagem1' || category === 'personagem2') && (
-            <CharacterPanel ap={ap} setAp={setAp} slot={category === 'personagem1' ? 0 : 1} onSwitch={(s) => select(s === 0 ? 'character1' : 'character2')} />
+          {(['personagem1', 'personagem2', 'personagem3', 'personagem4'] as EditorCategory[]).includes(category) && (
+            <CharacterPanel ap={ap} setAp={setAp} slot={category === 'personagem1' ? 0 : category === 'personagem2' ? 1 : category === 'personagem3' ? 2 : 3} onSwitch={(s) => select(`character${s + 1}` as EditorTarget)} />
           )}
           {category === 'animal' && <PetPanel ap={ap} setAp={setAp} />}
           {category === 'decoracoes' && <DecorPanel ap={ap} setAp={setAp} />}
@@ -205,7 +208,7 @@ function swatchesFor(type: ElementType, key = 'color') {
   return optionsFor(type).map((o) => ({ id: o.id, name: o.name, color: str(o, key) }));
 }
 
-function thumbsFor(type: ElementType, ap: HouseAppearance, slot?: 0 | 1, group?: string) {
+function thumbsFor(type: ElementType, ap: HouseAppearance, slot?: 0 | 1 | 2 | 3, group?: string) {
   return optionsFor(type, group).map((o) => ({ id: o.id, name: o.name, thumb: <OptionThumb type={type} optionId={o.id} appearance={ap} slot={slot} /> }));
 }
 
@@ -318,7 +321,7 @@ function MoveisPanel({ ap, setAp, current, onPick }: { ap: HouseAppearance; setA
   );
 }
 
-function CharacterPanel({ ap, setAp, slot, onSwitch }: { ap: HouseAppearance; setAp: SetAp; slot: 0 | 1; onSwitch: (s: 0 | 1) => void }) {
+function CharacterPanel({ ap, setAp, slot, onSwitch }: { ap: HouseAppearance; setAp: SetAp; slot: 0 | 1 | 2 | 3; onSwitch: (s: 0 | 1 | 2 | 3) => void }) {
   const ch = ap.characters[slot];
   const set = (key: keyof CharacterAppearance) => (id: string) => setAp((a) => void (a.characters[slot][key] = id));
   const sec = (k: string, title: string, type: ElementType, kind: 'swatch' | 'thumb', value: string): ReactNode => (
@@ -332,13 +335,15 @@ function CharacterPanel({ ap, setAp, slot, onSwitch }: { ap: HouseAppearance; se
   );
   return (
     <div className="flex flex-col gap-7" id={`sec-character${slot + 1}`}>
-      <Segmented<'0' | '1'>
+      <Segmented<'0' | '1' | '2' | '3'>
         label="Personagem"
-        value={String(slot) as '0' | '1'}
-        onChange={(v) => onSwitch(v === '0' ? 0 : 1)}
+        value={String(slot) as '0' | '1' | '2' | '3'}
+        onChange={(v) => onSwitch(Number(v) as 0 | 1 | 2 | 3)}
         options={[
           { id: '0', label: `Personagem 1 · ${ap.characters[0].name || '—'}` },
           { id: '1', label: `Personagem 2 · ${ap.characters[1].name || '—'}` },
+          { id: '2', label: `Personagem 3 · ${ap.characters[2].name || '—'}` },
+          { id: '3', label: `Personagem 4 · ${ap.characters[3].name || '—'}` },
         ]}
       />
       <TextField label="Nome" value={ch.name} maxLength={24} onChange={(v) => setAp((a) => void (a.characters[slot].name = v), `name-${slot}`)} />

@@ -146,18 +146,23 @@ export const catalog: AssetOption[] = [
   o('hairStyle', 'hair.cacheado', 'Cacheado', { style: 'curly' }),
   o('hairStyle', 'hair.crespo', 'Crespo', { style: 'coily' }),
   o('hairStyle', 'hair.longo', 'Longo liso', { style: 'long' }),
+  o('hairStyle', 'hair.chanel', 'Chanel', { style: 'bob' }),
+  o('hairStyle', 'hair.rabo', 'Rabo de cavalo', { style: 'ponytail' }),
 
   o('hairColor', 'hairColor.preto', 'Preto', { color: '#2B2024' }),
   o('hairColor', 'hairColor.castanho-escuro', 'Castanho escuro', { color: '#4A2E22' }),
   o('hairColor', 'hairColor.castanho-claro', 'Castanho claro', { color: '#8A5A3B' }),
   o('hairColor', 'hairColor.loiro', 'Loiro', { color: '#D9B26A' }),
   o('hairColor', 'hairColor.ruivo', 'Ruivo', { color: '#B5562F' }),
+  o('hairColor', 'hairColor.branco', 'Branco', { color: '#F4EDE4' }),
 
   o('outfit', 'outfit.camiseta', 'Camiseta', { style: 'tshirt' }),
   o('outfit', 'outfit.moletom', 'Moletom', { style: 'hoodie' }),
   o('outfit', 'outfit.vestido', 'Vestido', { style: 'dress' }),
   o('outfit', 'outfit.jardineira', 'Jardineira', { style: 'overalls' }),
   o('outfit', 'outfit.sueter', 'Suéter listrado', { style: 'sweater' }),
+  o('outfit', 'outfit.jaqueta', 'Jaqueta', { style: 'jacket' }),
+  o('outfit', 'outfit.macacao', 'Macacão', { style: 'jumpsuit' }),
 
   o('outfitColor', 'outfitColor.salvia', 'Sálvia', { color: '#7E9C8E' }),
   o('outfitColor', 'outfitColor.mostarda', 'Mostarda', { color: '#E3A857' }),

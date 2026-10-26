@@ -33,7 +33,7 @@ interface ThumbProps {
   optionId: string;
   appearance: HouseAppearance;
   /** Personagem 0 ou 1 (para miniaturas de personagem). */
-  slot?: 0 | 1;
+  slot?: 0 | 1 | 2 | 3;
 }
 
 export function OptionThumb({ type, optionId, appearance, slot = 0 }: ThumbProps) {

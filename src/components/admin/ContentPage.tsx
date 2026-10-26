@@ -196,7 +196,7 @@ const fileTitle = (f: File) => f.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, 
 
 function TextsSection({ doc, edit }: { doc: HouseDocument; edit: Edit }) {
   const c = doc.content;
-  const [n1, n2] = doc.appearance.characters.map((ch) => ch.name || 'Personagem');
+  const [n1, n2, n3, n4] = doc.appearance.characters.map((ch) => ch.name || 'Personagem');
   return (
     <>
       <Header title="Textos da casa" description="Nome, tela de entrada e as frases que aparecem nos balões." />
@@ -215,6 +215,8 @@ function TextsSection({ doc, edit }: { doc: HouseDocument; edit: Edit }) {
         <h2 className="text-sm font-semibold text-stone-900">Balões de fala</h2>
         <TextField label={`Frase de ${n1}`} value={c.phrases.character1} onChange={(v) => edit((x) => void (x.phrases.character1 = v), 'p1')} />
         <TextField label={`Frase de ${n2}`} value={c.phrases.character2} onChange={(v) => edit((x) => void (x.phrases.character2 = v), 'p2')} />
+        <TextField label={`Frase de ${n3}`} value={c.phrases.character3} onChange={(v) => edit((x) => void (x.phrases.character3 = v), 'p3')} />
+        <TextField label={`Frase de ${n4}`} value={c.phrases.character4} onChange={(v) => edit((x) => void (x.phrases.character4 = v), 'p4')} />
         <TextField label="Frase do animalzinho" value={c.phrases.pet} hint="Use {nome} para mostrar o nome do animal." onChange={(v) => edit((x) => void (x.phrases.pet = v), 'pp')} />
       </Card>
       <Card className="flex flex-col gap-5 p-5 sm:p-6">

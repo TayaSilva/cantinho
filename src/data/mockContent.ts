@@ -40,6 +40,8 @@ export const defaultContent: HouseContent = {
   phrases: {
     character1: 'Que bom que você chegou!',
     character2: 'Senta aqui, o filme já vai começar.',
+    character3: 'Tem espaço para mais uma pessoa!',
+    character4: 'Agora cabem todos no nosso cantinho.',
     pet: '{nome}: mrrrau!',
   },
 

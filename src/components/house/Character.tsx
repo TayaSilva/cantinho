@@ -18,6 +18,8 @@ const PANTS: Record<string, string> = {
   tshirt: '#5C6E8A',
   hoodie: '#46536B',
   sweater: '#8A6D5A',
+  jacket: '#46536B',
+  jumpsuit: '#7E9C8E',
 };
 
 /**
@@ -35,10 +37,10 @@ export function Character({ look, seat, index = 0 }: { look: CharacterAppearance
   const accessory = str(getOption('accessory', look.accessory), 'kind', 'none');
   const expression = str(getOption('expression', look.expression), 'kind', 'smile');
 
-  const shirt = outfit === 'overalls' ? '#F4EDE4' : color;
+  const shirt = outfit === 'overalls' || outfit === 'jumpsuit' ? '#F4EDE4' : color;
   const pants = outfit === 'overalls' ? color : PANTS[outfit] ?? '#5C6E8A';
   const shoes = '#46353F';
-  const longSleeves = outfit === 'hoodie' || outfit === 'sweater' || outfit === 'overalls';
+  const longSleeves = outfit === 'hoodie' || outfit === 'sweater' || outfit === 'overalls' || outfit === 'jacket' || outfit === 'jumpsuit';
   const hairDark = shade(hair, 0.2);
 
   const parts: ReactNode[] = [];
@@ -49,6 +51,7 @@ export function Character({ look, seat, index = 0 }: { look: CharacterAppearance
   if (hairStyle === 'long') box('hair-back', [6, 8.5], [cc - 1, cc + 9], [15, 36], hair, { outline: false, side: hairDark });
   if (hairStyle === 'wavy') box('hair-back', [5.5, 8.5], [cc - 1.5, cc + 9.5], [22, 36], hair, { outline: false, side: hairDark });
   if (hairStyle === 'coily') box('hair-back', [3.5, 9], [cc - 3, cc + 11], [26, 44], hair, { side: hairDark });
+  if (hairStyle === 'ponytail') box('hair-back', [5, 9], [cc + 7, cc + 13], [24, 38], hair, { outline: false, side: hairDark });
   if (outfit === 'hoodie') box('hood', [4.5, 7.5], [cc, cc + 8], [22, 30], shade(color, 0.12));
 
   /* --- corpo --- */
@@ -73,7 +76,7 @@ export function Character({ look, seat, index = 0 }: { look: CharacterAppearance
 
   /* --- detalhes da roupa --- */
   const details: ReactNode[] = [];
-  if (outfit === 'overalls') {
+  if (outfit === 'overalls' || outfit === 'jumpsuit') {
     details.push(<FaceA key="bib" a={13.05} c={[cc + 1.5, cc + 6.5]} z={[11, 20]} fill={color} />);
     details.push(<FaceA key="strap1" a={13.05} c={[cc + 1.5, cc + 2.5]} z={[20, 26]} fill={color} />);
     details.push(<FaceA key="strap2" a={13.05} c={[cc + 5.5, cc + 6.5]} z={[20, 26]} fill={color} />);
@@ -90,6 +93,10 @@ export function Character({ look, seat, index = 0 }: { look: CharacterAppearance
       details.push(<FaceA key={`s${z}`} a={13.05} c={[cc, cc + 8]} z={[z, z + 1.6]} fill={shade(color, -0.4)} />);
       details.push(<FaceC key={`sc${z}`} a={[7, 13]} c={cc + 8.05} z={[z, z + 1.6]} fill={shade(color, -0.25)} />);
     }
+  }
+  if (outfit === 'jacket') {
+    details.push(<FaceA key="zip" a={13.05} c={[cc + 3.8, cc + 4.8]} z={[12, 25]} fill={shade(color, -0.25)} />);
+    details.push(<FaceA key="collar-jacket" a={13.1} c={[cc + 1.5, cc + 6.5]} z={[23, 25]} fill={shade(color, 0.2)} />);
   }
   if (outfit === 'tshirt' || outfit === 'dress') {
     details.push(<FaceA key="collar" a={13.05} c={[cc + 2.5, cc + 5.5]} z={[24.8, 26]} fill={skin} />);
@@ -120,6 +127,13 @@ export function Character({ look, seat, index = 0 }: { look: CharacterAppearance
       top.push(<IsoBox key="wave-side" a={[6, 12]} c={[cc + 9, cc + 10]} z={[25, 36]} color={hair} side={hairDark} outline={false} />);
       top.push(<IsoBox key="wave-tip" a={[10, 13]} c={[cc + 9, cc + 10.5]} z={[25, 28]} color={hair} side={hairDark} outline={false} />);
     }
+    if (hairStyle === 'bob') {
+      top.push(<IsoBox key="bob-side" a={[6, 13]} c={[cc + 9, cc + 11]} z={[26, 36]} color={hair} side={hairDark} outline={false} />);
+      top.push(<IsoBox key="bob-tip" a={[10, 14]} c={[cc + 8.5, cc + 11]} z={[25, 28]} color={hair} side={hairDark} outline={false} />);
+    }
+    if (hairStyle === 'ponytail') {
+      top.push(<IsoBox key="ponytail" a={[3, 8]} c={[cc - 3, cc + 1]} z={[34, 43]} color={hair} side={hairDark} outline={false} />);
+    }
     // franja
     top.push(<FaceA key="fringe" a={14.05} c={[cc - 1, cc + 9]} z={[hairStyle === 'curly' ? 33.5 : 33, 36]} fill={hair} />);
     if (hairStyle === 'curly') {
@@ -127,7 +141,7 @@ export function Character({ look, seat, index = 0 }: { look: CharacterAppearance
       top.push(<FaceA key="fringe-n2" a={14.1} c={[cc + 6, cc + 7.5]} z={[33, 33.5]} fill={hair} />);
     }
     // lateral
-    const low = hairStyle === 'short' ? 31 : hairStyle === 'long' ? 26 : 29;
+    const low = hairStyle === 'short' ? 31 : hairStyle === 'long' ? 26 : hairStyle === 'bob' ? 27 : 29;
     top.push(<polygon key="side" points={pts([iso(6, cc + 9.05, 36), iso(14, cc + 9.05, 36), iso(14, cc + 9.05, 33), iso(10, cc + 9.05, 31), iso(6, cc + 9.05, low)])} fill={hair} />);
   }
 

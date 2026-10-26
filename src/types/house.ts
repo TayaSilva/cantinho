@@ -87,6 +87,7 @@ export interface AssetOption {
 
 export type FurnitureKey =
   | 'sofa'
+  | 'sofa2'
   | 'table'
   | 'rug'
   | 'bookshelf'
@@ -141,7 +142,7 @@ export interface HouseAppearance {
   furniture: Record<FurnitureKey, FurnitureSetting>;
   /** Capa e cor dos livros (estante e livro de cartas). */
   books: string;
-  characters: [CharacterAppearance, CharacterAppearance];
+  characters: [CharacterAppearance, CharacterAppearance, CharacterAppearance, CharacterAppearance];
   pet: PetAppearance;
   decorations: Record<DecorationKey, boolean>;
 }
@@ -200,7 +201,7 @@ export interface HouseContent {
   welcome: { title: string; description: string; button: string; note: string };
   hint: string;
   /** Frases dos balões: personagem 1, personagem 2 e pet. */
-  phrases: { character1: string; character2: string; pet: string };
+  phrases: { character1: string; character2: string; character3: string; character4: string; pet: string };
   playlist: { name: string; tracks: Track[]; keepPlayingOnClose: boolean };
   videos: Video[];
   photos: Photo[];
