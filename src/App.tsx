@@ -9,6 +9,7 @@ import { RadioModal } from './components/modals/RadioModal';
 import { TVModal } from './components/modals/TVModal';
 import { AudioControl, AudioProvider, MiniPlayer, useAudio } from './components/ui/AudioControl';
 import { Icon, PixelButton } from './components/ui/PixelButton';
+import { ShareButton } from './components/ui/ShareButton';
 import { getOption, str } from './data/catalog';
 import { useHouseModal } from './hooks/useHouseModal';
 import { useHouseTime } from './hooks/useHouseTime';
@@ -144,6 +145,7 @@ function House({ doc, preview, period }: { doc: HouseDocument; preview: boolean;
           <PixelButton variant="dark" size="icon" onClick={() => setHelp((h) => !h)} aria-label="Mostrar objetos interativos" aria-pressed={help} className={help ? '!bg-rug !text-ink-deep' : ''}>
             <Icon name="help" />
           </PixelButton>
+          <ShareButton />
           <AudioControl />
           {canFullscreen && (
             <PixelButton variant="dark" size="icon" onClick={toggleFullscreen} aria-label="Tela cheia">

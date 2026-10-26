@@ -6,6 +6,7 @@ import { ContentPage } from './ContentPage';
 import type { ContentSection } from './ContentPage';
 import { AdminIcon, Button, ConfirmDialog, cx, Toast } from './controls';
 import { EditorPage } from './EditorPage';
+import { sharePublicHouse } from '../../services/share';
 
 const CONTENT_SECTIONS: ContentSection[] = ['textos', 'fotos', 'videos', 'musicas', 'cartas', 'datas', 'mensagens'];
 
@@ -17,6 +18,7 @@ const CONTENT_SECTIONS: ContentSection[] = ['textos', 'fotos', 'videos', 'musica
 export function AdminApp({ path, onLogout }: { path: string; onLogout?: () => void }) {
   const draft = useHouseDraft();
   const [confirm, setConfirm] = useState<null | 'reset' | 'publish'>(null);
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
 
   const isContent = path.startsWith('/admin/conteudos');
   const section = (CONTENT_SECTIONS.find((s) => path === `/admin/conteudos/${s}`) ?? 'fotos') as ContentSection;
@@ -55,6 +57,13 @@ export function AdminApp({ path, onLogout }: { path: string; onLogout?: () => vo
     const win = window.open('about:blank', '_blank');
     if (draft.dirty) await draft.saveDraft();
     if (win) win.location.href = '/?preview=draft';
+  };
+
+  const share = async () => {
+    const result = await sharePublicHouse();
+    if (!result) return;
+    setShareNotice(result === 'shared' ? 'Compartilhado!' : 'Link copiado!');
+    window.setTimeout(() => setShareNotice(null), 2200);
   };
 
   const link = (to: string) => (e: MouseEvent<HTMLAnchorElement>) => {
@@ -123,6 +132,10 @@ export function AdminApp({ path, onLogout }: { path: string; onLogout?: () => vo
           <Button onClick={preview}>
             <AdminIcon name="eye" className="size-4" />
             Pré-visualizar
+          </Button>
+          <Button onClick={() => void share()}>
+            <AdminIcon name="external" className="size-4" />
+            {shareNotice ?? 'Compartilhar link'}
           </Button>
           <Button onClick={draft.saveDraft} disabled={!draft.dirty || !!draft.busy}>
             Salvar rascunho

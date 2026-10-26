@@ -70,6 +70,8 @@ export function Icon({ name, className = 'size-5' }: { name: IconName; className
       return <svg {...common} fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="square"><path d="M5 12h14" /></svg>;
     case 'note':
       return <svg className={className} viewBox="0 0 7 7" aria-hidden="true" shapeRendering="crispEdges"><path d="M2 6h-2v-2h2v-4h5v2h-4v4z" fill="currentColor" /></svg>;
+    case 'share':
+      return <svg {...common} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="square" strokeLinejoin="miter"><circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" /><path d="M8.3 10.8l7.4-4.4M8.3 13.2l7.4 4.4" /></svg>;
     case 'heart':
       return <svg className={className} viewBox="0 0 12 12" aria-hidden="true" shapeRendering="crispEdges"><path d="M1 3h1v-1h3v1h2v-1h3v1h1v3h-1v1h-1v1h-1v1h-1v1h-2v-1h-1v-1h-1v-1h-1v-1h-1z" fill="currentColor" /></svg>;
   }
@@ -77,4 +79,4 @@ export function Icon({ name, className = 'size-5' }: { name: IconName; className
 
 export type IconName =
   | 'close' | 'play' | 'pause' | 'prev' | 'next' | 'left' | 'right'
-  | 'sound' | 'mute' | 'fullscreen' | 'help' | 'plus' | 'minus' | 'note' | 'heart';
+  | 'sound' | 'mute' | 'fullscreen' | 'help' | 'plus' | 'minus' | 'note' | 'heart' | 'share';
