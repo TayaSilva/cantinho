@@ -99,6 +99,7 @@ function Header({ title, description, action }: { title: string; description: st
 function UploadButton({ accept, multiple, label, onFiles, variant = 'primary' }: { accept: string; multiple?: boolean; label: string; onFiles: (files: File[]) => void; variant?: 'primary' | 'secondary' }) {
   const ref = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   return (
     <>
       <input
@@ -114,8 +115,11 @@ function UploadButton({ accept, multiple, label, onFiles, variant = 'primary' }:
           e.target.value = '';
           if (!files.length) return;
           setBusy(true);
+          setError(null);
           try {
             await onFiles(files);
+          } catch (cause) {
+            setError(cause instanceof Error ? cause.message : 'Não foi possível enviar o arquivo.');
           } finally {
             setBusy(false);
           }
@@ -125,6 +129,7 @@ function UploadButton({ accept, multiple, label, onFiles, variant = 'primary' }:
         <AdminIcon name="upload" className="size-4" />
         {busy ? 'Enviando…' : label}
       </Button>
+      {error && <span role="alert" className="mt-2 block max-w-xs text-xs leading-relaxed text-red-700">{error}</span>}
     </>
   );
 }

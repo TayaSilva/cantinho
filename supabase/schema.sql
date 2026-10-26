@@ -33,6 +33,12 @@ alter table public.admin_users enable row level security;
 alter table public.house_documents enable row level security;
 alter table public.media enable row level security;
 
+drop policy if exists "users can verify own admin access" on public.admin_users;
+create policy "users can verify own admin access"
+  on public.admin_users for select
+  to authenticated
+  using (user_id = auth.uid());
+
 drop policy if exists "published house is public" on public.house_documents;
 create policy "published house is public"
   on public.house_documents for select
