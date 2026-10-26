@@ -3,7 +3,6 @@ import { Upload } from 'tus-js-client';
 export const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, '');
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 export const SUPABASE_BUCKET = (import.meta.env.VITE_SUPABASE_BUCKET as string | undefined) || 'casinha-media';
-export const CASINHA_ID = (import.meta.env.VITE_CASINHA_ID as string | undefined) || '00000000-0000-0000-0000-000000000001';
 export const cloudConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 const SESSION_KEY = 'casinha:supabase-session';
@@ -121,6 +120,13 @@ export async function authFetch(input: RequestInfo | URL, init?: RequestInit): P
   const session = await getSession();
   if (session) headers.set('Authorization', `Bearer ${session.access_token}`);
   return fetch(input, { ...init, headers });
+}
+
+export async function getDefaultHouseId(): Promise<string> {
+  const response = await authFetch('/api/me/houses', { cache: 'no-store' });
+  const data = (await response.json().catch(() => [])) as Array<{ house_id?: string }>;
+  if (!response.ok || !data[0]?.house_id) throw new Error('Sua conta ainda não possui uma casinha.');
+  return data[0].house_id;
 }
 
 export async function uploadToCloud(path: string, file: Blob): Promise<void> {

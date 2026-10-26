@@ -1,7 +1,18 @@
+import { authFetch } from './auth';
+
 export type ShareResult = 'shared' | 'copied' | null;
 
 export async function sharePublicHouse(): Promise<ShareResult> {
-  const url = new URL('/', window.location.origin).href;
+  let token = '';
+  try {
+    const response = await authFetch('/api/houses/share-links', { method: 'POST' });
+    const data = (await response.json().catch(() => ({}))) as { token?: string; error?: string };
+    if (!response.ok || !data.token) throw new Error(data.error || 'Não foi possível criar o link.');
+    token = data.token;
+  } catch {
+    return null;
+  }
+  const url = new URL(`/c/${encodeURIComponent(token)}`, window.location.origin).href;
   const share = (navigator as Navigator & {
     share?: (data: { title?: string; text?: string; url?: string }) => Promise<void>;
   }).share;

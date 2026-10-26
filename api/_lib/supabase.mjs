@@ -1,8 +1,9 @@
+import { createHash, randomBytes } from 'node:crypto';
+
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-export const HOUSE_ID = process.env.CASINHA_ID || '00000000-0000-0000-0000-000000000001';
 export const BUCKET = process.env.SUPABASE_BUCKET || 'casinha-media';
 
 export function assertConfig() {
@@ -27,31 +28,93 @@ export function storageFetch(path, init = {}) {
   return fetch(`${SUPABASE_URL}/storage/v1/${path}`, { ...init, headers: headers(init.headers, SUPABASE_SERVICE_ROLE_KEY) });
 }
 
-export async function requireAdmin(req) {
+export async function getUser(req) {
   assertConfig();
   const authorization = req.headers.authorization;
   if (!authorization?.startsWith('Bearer ')) return null;
-  const userResponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: { apikey: SUPABASE_ANON_KEY, Authorization: authorization },
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: authorization } });
+  return response.ok ? response.json() : null;
+}
+
+export async function getHouseForUser(userId, houseId) {
+  const filter = houseId ? `id=eq.${encodeURIComponent(houseId)}` : `owner_id=eq.${encodeURIComponent(userId)}`;
+  const response = await dbFetch(`houses?${filter}&status=eq.active&select=id,owner_id,name&limit=1`);
+  const rows = await response.json();
+  if (!response.ok || !rows[0]) return null;
+  const member = await dbFetch(`house_members?house_id=eq.${encodeURIComponent(rows[0].id)}&user_id=eq.${encodeURIComponent(userId)}&select=role,can_add_text&limit=1`);
+  const members = await member.json();
+  if (!member.ok || !members[0]) return null;
+  return { house: rows[0], membership: members[0] };
+}
+
+export async function requireHouse(req, houseId, permission = 'read') {
+  const user = await getUser(req);
+  if (!user) return null;
+  const context = await getHouseForUser(user.id, houseId);
+  if (!context) return null;
+  const allowed = permission === 'owner' ? context.membership.role === 'owner' : permission === 'text' ? context.membership.role === 'owner' || context.membership.can_add_text : true;
+  return allowed ? { user, ...context } : null;
+}
+
+export async function requireDefaultHouse(req, permission = 'read') {
+  const user = await getUser(req);
+  if (!user) return null;
+  const response = await dbFetch(`house_members?user_id=eq.${encodeURIComponent(user.id)}&select=house_id,role,can_add_text&order=created_at.asc&limit=1`);
+  const rows = await response.json();
+  if (!response.ok || !rows[0]) return null;
+  const context = await getHouseForUser(user.id, rows[0].house_id);
+  if (!context) return null;
+  const allowed = permission === 'owner' ? rows[0].role === 'owner' : permission === 'text' ? rows[0].role === 'owner' || rows[0].can_add_text : true;
+  return allowed ? { user, ...context } : null;
+}
+
+export function tokenHash(token) {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+export async function createShareToken(houseId, userId) {
+  const token = randomBytes(32).toString('base64url');
+  const response = await dbFetch('house_share_links', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify([{ house_id: houseId, token_hash: tokenHash(token), created_by: userId }]),
   });
-  if (!userResponse.ok) return null;
-  const user = await userResponse.json();
-  const adminResponse = await dbFetch(`admin_users?user_id=eq.${encodeURIComponent(user.id)}&select=user_id&limit=1`);
-  if (!adminResponse.ok || (await adminResponse.json()).length === 0) return null;
-  return user;
+  if (!response.ok) throw new Error(await response.text());
+  return token;
+}
+
+export async function resolveShareToken(token) {
+  if (!token || token.length < 32) return null;
+  const response = await dbFetch(`house_share_links?token_hash=eq.${encodeURIComponent(tokenHash(token))}&revoked_at=is.null&select=id,house_id,expires_at&limit=1`);
+  const rows = await response.json();
+  if (!response.ok || !rows[0] || (rows[0].expires_at && new Date(rows[0].expires_at) <= new Date())) return null;
+  return rows[0];
 }
 
 export async function upsertDocuments(documents) {
-  const response = await dbFetch('house_documents?on_conflict=house_id,status', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
-    body: JSON.stringify(documents),
-  });
+  const response = await dbFetch('house_documents?on_conflict=house_id,status', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=representation' }, body: JSON.stringify(documents) });
   if (!response.ok) throw new Error(await response.text());
   return response.json();
 }
 
-export function storagePublicUrl(path) {
-  const encodedPath = path.split('/').map((part) => encodeURIComponent(part)).join('/');
-  return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${encodedPath}`;
+export async function signedUrl(path, expiresIn = 3600) {
+  const encoded = path.split('/').map((part) => encodeURIComponent(part)).join('/');
+  const response = await storageFetch(`object/sign/${BUCKET}/${encoded}`, { method: 'POST', body: JSON.stringify({ expiresIn }) });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || typeof data.signedURL !== 'string') throw new Error('Não foi possível gerar a URL temporária da mídia.');
+  return data.signedURL.startsWith('http') ? data.signedURL : `${SUPABASE_URL}/storage/v1${data.signedURL}`;
+}
+
+export async function hydrateMedia(document, houseId) {
+  const response = await dbFetch(`media?house_id=eq.${encodeURIComponent(houseId)}&select=id,storage_path`);
+  const rows = await response.json();
+  if (!response.ok) throw new Error('Não foi possível consultar as mídias.');
+  const urls = new Map(await Promise.all(rows.map(async (row) => [row.id, await signedUrl(row.storage_path)])));
+  const visit = (value) => {
+    if (typeof value === 'string' && value.startsWith('media:')) return urls.get(value.slice(6).split('@')[0]) || value;
+    if (Array.isArray(value)) return value.map(visit);
+    if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, visit(item)]));
+    return value;
+  };
+  return visit(document);
 }

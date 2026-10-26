@@ -1,5 +1,10 @@
 export function cors(res) {
-  res.setHeader('access-control-allow-origin', '*');
+  const origin = res.req?.headers?.origin;
+  const allowed = process.env.APP_ORIGIN;
+  if (origin && (!allowed || origin === allowed)) {
+    res.setHeader('access-control-allow-origin', origin);
+    res.setHeader('vary', 'Origin');
+  }
   res.setHeader('access-control-allow-methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.setHeader('access-control-allow-headers', 'authorization, content-type');
 }
@@ -11,11 +16,12 @@ export function options(req, res) {
   return true;
 }
 
-export function json(res, status, value) {
+export function json(res, status, value, extraHeaders = {}) {
   const body = JSON.stringify(value);
   res.statusCode = status;
   res.setHeader('content-type', 'application/json; charset=utf-8');
   res.setHeader('cache-control', 'no-store');
+  for (const [name, value] of Object.entries(extraHeaders)) res.setHeader(name, value);
   res.end(body);
 }
 

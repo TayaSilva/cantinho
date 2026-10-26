@@ -28,19 +28,26 @@ function periodFromUrl(search: URLSearchParams): Period | null {
 export default function App() {
   const { path, search } = useRoute();
   if (path === '/admin' || path.startsWith('/admin/')) return <AdminGate path={path === '/admin' ? '/admin/editor' : path} />;
-  return <PublicHouse preview={search.get('preview') === 'draft'} period={periodFromUrl(search)} />;
+  const publicToken = path.startsWith('/c/') ? decodeURIComponent(path.slice(3)) : null;
+  return <PublicHouse preview={search.get('preview') === 'draft'} period={periodFromUrl(search)} publicToken={publicToken} />;
 }
 
 /**
  * Casinha pública. Lê apenas a versão PUBLICADA — ou o rascunho, quando aberta
  * pelo botão "Pré-visualizar" do Backoffice (?preview=draft).
  */
-function PublicHouse({ preview, period }: { preview: boolean; period: Period | null }) {
+function PublicHouse({ preview, period, publicToken }: { preview: boolean; period: Period | null; publicToken: string | null }) {
   const [doc, setDoc] = useState<HouseDocument | null>(null);
 
   useEffect(() => {
     let alive = true;
-    const load = () => (preview ? loadDraft() : loadPublished()).then((d) => alive && setDoc(d));
+    const load = () => {
+      if (publicToken) return fetch(`/api/public/house/${encodeURIComponent(publicToken)}`).then(async (response) => {
+        if (!response.ok) throw new Error('Link inválido.');
+        return response.json() as Promise<HouseDocument>;
+      }).then((d) => alive && setDoc(d));
+      return (preview ? loadDraft() : loadPublished()).then((d) => alive && setDoc(d));
+    };
     void load();
     // Atualiza se o Backoffice salvar/publicar (nesta ou em outra aba).
     window.addEventListener(STORE_EVENT, load);
@@ -50,7 +57,7 @@ function PublicHouse({ preview, period }: { preview: boolean; period: Period | n
       window.removeEventListener(STORE_EVENT, load);
       window.removeEventListener('storage', load);
     };
-  }, [preview]);
+  }, [preview, publicToken]);
 
   if (!doc) return <main className="min-h-dvh bg-night" aria-busy="true" />;
 

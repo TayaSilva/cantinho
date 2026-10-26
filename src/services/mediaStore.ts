@@ -1,4 +1,4 @@
-import { authFetch, CASINHA_ID, cloudConfigured, SUPABASE_URL, SUPABASE_BUCKET, uploadToCloud } from './auth';
+import { authFetch, cloudConfigured, uploadToCloud, getDefaultHouseId } from './auth';
 
 /**
  * Arquivos enviados pelo Backoffice (fotos, vídeos, músicas).
@@ -67,8 +67,9 @@ export async function putMedia(file: Blob): Promise<string> {
 
   if (cloudConfigured) {
     const id = newId();
+    const houseId = await getDefaultHouseId();
     const extension = originalName.includes('.') ? originalName.slice(originalName.lastIndexOf('.')).replace(/[^a-zA-Z0-9.]/g, '').slice(0, 10) : '';
-    const storagePath = `${CASINHA_ID}/${id}${extension}`;
+    const storagePath = `${houseId}/${id}${extension}`;
     await uploadToCloud(storagePath, file);
     const response = await authFetch(`${API_BASE}/api/media/complete`, {
       method: 'POST',
@@ -81,7 +82,7 @@ export async function putMedia(file: Blob): Promise<string> {
     }
     // A URL direta evita uma ida extra à Vercel e uma consulta ao banco quando
     // outra pessoa abre o link compartilhado.
-    return `${PREFIX}${id}@${storagePath}`;
+    return PREFIX + id;
   }
 
   try {
@@ -129,15 +130,8 @@ export async function resolveMedia(src: string | undefined): Promise<string | un
   if (!isMediaRef(src)) return src;
   const cached = urlCache.get(src);
   if (cached) return cached;
-  const { id, storagePath } = mediaParts(src);
+  const { id } = mediaParts(src);
   const apiUrl = mediaApiUrl(src) as string;
-
-  if (cloudConfigured && storagePath && SUPABASE_URL) {
-    const encodedPath = storagePath.split('/').map((part) => encodeURIComponent(part)).join('/');
-    const directUrl = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${encodedPath}`;
-    urlCache.set(src, directUrl);
-    return directUrl;
-  }
 
   // Em produção, a API já é o resolvedor da mídia: ela responde com um
   // redirect para o objeto no Storage. Fazer um HEAD antes do GET atrasava
@@ -145,8 +139,15 @@ export async function resolveMedia(src: string | undefined): Promise<string | un
   // Entregamos a URL imediatamente e deixamos o elemento <audio>/<video>
   // fazer uma única requisição.
   if (cloudConfigured) {
-    urlCache.set(src, apiUrl);
-    return apiUrl;
+    try {
+      const response = await authFetch(apiUrl, { method: 'HEAD', cache: 'no-store' });
+      if (response.ok && response.url !== apiUrl) {
+        urlCache.set(src, response.url);
+        return response.url;
+      }
+    } catch {
+      // Tenta o IndexedDB legado abaixo.
+    }
   }
 
   try {
