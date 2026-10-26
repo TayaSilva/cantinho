@@ -49,6 +49,12 @@ function mediaParts(ref: string) {
   return separator < 0 ? { id: value, storagePath: undefined } : { id: value.slice(0, separator), storagePath: value.slice(separator + 1) };
 }
 
+export function mediaApiUrl(src: string): string | undefined {
+  if (!isMediaRef(src)) return src;
+  const { id } = mediaParts(src);
+  return `${API_BASE}/api/media/${encodeURIComponent(id)}`;
+}
+
 function newId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -124,7 +130,7 @@ export async function resolveMedia(src: string | undefined): Promise<string | un
   const cached = urlCache.get(src);
   if (cached) return cached;
   const { id, storagePath } = mediaParts(src);
-  const apiUrl = `${API_BASE}/api/media/${encodeURIComponent(id)}`;
+  const apiUrl = mediaApiUrl(src) as string;
 
   if (cloudConfigured && storagePath && SUPABASE_URL) {
     const encodedPath = storagePath.split('/').map((part) => encodeURIComponent(part)).join('/');

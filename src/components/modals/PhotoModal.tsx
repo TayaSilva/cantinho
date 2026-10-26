@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMediaUrl } from '../../hooks/useMediaUrl';
+import { mediaApiUrl } from '../../services/mediaStore';
 import type { Photo } from '../../types/house';
 import { Icon, PixelButton } from '../ui/PixelButton';
 import { BaseModal } from './BaseModal';
@@ -13,9 +14,12 @@ interface PhotoModalProps {
 /** Galeria de fotos do quadro. Setas do teclado também navegam. */
 export function PhotoModal({ open, onClose, photos }: PhotoModalProps) {
   const [index, setIndex] = useState(0);
+  const [fallback, setFallback] = useState(false);
   const total = photos.length;
   const photo = photos[Math.min(index, Math.max(0, total - 1))];
   const src = useMediaUrl(photo?.src);
+  const fallbackSrc = photo?.src ? mediaApiUrl(photo.src) : undefined;
+  useEffect(() => setFallback(false), [photo?.src]);
   const go = (d: number) => setIndex((i) => (i + d + total) % total);
 
   if (!photo) {
@@ -46,9 +50,10 @@ export function PhotoModal({ open, onClose, photos }: PhotoModalProps) {
           <figure className="relative m-0 min-w-0 flex-1 border-4 border-wood bg-white p-2.5 pb-11 shadow-[6px_6px_0_rgba(70,53,63,.25)] sm:p-3.5 sm:pb-12">
             <img
               key={photo.id}
-              src={src}
+              src={fallback ? fallbackSrc : src}
               alt={photo.alt}
               className="pixelated block aspect-[3/2] w-full object-cover motion-safe:animate-photo-in"
+              onError={() => fallbackSrc && !fallback && setFallback(true)}
             />
             {photo.caption && (
               <figcaption className="absolute inset-x-0 bottom-2.5 text-center font-pixel text-base text-ink sm:text-lg">{photo.caption}</figcaption>

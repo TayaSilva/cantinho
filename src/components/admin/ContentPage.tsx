@@ -1,9 +1,9 @@
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { HouseDraft } from '../../hooks/useHouseDraft';
 import { useMediaUrl } from '../../hooks/useMediaUrl';
 import { navigate } from '../../hooks/useRoute';
-import { putMedia } from '../../services/mediaStore';
+import { mediaApiUrl, putMedia } from '../../services/mediaStore';
 import type { HouseContent, HouseDocument } from '../../types/house';
 import { AdminIcon, Button, cx, TextArea, TextField, Toggle } from './controls';
 
@@ -184,7 +184,10 @@ function Empty({ children }: { children: ReactNode }) {
 
 function MediaImage({ src, alt, className }: { src: string | undefined; alt: string; className?: string }) {
   const url = useMediaUrl(src);
-  return url ? <img src={url} alt={alt} className={className} /> : <div className={cx('bg-stone-100', className)} />;
+  const [fallback, setFallback] = useState(false);
+  useEffect(() => setFallback(false), [src]);
+  const fallbackUrl = src ? mediaApiUrl(src) : undefined;
+  return url ? <img src={fallback ? fallbackUrl : url} alt={alt} className={className} onError={() => fallbackUrl && !fallback && setFallback(true)} /> : <div className={cx('bg-stone-100', className)} />;
 }
 
 const fileTitle = (f: File) => f.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ');
