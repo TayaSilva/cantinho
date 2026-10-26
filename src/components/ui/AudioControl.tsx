@@ -10,6 +10,7 @@ interface AudioState {
   track: Track | undefined;
   playing: boolean;
   muted: boolean;
+  volume: number;
   currentTime: number;
   duration: number;
   play: () => void;
@@ -20,6 +21,7 @@ interface AudioState {
   select: (index: number) => void;
   seek: (seconds: number) => void;
   toggleMute: () => void;
+  setVolume: (value: number) => void;
 }
 
 const AudioContext = createContext<AudioState | null>(null);
@@ -33,6 +35,7 @@ export function AudioProvider({ tracks, children }: { tracks: Track[]; children:
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
+  const [volume, setVolumeState] = useState(1);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const wantsPlay = useRef(false);
@@ -99,6 +102,10 @@ export function AudioProvider({ tracks, children }: { tracks: Track[]; children:
     if (audioRef.current) audioRef.current.muted = muted;
   }, [muted]);
 
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume;
+  }, [volume]);
+
   const play = useCallback(() => {
     wantsPlay.current = true;
     void loadTrack(track).then((ok) => {
@@ -118,6 +125,7 @@ export function AudioProvider({ tracks, children }: { tracks: Track[]; children:
       track,
       playing,
       muted,
+      volume,
       currentTime,
       duration,
       play,
@@ -134,8 +142,13 @@ export function AudioProvider({ tracks, children }: { tracks: Track[]; children:
         if (audioRef.current) audioRef.current.currentTime = s;
       },
       toggleMute: () => setMuted((m) => !m),
+      setVolume: (value: number) => {
+        const next = Math.max(0, Math.min(1, value));
+        setVolumeState(next);
+        if (next > 0) setMuted(false);
+      },
     }),
-    [tracks, safeIndex, track, playing, muted, currentTime, duration, play, pause],
+    [tracks, safeIndex, track, playing, muted, volume, currentTime, duration, play, pause],
   );
 
   return <AudioContext.Provider value={value}>{children}</AudioContext.Provider>;

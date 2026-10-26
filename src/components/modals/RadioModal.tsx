@@ -12,7 +12,7 @@ interface RadioModalProps {
 /** Rádio retrô ampliado com a playlist de memórias. */
 export function RadioModal({ open, onClose, playlistName, keepPlayingOnClose }: RadioModalProps) {
   const audio = useAudio();
-  const { tracks, index, track, playing, muted, currentTime, duration } = audio;
+  const { tracks, index, track, playing, muted, volume, currentTime, duration } = audio;
 
   const handleClose = () => {
     if (!keepPlayingOnClose) audio.pause();
@@ -71,6 +71,23 @@ export function RadioModal({ open, onClose, playlistName, keepPlayingOnClose }: 
           <PixelButton variant="paper" size="icon" className="size-[52px]" onClick={audio.next} aria-label="Próxima música">
             <Icon name="next" className="size-5" />
           </PixelButton>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Icon name={volume === 0 || muted ? 'mute' : 'sound'} className="size-5 shrink-0 text-plum" />
+          <label htmlFor="radio-volume" className="sr-only">Volume</label>
+          <input
+            id="radio-volume"
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={volume}
+            onChange={(e) => audio.setVolume(Number(e.target.value))}
+            className="pixel-range flex-1"
+            aria-label={`Volume: ${Math.round(volume * 100)} por cento`}
+          />
+          <span className="w-10 text-right text-xs text-muted">{Math.round(volume * 100)}%</span>
         </div>
 
         <ol className="flex flex-col border-[3px] border-ink">
