@@ -1,3 +1,5 @@
+import { Upload } from 'tus-js-client';
+
 export const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, '');
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 export const SUPABASE_BUCKET = (import.meta.env.VITE_SUPABASE_BUCKET as string | undefined) || 'casinha-media';
@@ -125,6 +127,23 @@ export async function uploadToCloud(path: string, file: Blob): Promise<void> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error('Storage cloud não configurado.');
   const session = await getSession();
   if (!session) throw new Error('Faça login para enviar arquivos.');
+  if (file.size > 6 * 1024 * 1024) {
+    await new Promise<void>((resolve, reject) => {
+      const upload = new Upload(file, {
+        endpoint: `${SUPABASE_URL}/storage/v1/upload/resumable`,
+        retryDelays: [0, 1000, 3000, 5000, 10000],
+        chunkSize: 6 * 1024 * 1024,
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}` },
+        metadata: { bucketName: SUPABASE_BUCKET, objectName: path, contentType: file.type || 'application/octet-stream' },
+        uploadSize: file.size,
+        onError: reject,
+        onSuccess: () => resolve(),
+      });
+      upload.start();
+    });
+    return;
+  }
+
   const response = await fetch(`${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${path}`, {
     method: 'POST',
     headers: {
