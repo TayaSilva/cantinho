@@ -12,6 +12,7 @@
  */
 import { defaultAppearance } from '../data/houseConfig';
 import { defaultContent } from '../data/mockContent';
+import { authFetch } from './auth';
 import type { HouseAppearance, HouseContent, HouseDocument } from '../types/house';
 
 const DRAFT_KEY = 'casinha:draft:v1';
@@ -72,7 +73,7 @@ function write(key: string, doc: HouseDocument) {
 
 async function request(path: string, init?: RequestInit): Promise<Response | null> {
   try {
-    return await fetch(`${API_BASE}${path}`, { cache: 'no-store', ...init });
+    return await authFetch(`${API_BASE}${path}`, { cache: 'no-store', ...init });
   } catch {
     return null;
   }

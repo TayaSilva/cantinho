@@ -1,3 +1,5 @@
+import { authFetch, CASINHA_ID, cloudConfigured, uploadToCloud } from './auth';
+
 /**
  * Arquivos enviados pelo Backoffice (fotos, vídeos, músicas).
  *
@@ -48,6 +50,23 @@ function newId(): string {
 
 /** Guarda um arquivo e devolve a referência para salvar no conteúdo. */
 export async function putMedia(file: Blob): Promise<string> {
+  const namedFile = file as Blob & { name?: string };
+  const originalName = namedFile.name || 'upload';
+
+  if (cloudConfigured) {
+    const id = newId();
+    const extension = originalName.includes('.') ? originalName.slice(originalName.lastIndexOf('.')).replace(/[^a-zA-Z0-9.]/g, '').slice(0, 10) : '';
+    const storagePath = `${CASINHA_ID}/${id}${extension}`;
+    await uploadToCloud(storagePath, file);
+    const response = await authFetch(`${API_BASE}/api/media/complete`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id, storagePath, name: originalName, type: file.type || 'application/octet-stream', size: file.size }),
+    });
+    if (!response.ok) throw new Error('O arquivo foi enviado, mas não pôde ser registrado.');
+    return PREFIX + id;
+  }
+
   try {
     const bytes = new Uint8Array(await file.arrayBuffer());
     let binary = '';
@@ -59,7 +78,7 @@ export async function putMedia(file: Blob): Promise<string> {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        name: 'name' in file && typeof file.name === 'string' ? file.name : 'upload',
+        name: originalName,
         type: file.type || 'application/octet-stream',
         data: btoa(binary),
       }),
@@ -80,7 +99,7 @@ export async function putMedia(file: Blob): Promise<string> {
 export async function deleteMedia(ref: string): Promise<void> {
   if (!isMediaRef(ref)) return;
   const id = ref.slice(PREFIX.length);
-  await fetch(`${API_BASE}/api/media/${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => undefined);
+  await authFetch(`${API_BASE}/api/media/${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => undefined);
   await tx('readwrite', (s) => s.delete(id));
   const url = urlCache.get(ref);
   if (url) URL.revokeObjectURL(url);
@@ -96,7 +115,7 @@ export async function resolveMedia(src: string | undefined): Promise<string | un
   const id = src.slice(PREFIX.length);
   const apiUrl = `${API_BASE}/api/media/${encodeURIComponent(id)}`;
   try {
-    const response = await fetch(apiUrl, { method: 'HEAD', cache: 'no-store' });
+    const response = await authFetch(apiUrl, { method: 'HEAD', cache: 'no-store' });
     if (response.ok) {
       urlCache.set(src, apiUrl);
       return apiUrl;

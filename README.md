@@ -31,6 +31,26 @@ Esta API local ainda não tem autenticação e deve ser protegida antes de ser
 publicada na internet. Para produção, a mesma API pode ser ligada a PostgreSQL
 e Storage (ou Supabase) sem alterar o contrato usado pelo frontend.
 
+## Produção na Vercel + Supabase
+
+Para publicar o Backoffice com banco e uploads persistentes:
+
+1. Crie um projeto no Supabase.
+2. Rode `supabase/schema.sql` no SQL Editor.
+3. Crie um usuário em `Authentication > Users`.
+4. Adicione o UUID desse usuário em `public.admin_users`:
+
+```sql
+insert into public.admin_users(user_id)
+values ('UUID_DO_USUARIO');
+```
+
+5. Na Vercel, configure as variáveis de `.env.example`. A
+`SUPABASE_SERVICE_ROLE_KEY` deve existir apenas nas variáveis do servidor e
+nunca em uma variável `VITE_*`.
+6. Faça um novo deploy. O frontend usa as funções em `api/`, o documento fica
+no PostgreSQL e os arquivos são enviados diretamente ao Storage.
+
 | Endereço | O que é |
 |---|---|
 | `/` | Casinha pública (mostra só a versão **publicada**) |

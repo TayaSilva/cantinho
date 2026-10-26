@@ -14,7 +14,7 @@ const CONTENT_SECTIONS: ContentSection[] = ['textos', 'fotos', 'videos', 'musica
  * Rascunho, desfazer, restaurar padrão, pré-visualizar e publicar ficam no topo,
  * valendo para as duas áreas (é o mesmo sistema de publicação).
  */
-export function AdminApp({ path }: { path: string }) {
+export function AdminApp({ path, onLogout }: { path: string; onLogout?: () => void }) {
   const draft = useHouseDraft();
   const [confirm, setConfirm] = useState<null | 'reset' | 'publish'>(null);
 
@@ -130,6 +130,7 @@ export function AdminApp({ path }: { path: string }) {
           <Button variant="primary" onClick={() => setConfirm('publish')} disabled={(draft.pending === 0 && !draft.dirty) || !!draft.busy}>
             Publicar
           </Button>
+          {onLogout && <Button variant="ghost" onClick={onLogout}>Sair</Button>}
         </div>
       </header>
 

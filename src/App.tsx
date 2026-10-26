@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AdminApp } from './components/admin/AdminApp';
+import { AdminGate } from './components/admin/AdminGate';
 import { HouseScene } from './components/house/HouseScene';
 import { BookModal } from './components/modals/BookModal';
 import { CalendarModal } from './components/modals/CalendarModal';
@@ -26,7 +26,7 @@ function periodFromUrl(search: URLSearchParams): Period | null {
 
 export default function App() {
   const { path, search } = useRoute();
-  if (path === '/admin' || path.startsWith('/admin/')) return <AdminApp path={path === '/admin' ? '/admin/editor' : path} />;
+  if (path === '/admin' || path.startsWith('/admin/')) return <AdminGate path={path === '/admin' ? '/admin/editor' : path} />;
   return <PublicHouse preview={search.get('preview') === 'draft'} period={periodFromUrl(search)} />;
 }
 
