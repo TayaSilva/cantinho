@@ -35,7 +35,7 @@ export function CalendarModal({ open, onClose, dates, togetherSince, now }: Cale
     <BaseModal open={open} onClose={onClose} title="Calendário · Datas especiais" headerClass="bg-rug" widthClass="max-w-[620px]">
       <div className="flex flex-col gap-5 p-5 sm:p-6">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-[3px] border-ink bg-highlight px-4 py-3.5">
-          <span className="font-pixel text-[40px] font-bold leading-none">{nf.format(Math.max(0, total))}</span>
+          <span className="font-sans text-[40px] font-extrabold leading-none tracking-tight tabular-nums sm:text-[44px]">{nf.format(Math.max(0, total))}</span>
           <span className="text-base">
             {togetherSince.label} desde {since.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
           </span>
