@@ -23,11 +23,16 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
   const [confirm, setConfirm] = useState<null | 'reset' | 'publish' | 'switch'>(null);
   const [pendingHouse, setPendingHouse] = useState<string | null>(null);
   const [shareNotice, setShareNotice] = useState<string | null>(null);
+  // Navegação recolhível do celular (no desktop os links ficam sempre à vista).
+  const [navOpen, setNavOpen] = useState(false);
+  const navRef = useRef<HTMLDivElement>(null);
+  useDismiss(navOpen, navRef, useCallback(() => setNavOpen(false), []));
 
   const isContent = path.startsWith('/conteudos');
   const section = (CONTENT_SECTIONS.find((s) => path === `/conteudos/${s}`) ?? 'fotos') as ContentSection;
   const contentPath = houseAdminPath(house.house_id, '/conteudos/fotos');
   const editorPath = houseAdminPath(house.house_id);
+  const publishedHref = `/?house=${encodeURIComponent(house.house_id)}`;
 
   // Avisa antes de sair com alterações não salvas.
   useEffect(() => {
@@ -74,6 +79,7 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
 
   const link = (to: string) => (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
+    setNavOpen(false);
     navigate(to);
   };
 
@@ -99,66 +105,87 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
 
   return (
     <div className="flex min-h-dvh flex-col bg-stone-50 font-admin text-sm text-stone-900 lg:h-dvh">
-      <header className="flex shrink-0 flex-col gap-3 px-3 pt-3 sm:px-4 sm:pt-4">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-2xl border border-stone-100 bg-white px-4 py-3 shadow-sm sm:px-5">
-          <div className="flex items-center gap-3">
-            <span className="flex size-11 items-center justify-center rounded-xl bg-rose-50">
+      {/* Abaixo de md, o cabeçalho vira três linhas: marca + conta + ☰, cantinho + Prévia, Publicar + ⋯.
+          De md para cima, o layout de desktop continua igual. */}
+      <header className="flex shrink-0 flex-col gap-2 px-2 pt-2 sm:px-4 sm:pt-4 md:gap-3">
+        <div ref={navRef} className="flex flex-wrap items-center gap-x-2 gap-y-2 rounded-2xl border border-stone-100 bg-white px-3 py-2 shadow-sm sm:px-5 md:gap-x-6 md:gap-y-3 md:py-3">
+          <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-rose-50 md:size-11">
               <svg width="18" height="18" viewBox="0 0 12 12" shapeRendering="crispEdges" aria-hidden="true">
                 <path d="M1 3h1v-1h3v1h2v-1h3v1h1v3h-1v1h-1v1h-1v1h-1v1h-2v-1h-1v-1h-1v-1h-1v-1h-1z" fill="#C2577A" />
               </svg>
             </span>
             <span className="text-[15px] font-bold">Cantinho</span>
-            <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs text-stone-500">Admin</span>
+            <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs text-stone-500 max-[359px]:hidden">Admin</span>
           </div>
-          <nav aria-label="Principal" className="flex flex-wrap gap-1 sm:ml-6">
+          <nav
+            id="admin-nav"
+            aria-label="Principal"
+            className={cx('order-last w-full flex-col gap-1 border-t border-stone-100 pt-2 md:order-none md:ml-6 md:flex md:w-auto md:flex-row md:flex-wrap md:border-0 md:pt-0', navOpen ? 'flex' : 'hidden')}
+          >
             <a href="/meus-cantinhos" onClick={link('/meus-cantinhos')} className={navClass(false)}>Meus cantinhos</a>
             <a href={contentPath} onClick={link(contentPath)} aria-current={isContent ? 'page' : undefined} className={navClass(isContent)}>Conteúdos</a>
             <a href={editorPath} onClick={link(editorPath)} aria-current={!isContent ? 'page' : undefined} className={navClass(!isContent)}>Personalizar cantinho</a>
           </nav>
           <div className="flex-1" />
-          <div className="flex items-center gap-4">
-            <a href={`/?house=${encodeURIComponent(house.house_id)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-stone-500 no-underline hover:text-stone-800">
+          <div className="flex items-center gap-1.5 md:gap-4">
+            <a href={publishedHref} target="_blank" rel="noreferrer" className="hidden items-center gap-2 rounded-lg px-2 py-2 text-stone-500 no-underline hover:text-stone-800 md:inline-flex">
               <AdminIcon name="external" className="size-4" />
               Ver cantinho publicado
             </a>
-            <span className="h-8 w-px bg-stone-200" aria-hidden="true" />
+            <span className="hidden h-8 w-px bg-stone-200 md:block" aria-hidden="true" />
             <AccountMenu firstName={firstName} email={email} onLogout={onLogout} onDeleteAccount={onDeleteAccount} ownedCount={houses.length} />
+            <button
+              type="button"
+              aria-label={navOpen ? 'Fechar navegação' : 'Abrir navegação'}
+              aria-expanded={navOpen}
+              aria-controls="admin-nav"
+              onClick={() => setNavOpen((v) => !v)}
+              className={cx('flex size-11 cursor-pointer items-center justify-center rounded-xl text-stone-700 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-rose-500 md:hidden', navOpen && 'bg-stone-100')}
+            >
+              <AdminIcon name={navOpen ? 'close' : 'menu'} className="size-[22px]" />
+            </button>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-stone-100 bg-white px-4 py-3 shadow-sm sm:px-5">
-          <label className="relative flex items-center">
-            <span className="sr-only">Cantinho ativo</span>
-            <AdminIcon name="home" className="pointer-events-none absolute left-3.5 size-5 text-stone-700" />
-            <select value={house.house_id} onChange={(event) => chooseHouse(event.target.value)} className="h-11 w-56 max-w-full cursor-pointer appearance-none truncate rounded-xl border border-stone-200 bg-white pr-10 pl-11 text-sm font-semibold outline-none hover:bg-stone-50 focus:border-rose-500">
-              {houses.map((item) => <option key={item.house_id} value={item.house_id}>{item.house.name}</option>)}
-            </select>
-            <AdminIcon name="chevron" className="pointer-events-none absolute right-3.5 size-4 text-stone-700" />
-          </label>
-          <span
-            role="status"
-            className={cx(
-              'inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-[13px] font-medium',
-              status.tone === 'warn' && 'bg-amber-50 text-amber-600',
-              status.tone === 'info' && 'bg-sky-50 text-sky-800',
-              status.tone === 'ok' && 'bg-emerald-50 text-emerald-700',
-              status.tone === 'neutral' && 'bg-stone-100 text-stone-700',
-            )}
-          >
-            <span className={cx('size-1.5 rounded-full', status.tone === 'warn' ? 'bg-amber-500' : status.tone === 'info' ? 'bg-sky-600' : status.tone === 'ok' ? 'bg-emerald-600' : 'bg-stone-500')} />
-            {status.text}
-          </span>
-          <div className="flex-1" />
-          <div className="flex flex-wrap items-center gap-2.5">
-            <Button size="lg" onClick={preview}>
+        <div className="flex flex-col gap-2.5 rounded-2xl border border-stone-100 bg-white p-3 shadow-sm sm:px-5 md:flex-row md:flex-wrap md:items-center md:gap-3">
+          <div className="flex min-w-0 items-start gap-2 md:contents">
+            <div className="flex min-w-0 flex-1 flex-col gap-1 md:contents">
+              <label className="relative flex items-center">
+                <span className="sr-only">Cantinho ativo</span>
+                <AdminIcon name="home" className="pointer-events-none absolute left-3.5 size-5 text-stone-700" />
+                <select value={house.house_id} onChange={(event) => chooseHouse(event.target.value)} className="h-11 w-full min-w-0 cursor-pointer appearance-none truncate rounded-xl border border-stone-200 bg-white pr-10 pl-11 text-sm font-semibold outline-none hover:bg-stone-50 focus:border-rose-500 md:w-56 md:max-w-full">
+                  {houses.map((item) => <option key={item.house_id} value={item.house_id}>{item.house.name}</option>)}
+                </select>
+                <AdminIcon name="chevron" className="pointer-events-none absolute right-3.5 size-4 text-stone-700" />
+              </label>
+              <span
+                role="status"
+                className={cx(
+                  'flex min-w-0 items-center gap-1.5 px-1 text-xs font-medium md:inline-flex md:gap-2 md:rounded-xl md:px-3.5 md:py-2.5 md:text-[13px]',
+                  status.tone === 'warn' && 'text-amber-600 md:bg-amber-50',
+                  status.tone === 'info' && 'text-sky-800 md:bg-sky-50',
+                  status.tone === 'ok' && 'text-emerald-700 md:bg-emerald-50',
+                  status.tone === 'neutral' && 'text-stone-700 md:bg-stone-100',
+                )}
+              >
+                <span className={cx('size-1.5 shrink-0 rounded-full', status.tone === 'warn' ? 'bg-amber-500' : status.tone === 'info' ? 'bg-sky-600' : status.tone === 'ok' ? 'bg-emerald-600' : 'bg-stone-500')} />
+                <span className="truncate">{status.text}</span>
+              </span>
+            </div>
+            <Button size="lg" onClick={preview} className="shrink-0 px-3.5 md:order-2 md:px-4">
               <AdminIcon name="eye" className="size-5" />
-              Pré-visualizar
+              <span className="md:hidden">Prévia</span>
+              <span className="hidden md:inline">Pré-visualizar</span>
             </Button>
-            <Button size="lg" onClick={draft.saveDraft} disabled={!draft.dirty || !!draft.busy}>
+          </div>
+          <div className="hidden flex-1 md:order-1 md:block" />
+          <div className="flex items-center gap-2 md:order-3 md:gap-2.5">
+            <Button size="lg" onClick={draft.saveDraft} disabled={!draft.dirty || !!draft.busy} className="max-md:hidden">
               <AdminIcon name="save" className="size-5" />
               Salvar rascunho
             </Button>
-            <Button size="lg" variant="primary" onClick={() => setConfirm('publish')} disabled={(draft.pending === 0 && !draft.dirty) || !!draft.busy}>
+            <Button size="lg" variant="primary" onClick={() => setConfirm('publish')} disabled={(draft.pending === 0 && !draft.dirty) || !!draft.busy} className="min-w-0 flex-1 max-md:bg-[#B24A6D] max-md:hover:bg-[#9E3F60] md:flex-none">
               <AdminIcon name="upload" className="size-5" />
               Publicar
             </Button>
@@ -167,6 +194,9 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
               onUndo={draft.undo}
               onReset={isContent ? undefined : () => setConfirm('reset')}
               onShare={() => void share()}
+              canSave={draft.dirty && !draft.busy}
+              onSave={() => void draft.saveDraft()}
+              publishedHref={publishedHref}
             />
           </div>
         </div>
@@ -228,8 +258,12 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
 
 const navClass = (active: boolean) => cx('rounded-xl px-4 py-2.5 font-medium no-underline transition-colors', active ? 'bg-rose-50 font-semibold text-rose-600' : 'text-stone-500 hover:bg-stone-50 hover:text-stone-800');
 
-/** Menu "⋯" com as ações menos usadas: desfazer, restaurar padrão e compartilhar. */
-function MoreMenu({ canUndo, onUndo, onReset, onShare }: { canUndo: boolean; onUndo: () => void; onReset?: () => void; onShare: () => void }) {
+/**
+ * Menu "⋯" com as ações menos usadas: desfazer, restaurar padrão e compartilhar.
+ * No celular também recebe "Salvar rascunho" e "Ver cantinho publicado", que no
+ * desktop ficam à vista no cabeçalho.
+ */
+function MoreMenu({ canUndo, onUndo, onReset, onShare, canSave, onSave, publishedHref }: { canUndo: boolean; onUndo: () => void; onReset?: () => void; onShare: () => void; canSave: boolean; onSave: () => void; publishedHref: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
@@ -241,11 +275,15 @@ function MoreMenu({ canUndo, onUndo, onReset, onShare }: { canUndo: boolean; onU
   };
   return (
     <div ref={ref} className="relative">
-      <Button size="lg" variant="ghost" aria-label="Mais ações" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)} className={cx('w-14', open ? 'bg-stone-100' : 'bg-stone-50')}>
+      <Button size="lg" variant="ghost" aria-label="Mais ações" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)} className={cx('w-12 shrink-0 md:w-14', open ? 'bg-stone-100' : 'bg-stone-50')}>
         <AdminIcon name="more" className="size-5" />
       </Button>
       {open && (
-        <div role="menu" className="absolute right-0 z-40 mt-2 w-56 rounded-xl border border-stone-100 bg-white p-1.5 text-sm shadow-lg motion-safe:animate-fade-in">
+        <div role="menu" className="absolute right-0 z-40 mt-2 w-60 max-w-[calc(100vw-1rem)] rounded-xl border border-stone-100 bg-white p-1.5 text-sm shadow-lg motion-safe:animate-fade-in md:w-56">
+          <button role="menuitem" type="button" className={cx(item, 'md:hidden')} disabled={!canSave} onClick={run(onSave)}>
+            <AdminIcon name="save" className="size-[18px]" />
+            Salvar rascunho
+          </button>
           <button role="menuitem" type="button" className={item} disabled={!canUndo} title="Desfazer (Ctrl+Z)" onClick={run(onUndo)}>
             <AdminIcon name="undo" className="size-[18px]" />
             Desfazer
@@ -260,6 +298,10 @@ function MoreMenu({ canUndo, onUndo, onReset, onShare }: { canUndo: boolean; onU
             <AdminIcon name="link" className="size-[18px]" />
             Compartilhar link
           </button>
+          <a role="menuitem" href={publishedHref} target="_blank" rel="noreferrer" className={cx(item, 'no-underline md:hidden')} onClick={close}>
+            <AdminIcon name="external" className="size-[18px]" />
+            Ver cantinho publicado
+          </a>
         </div>
       )}
     </div>

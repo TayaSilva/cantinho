@@ -312,7 +312,7 @@ export function Toast({ message, onDone }: { message: string | null; onDone: () 
 
 /* ---------- Ícones de traço (Backoffice) ---------- */
 
-export function AdminIcon({ name, className = 'size-[18px]' }: { name: 'home' | 'sofa' | 'person' | 'paw' | 'star' | 'undo' | 'eye' | 'plus' | 'up' | 'down' | 'trash' | 'upload' | 'external' | 'image' | 'video' | 'music' | 'letter' | 'calendar' | 'gift' | 'text' | 'save' | 'power' | 'link' | 'more' | 'chevron'; className?: string }) {
+export function AdminIcon({ name, className = 'size-[18px]' }: { name: 'home' | 'sofa' | 'person' | 'paw' | 'star' | 'undo' | 'eye' | 'plus' | 'up' | 'down' | 'trash' | 'upload' | 'external' | 'image' | 'video' | 'music' | 'letter' | 'calendar' | 'gift' | 'text' | 'save' | 'power' | 'link' | 'more' | 'chevron' | 'menu' | 'close'; className?: string }) {
   const p = { className, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true as const };
   switch (name) {
     case 'home':
@@ -365,5 +365,9 @@ export function AdminIcon({ name, className = 'size-[18px]' }: { name: 'home' | 
       return <svg {...p} fill="currentColor" stroke="none"><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></svg>;
     case 'chevron':
       return <svg {...p}><path d="M6 9l6 6 6-6" /></svg>;
+    case 'menu':
+      return <svg {...p}><path d="M4 7h16M4 12h16M4 17h16" /></svg>;
+    case 'close':
+      return <svg {...p}><path d="M6 6l12 12M18 6L6 18" /></svg>;
   }
 }
