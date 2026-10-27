@@ -50,16 +50,31 @@ export interface AuthProfile {
 
 function readSession(): AuthSession | null {
   try {
-    const raw = localStorage.getItem(SESSION_KEY);
+    const raw = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY);
     return raw ? (JSON.parse(raw) as AuthSession) : null;
   } catch {
     return null;
   }
 }
 
-function writeSession(session: AuthSession | null) {
-  if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  else localStorage.removeItem(SESSION_KEY);
+/**
+ * "Manter conectado" grava no localStorage; desmarcado, no sessionStorage (some ao
+ * fechar o navegador). Sem `remember` (refresh, links de e-mail), a sessão fica
+ * onde já estava.
+ */
+function writeSession(session: AuthSession | null, remember?: boolean) {
+  try {
+    if (session) {
+      const persistent = remember ?? sessionStorage.getItem(SESSION_KEY) === null;
+      (persistent ? localStorage : sessionStorage).setItem(SESSION_KEY, JSON.stringify(session));
+      (persistent ? sessionStorage : localStorage).removeItem(SESSION_KEY);
+    } else {
+      localStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(SESSION_KEY);
+    }
+  } catch {
+    // Storage bloqueado: a sessão vale só enquanto a página estiver aberta.
+  }
   window.dispatchEvent(new Event('casinha:auth-changed'));
 }
 
@@ -145,9 +160,9 @@ function sessionFromResponse(data: Record<string, unknown>): AuthSession {
   };
 }
 
-export async function signIn(email: string, password: string): Promise<AuthSession> {
+export async function signIn(email: string, password: string, remember = true): Promise<AuthSession> {
   const session = sessionFromResponse(await authRequest('token?grant_type=password', { email, password }));
-  writeSession(session);
+  writeSession(session, remember);
   return session;
 }
 

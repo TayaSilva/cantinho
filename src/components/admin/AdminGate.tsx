@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { MyHousesPage } from '../account/MyHousesPage';
 import { AdminApp } from './AdminApp';
+import { AuthBackdrop, GlassAlert, GlassButton, GlassCard, GlassField, GlassHeader, GlassInput, GlassLink, GlassPasswordInput, PixelHeart } from './AuthBackdrop';
+import { cx } from './controls';
 import { AuthError, cloudConfigured, consumeAuthRedirect, getSession, hasRecoveryToken, requestPasswordReset, resendConfirmation, signIn, signOut, signUp, updatePassword, verifySignupCode, type AuthSession } from '../../services/auth';
 import { createHouse, deleteHouse, getActiveHouseId, houseAdminPath, listHouses, setActiveHouseId, type HouseSummary } from '../../services/houses';
 import { navigate } from '../../hooks/useRoute';
@@ -44,6 +46,8 @@ export function AdminGate({ path }: { path: string }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
   const [recovery, setRecovery] = useState(hasRecoveryToken);
+  // Segura o login na tela por um instante para mostrar "Que bom ter você de volta!".
+  const [welcome, setWelcome] = useState(false);
 
   const refreshHouses = async () => {
     setError(null);
@@ -105,9 +109,9 @@ export function AdminGate({ path }: { path: string }) {
     return <RecoveryPage onDone={() => { setRecovery(false); setNotice('Senha alterada. Entre com sua nova senha.'); navigate('/login'); }} />;
   }
   if (loading) return <Loading />;
-  if (cloudConfigured && !session) {
+  if (cloudConfigured && (!session || welcome)) {
     const mode: AuthMode = path === '/cadastro' ? 'signup' : path === '/recuperar-senha' ? 'recovery' : 'login';
-    return <AuthPage mode={mode} notice={notice} linkError={linkError} onNotice={setNotice} />;
+    return <AuthPage mode={mode} notice={notice} linkError={linkError} onNotice={setNotice} onWelcome={setWelcome} />;
   }
   if (AUTH_PATHS.includes(path)) return <Redirect to="/meus-cantinhos" />;
   if (!houses) {
@@ -120,16 +124,15 @@ export function AdminGate({ path }: { path: string }) {
     return <Redirect to={active ? houseAdminPath(active, path.slice('/admin'.length)) : '/meus-cantinhos'} />;
   }
 
+  const firstName = session?.user.user_metadata?.first_name || 'amigo';
   const target = parseHousePath(path);
   if (target) {
     const house = houses.find((item) => item.house_id === target.id);
     if (!house) return <AccessDenied />;
     if (house.role !== 'owner') return <AccessDenied message="Você foi convidado para este cantinho, mas apenas o dono pode editá-lo." />;
-    return <AdminApp key={house.house_id} path={target.sub} house={house} houses={houses.filter((item) => item.role === 'owner')} onHouseChange={openHouse} onLogout={logout} />;
+    return <AdminApp key={house.house_id} path={target.sub} house={house} houses={houses.filter((item) => item.role === 'owner')} firstName={firstName} email={session?.user.email} onHouseChange={openHouse} onLogout={logout} />;
   }
   if (path !== '/meus-cantinhos') return <Redirect to="/meus-cantinhos" />;
-
-  const firstName = session?.user.user_metadata?.first_name || 'amigo';
   return <MyHousesPage firstName={firstName} email={session?.user.email} houses={houses} notice={notice} error={error} onDismissNotice={() => setNotice(null)} onOpen={openHouse} onCreate={createNewHouse} onDelete={removeHouse} onLogout={logout} />;
 }
 
@@ -158,26 +161,22 @@ function AccessDenied({ message = 'Este cantinho não existe ou não pertence à
   );
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
-  return (
-    <label className="flex flex-col gap-1.5 text-sm font-medium">
-      {label}
-      {children}
-      {error && <span className="text-xs font-normal text-red-700">{error}</span>}
-    </label>
-  );
-}
+type FieldErrors = { firstName?: string; email?: string; password?: string };
 
-const inputClass = (invalid?: boolean) => `rounded-lg border px-3 py-2 font-normal outline-none focus:border-rose-500 ${invalid ? 'border-red-400' : 'border-stone-300'}`;
-
-function PasswordInput({ value, onChange, autoComplete, invalid, id }: { value: string; onChange: (value: string) => void; autoComplete: string; invalid?: boolean; id?: string }) {
-  const [visible, setVisible] = useState(false);
-  return (
-    <div className="flex gap-2">
-      <input id={id} type={visible ? 'text' : 'password'} autoComplete={autoComplete} value={value} onChange={(event) => onChange(event.target.value)} aria-invalid={invalid || undefined} className={`min-w-0 flex-1 ${inputClass(invalid)}`} />
-      <button type="button" className="rounded-lg border border-stone-200 px-2.5 text-xs" aria-pressed={visible} onClick={() => setVisible((v) => !v)}>{visible ? 'Ocultar' : 'Mostrar'}</button>
-    </div>
-  );
+/** Regras e mensagens da SPEC do login; no cadastro a senha pede 8 caracteres. */
+function validate(mode: AuthMode, firstName: string, email: string, password: string): FieldErrors {
+  const errors: FieldErrors = {};
+  const name = firstName.trim();
+  const cleanEmail = email.trim();
+  if (mode === 'signup' && (name.length < 2 || name.length > 50)) errors.firstName = 'Use entre 2 e 50 caracteres.';
+  if (!cleanEmail) errors.email = 'Digite seu e-mail.';
+  else if (!EMAIL_PATTERN.test(cleanEmail)) errors.email = 'Esse e-mail não parece válido.';
+  if (mode !== 'recovery') {
+    const min = mode === 'signup' ? 8 : 6;
+    if (!password) errors.password = 'Digite sua senha.';
+    else if (password.length < min) errors.password = mode === 'signup' ? 'A senha precisa ter pelo menos 8 caracteres.' : 'A senha tem pelo menos 6 caracteres.';
+  }
+  return errors;
 }
 
 /** Botão de reenviar confirmação com espera entre envios. */
@@ -201,50 +200,46 @@ function ResendButton({ email }: { email: string }) {
   };
   return (
     <div className="flex flex-col gap-1.5 text-sm">
-      <button type="button" disabled={wait > 0 || !EMAIL_PATTERN.test(email)} className="self-start underline disabled:no-underline disabled:opacity-50" onClick={() => void resend()}>
+      <GlassLink disabled={wait > 0 || !EMAIL_PATTERN.test(email)} className="self-start" onClick={() => void resend()}>
         {wait > 0 ? `Reenviar confirmação em ${wait}s` : 'Reenviar e-mail de confirmação'}
-      </button>
-      {message && <span role="status" className="text-stone-600">{message}</span>}
+      </GlassLink>
+      {message && <span role="status" className="text-login-muted">{message}</span>}
     </div>
   );
 }
 
-function AuthPage({ mode, notice, linkError, onNotice }: { mode: AuthMode; notice: string | null; linkError: string | null; onNotice: (value: string | null) => void }) {
+function AuthPage({ mode, notice, linkError, onNotice, onWelcome }: { mode: AuthMode; notice: string | null; linkError: string | null; onNotice: (value: string | null) => void; onWelcome: (value: boolean) => void }) {
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(true);
+  const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(linkError);
-  const [errors, setErrors] = useState<{ firstName?: string; email?: string; password?: string }>({});
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [confirmEmail, setConfirmEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    setErrors({});
+    setTried(false);
     setError(linkError);
     setNeedsConfirmation(false);
     setSentTo(null);
     setConfirmEmail(null);
   }, [mode, linkError]);
 
-  const validate = () => {
-    const next: typeof errors = {};
-    const name = firstName.trim();
-    if (mode === 'signup' && (name.length < 2 || name.length > 50)) next.firstName = 'Use entre 2 e 50 caracteres.';
-    if (!EMAIL_PATTERN.test(email.trim())) next.email = 'Informe um e-mail válido.';
-    if (mode === 'signup' && password.length < 8) next.password = 'A senha precisa ter pelo menos 8 caracteres.';
-    if (mode === 'login' && !password) next.password = 'Informe sua senha.';
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
+  // Nada fica vermelho antes do primeiro envio; depois, os erros acompanham a digitação.
+  const errors = tried ? validate(mode, firstName, email, password) : {};
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (busy) return;
+    setTried(true);
     setError(null);
     setNeedsConfirmation(false);
     onNotice(null);
-    if (!validate()) return;
+    if (Object.keys(validate(mode, firstName, email, password)).length) return;
     setBusy(true);
     const cleanEmail = email.trim();
     try {
@@ -255,9 +250,13 @@ function AuthPage({ mode, notice, linkError, onNotice }: { mode: AuthMode; notic
         await requestPasswordReset(cleanEmail);
         setSentTo(cleanEmail);
       } else {
-        await signIn(cleanEmail, password);
+        onWelcome(true);
+        await signIn(cleanEmail, password, remember);
+        setDone(true);
+        window.setTimeout(() => onWelcome(false), 600);
       }
     } catch (cause) {
+      if (mode === 'login') onWelcome(false);
       if (cause instanceof AuthError && cause.code === 'email_not_confirmed') setNeedsConfirmation(true);
       // Recuperação sempre responde igual, exista ou não a conta (exceto excesso de tentativas).
       if (mode === 'recovery' && !(cause instanceof AuthError && cause.code === 'rate_limited')) setSentTo(cleanEmail);
@@ -269,63 +268,94 @@ function AuthPage({ mode, notice, linkError, onNotice }: { mode: AuthMode; notic
 
   if (confirmEmail) return <ConfirmCodePage email={confirmEmail} onConfirmed={() => onNotice('E-mail confirmado! Sua conta está pronta.')} onBack={() => { setConfirmEmail(null); navigate('/login'); }} />;
 
+  if (done) {
+    return (
+      <AuthBackdrop>
+        <GlassCard>
+          <div role="status" className="flex flex-col items-center gap-3 py-6 text-center">
+            <PixelHeart size={56} />
+            <p className="mt-2 text-2xl font-bold">Que bom ter você de volta!</p>
+            <p className="text-[15px] text-login-muted">Abrindo o cantinho…</p>
+          </div>
+        </GlassCard>
+      </AuthBackdrop>
+    );
+  }
+
   if (sentTo) {
     return (
-      <Shell>
-        <Card>
-          <div>
-            <p className="text-xs font-semibold tracking-[.08em] text-rose-700 uppercase">Cantinho</p>
-            <h1 className="mt-1 text-2xl font-bold">Confira seu e-mail</h1>
-          </div>
-          <p className="text-sm leading-relaxed text-stone-600">Se houver uma conta para <b>{sentTo}</b>, enviaremos as instruções para criar uma nova senha.</p>
-          <button type="button" className="self-start text-sm underline" onClick={() => navigate('/login')}>Voltar para o login</button>
-        </Card>
-      </Shell>
+      <AuthBackdrop>
+        <GlassCard>
+          <GlassHeader title="Confira seu e-mail">
+            Se houver uma conta para <b className="text-login-text">{sentTo}</b>, enviaremos as instruções para criar uma nova senha.
+          </GlassHeader>
+          <GlassLink className="self-start text-sm" onClick={() => navigate('/login')}>Voltar para o login</GlassLink>
+        </GlassCard>
+      </AuthBackdrop>
     );
   }
 
   const title = mode === 'signup' ? 'Crie sua conta' : mode === 'recovery' ? 'Recupere sua senha' : 'Entre no seu cantinho';
-  const subtitle = mode === 'recovery' ? 'Informe seu e-mail e enviaremos um link para criar uma nova senha.' : 'Um cantinho só seu, protegido e fácil de compartilhar.';
+  const subtitle = mode === 'signup' ? 'Um cantinho só seu, protegido e fácil de compartilhar.' : mode === 'recovery' ? 'Informe seu e-mail e enviaremos um link para criar uma nova senha.' : 'Use o e-mail e a senha da sua conta para continuar.';
+  const busyLabel = mode === 'signup' ? 'Criando conta…' : mode === 'recovery' ? 'Enviando…' : 'Entrando…';
   return (
-    <Shell>
-      <Card onSubmit={submit}>
-        <div>
-          <p className="text-xs font-semibold tracking-[.08em] text-rose-700 uppercase">Cantinho</p>
-          <h1 className="mt-1 text-2xl font-bold">{title}</h1>
-          <p className="mt-2 text-sm leading-relaxed text-stone-600">{subtitle}</p>
+    <AuthBackdrop>
+      <GlassCard onSubmit={submit}>
+        <GlassHeader title={title}>{subtitle}</GlassHeader>
+        <div className="flex flex-col gap-[18px]">
+          {mode === 'signup' && (
+            <GlassField id="nome" label="Primeiro nome" error={errors.firstName}>
+              <GlassInput id="nome" autoComplete="given-name" maxLength={50} placeholder="Como podemos te chamar?" value={firstName} onValue={setFirstName} error={errors.firstName} />
+            </GlassField>
+          )}
+          <GlassField id="email" label="E-mail" error={errors.email}>
+            <GlassInput id="email" type="email" autoComplete="email" inputMode="email" placeholder="voce@email.com" value={email} onValue={setEmail} error={errors.email} />
+          </GlassField>
+          {mode !== 'recovery' && (
+            <GlassField
+              id="senha"
+              label="Senha"
+              error={errors.password}
+              hint={mode === 'signup' ? 'Mínimo de 8 caracteres.' : undefined}
+              aside={mode === 'login' && <GlassLink className="text-[13px]" onClick={() => navigate('/recuperar-senha')}>Esqueci minha senha</GlassLink>}
+            >
+              <GlassPasswordInput id="senha" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} placeholder={mode === 'signup' ? 'Crie uma senha' : 'Sua senha'} value={password} onValue={setPassword} error={errors.password} />
+            </GlassField>
+          )}
+          {mode === 'login' && (
+            <label className="login-check flex w-fit cursor-pointer items-center gap-3 text-sm">
+              <input type="checkbox" className="sr-only" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
+              <span aria-hidden="true" className={cx('flex size-5 items-center justify-center rounded-md border', remember ? 'border-login-primary bg-login-primary' : 'border-white/30 bg-[#FFF8EE]/[.08]')}>
+                {remember && (
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 6.2l2.3 2.3 4.7-5" /></svg>
+                )}
+              </span>
+              Manter conectado
+            </label>
+          )}
         </div>
-        {mode === 'signup' && (
-          <Field label="Primeiro nome" error={errors.firstName}>
-            <input autoComplete="given-name" maxLength={50} value={firstName} onChange={(event) => setFirstName(event.target.value)} aria-invalid={!!errors.firstName || undefined} className={inputClass(!!errors.firstName)} />
-          </Field>
-        )}
-        <Field label="E-mail" error={errors.email}>
-          <input type="email" autoComplete="email" inputMode="email" value={email} onChange={(event) => setEmail(event.target.value)} aria-invalid={!!errors.email || undefined} className={inputClass(!!errors.email)} />
-        </Field>
-        {mode !== 'recovery' && (
-          <Field label="Senha" error={errors.password}>
-            <PasswordInput value={password} onChange={setPassword} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} invalid={!!errors.password} />
-            {mode === 'signup' && !errors.password && <span className="text-xs font-normal text-stone-500">Mínimo de 8 caracteres.</span>}
-          </Field>
-        )}
-        {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-        {needsConfirmation && (
-          <div className="flex flex-col gap-1.5">
-            <button type="button" className="self-start text-sm underline" onClick={() => setConfirmEmail(email.trim())}>Digitar código de confirmação</button>
-            <ResendButton email={email.trim()} />
+        {(error || needsConfirmation || notice) && (
+          <div className="flex flex-col gap-3">
+            {error && <GlassAlert>{error}</GlassAlert>}
+            {needsConfirmation && (
+              <div className="flex flex-col gap-1.5">
+                <GlassLink className="self-start text-sm" onClick={() => setConfirmEmail(email.trim())}>Digitar código de confirmação</GlassLink>
+                <ResendButton email={email.trim()} />
+              </div>
+            )}
+            {notice && <GlassAlert tone="info">{notice}</GlassAlert>}
           </div>
         )}
-        {notice && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
-        <button type="submit" disabled={busy} className="rounded-lg bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-700 disabled:opacity-50">
-          {busy ? 'Aguarde…' : mode === 'signup' ? 'Criar conta' : mode === 'recovery' ? 'Enviar instruções' : 'Entrar'}
-        </button>
-        <div className="flex flex-wrap justify-between gap-2 text-sm text-stone-600">
-          {mode === 'login' && <button type="button" className="underline" onClick={() => navigate('/recuperar-senha')}>Esqueci minha senha</button>}
-          {mode === 'recovery' && <button type="button" className="underline" onClick={() => navigate('/login')}>Voltar para o login</button>}
-          {mode !== 'recovery' && <button type="button" className="underline" onClick={() => navigate(mode === 'signup' ? '/login' : '/cadastro')}>{mode === 'signup' ? 'Já tenho conta' : 'Criar conta'}</button>}
-        </div>
-      </Card>
-    </Shell>
+        <GlassButton disabled={busy} loading={busy}>
+          {busy ? busyLabel : mode === 'signup' ? 'Criar conta' : mode === 'recovery' ? 'Enviar instruções' : 'Entrar'}
+        </GlassButton>
+        <p className="text-center text-sm text-login-muted">
+          {mode === 'login' && <>Ainda não tem um cantinho? <GlassLink onClick={() => navigate('/cadastro')}>Criar conta</GlassLink></>}
+          {mode === 'signup' && <>Já tem um cantinho? <GlassLink onClick={() => navigate('/login')}>Entrar</GlassLink></>}
+          {mode === 'recovery' && <>Lembrou a senha? <GlassLink onClick={() => navigate('/login')}>Voltar para o login</GlassLink></>}
+        </p>
+      </GlassCard>
+    </AuthBackdrop>
   );
 }
 
@@ -349,23 +379,21 @@ function ConfirmCodePage({ email, onConfirmed, onBack }: { email: string; onConf
     }
   };
   return (
-    <Shell>
-      <Card onSubmit={submit}>
-        <div>
-          <p className="text-xs font-semibold tracking-[.08em] text-rose-700 uppercase">Cantinho</p>
-          <h1 className="mt-1 text-2xl font-bold">Confira seu e-mail</h1>
+    <AuthBackdrop>
+      <GlassCard onSubmit={submit}>
+        <GlassHeader title="Confira seu e-mail">
+          Se for possível criar a conta para <b className="text-login-text">{email}</b>, você receberá um código de 6 dígitos. Digite-o abaixo; ele vale por tempo limitado.
+        </GlassHeader>
+        <GlassField id="codigo" label="Código de confirmação" error={error ?? undefined} hint="Ao reenviar, o código anterior deixa de valer.">
+          <GlassInput id="codigo" inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="000000" value={code} onValue={(value) => setCode(value.replace(/\D/g, ''))} error={error ?? undefined} className="tracking-[.3em]" />
+        </GlassField>
+        <GlassButton disabled={busy} loading={busy}>{busy ? 'Confirmando…' : 'Confirmar'}</GlassButton>
+        <div className="flex flex-col gap-3">
+          <ResendButton email={email} />
+          <GlassLink className="self-start text-sm" onClick={onBack}>Voltar para o login</GlassLink>
         </div>
-        <p className="text-sm leading-relaxed text-stone-600">Se for possível criar a conta para <b>{email}</b>, você receberá um código de 6 dígitos. Digite-o abaixo; ele vale por tempo limitado.</p>
-        <Field label="Código de confirmação">
-          <input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))} aria-invalid={!!error || undefined} className={`tracking-[.3em] ${inputClass(!!error)}`} />
-        </Field>
-        {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-        <button type="submit" disabled={busy} className="rounded-lg bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-700 disabled:opacity-50">{busy ? 'Confirmando…' : 'Confirmar'}</button>
-        <ResendButton email={email} />
-        <p className="text-xs text-stone-500">Ao reenviar, o código anterior deixa de valer.</p>
-        <button type="button" className="self-start text-sm underline" onClick={onBack}>Voltar para o login</button>
-      </Card>
-    </Shell>
+      </GlassCard>
+    </AuthBackdrop>
   );
 }
 
@@ -388,17 +416,15 @@ function RecoveryPage({ onDone }: { onDone: () => void }) {
     }
   };
   return (
-    <Shell>
-      <Card onSubmit={submit}>
-        <h1 className="text-2xl font-bold">Criar nova senha</h1>
-        <Field label="Nova senha">
-          <PasswordInput value={password} onChange={setPassword} autoComplete="new-password" invalid={!!error} />
-          <span className="text-xs font-normal text-stone-500">Mínimo de 8 caracteres.</span>
-        </Field>
-        {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-        <button type="submit" disabled={busy || !hasRecoveryToken()} className="rounded-lg bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-700 disabled:opacity-50">{busy ? 'Salvando…' : 'Salvar nova senha'}</button>
-        <button type="button" className="self-start text-sm underline" onClick={() => navigate('/recuperar-senha')}>Solicitar novo link</button>
-      </Card>
-    </Shell>
+    <AuthBackdrop>
+      <GlassCard onSubmit={submit}>
+        <GlassHeader title="Criar nova senha">Escolha uma senha nova para entrar no seu cantinho.</GlassHeader>
+        <GlassField id="nova-senha" label="Nova senha" error={error ?? undefined} hint="Mínimo de 8 caracteres.">
+          <GlassPasswordInput id="nova-senha" autoComplete="new-password" placeholder="Crie uma senha" value={password} onValue={setPassword} error={error ?? undefined} />
+        </GlassField>
+        <GlassButton disabled={busy || !hasRecoveryToken()} loading={busy}>{busy ? 'Salvando…' : 'Salvar nova senha'}</GlassButton>
+        <GlassLink className="self-start text-sm" onClick={() => navigate('/recuperar-senha')}>Solicitar novo link</GlassLink>
+      </GlassCard>
+    </AuthBackdrop>
   );
 }
