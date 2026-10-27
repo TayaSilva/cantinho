@@ -197,6 +197,51 @@
   to { transform: rotateY(0deg); }
 }
 
+/*
+ * Curvatura do papel: a folha é feita de tiras encaixadas (PageLeaf).
+ * Cada tira gira um pouco em relação à anterior; somadas, a borda solta
+ * sobe primeiro (adiantada) e cai por último (atrasada).
+ */
+.book-strip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  transform-style: preserve-3d;
+}
+.book-strip-left { transform-origin: left center; }
+.book-strip-right { transform-origin: right center; }
+/* 1px de sobra esconde a costura entre as tiras */
+.book-strip-left > .book-leaf-face { right: -1px; }
+.book-strip-right > .book-leaf-face { left: -1px; }
+.book-bend-next,
+.book-bend-prev,
+.book-bend-in {
+  animation-duration: var(--flip-duration, 850ms);
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: both;
+}
+.book-bend-next { animation-name: bend-next; }
+.book-bend-prev { animation-name: bend-prev; }
+.book-bend-in { animation-name: bend-in; }
+@keyframes bend-next {
+  0%, 100% { transform: rotateY(0deg); }
+  30% { transform: rotateY(-7deg); }
+  55% { transform: rotateY(-3deg); }
+  80% { transform: rotateY(5deg); }
+}
+@keyframes bend-prev {
+  0%, 100% { transform: rotateY(0deg); }
+  30% { transform: rotateY(7deg); }
+  55% { transform: rotateY(3deg); }
+  80% { transform: rotateY(-5deg); }
+}
+@keyframes bend-in {
+  0%, 100% { transform: rotateY(0deg); }
+  30% { transform: rotateY(7deg); }
+  55% { transform: rotateY(3deg); }
+  80% { transform: rotateY(-5deg); }
+}
+
 /* sombra que escurece a folha no meio do giro */
 .book-leaf-shade {
   position: absolute;

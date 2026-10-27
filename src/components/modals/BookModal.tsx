@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Letter } from '../../types/house';
+import { useAudio } from '../ui/AudioControl';
 import { PixelButton } from '../ui/PixelButton';
 import { BaseModal } from './BaseModal';
+import { PageLeaf, playPageSound } from './PageLeaf';
 
 interface BookModalProps {
   open: boolean;
@@ -15,7 +17,7 @@ interface BookModalProps {
 type Flip = { dir: 'next' | 'prev'; to: number } | null;
 
 /** Duração da virada de página (ms). */
-const FLIP_MS = 850;
+const FLIP_MS = 1000;
 
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
@@ -40,6 +42,7 @@ export function BookModal({ open, onClose, letters, coverColor = '#8A5D46' }: Bo
   const [flip, setFlip] = useState<Flip>(null);
   const wide = useMediaQuery('(min-width: 640px)');
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const { muted } = useAudio();
   const total = letters.length;
 
   // Termina a virada (por tempo, para não depender de animationend em todos os navegadores).
@@ -71,6 +74,7 @@ export function BookModal({ open, onClose, letters, coverColor = '#8A5D46' }: Bo
   const go = (dir: 'next' | 'prev') => {
     if (flip || total < 2) return;
     const to = (index + (dir === 'next' ? 1 : -1) + total) % total;
+    if (!muted) playPageSound();
     if (reducedMotion) setIndex(to);
     else setFlip({ dir, to });
   };
@@ -161,30 +165,24 @@ function Spread({ current, target, flip, index, total, onNext, onPrev }: SpreadP
       {/* lombada */}
       <div aria-hidden="true" className="book-spine pointer-events-none absolute inset-y-0 left-1/2 z-20 w-10 -translate-x-1/2" />
 
-      {/* folha girando */}
+      {/* folha girando (e se curvando) */}
       {flip?.dir === 'next' && (
-        <div className="book-leaf book-leaf-next z-30" aria-hidden="true">
-          <div className="book-leaf-face book-leaf-front">
-            <RightPage letter={current} />
-            <div className="book-leaf-shade" />
-          </div>
-          <div className="book-leaf-face book-leaf-back">
-            <LeftPage letter={target} number={targetIndex + 1} total={total} />
-            <div className="book-leaf-shade" />
-          </div>
-        </div>
+        <PageLeaf
+          turn="next"
+          hinge="left"
+          className="book-leaf-next z-30"
+          front={<RightPage letter={current} />}
+          back={<LeftPage letter={target} number={targetIndex + 1} total={total} />}
+        />
       )}
       {flip?.dir === 'prev' && (
-        <div className="book-leaf book-leaf-prev z-30" aria-hidden="true">
-          <div className="book-leaf-face book-leaf-front">
-            <LeftPage letter={current} number={index + 1} total={total} />
-            <div className="book-leaf-shade" />
-          </div>
-          <div className="book-leaf-face book-leaf-back">
-            <RightPage letter={target} />
-            <div className="book-leaf-shade" />
-          </div>
-        </div>
+        <PageLeaf
+          turn="prev"
+          hinge="right"
+          className="book-leaf-prev z-30"
+          front={<LeftPage letter={current} number={index + 1} total={total} />}
+          back={<RightPage letter={target} />}
+        />
       )}
     </div>
   );
@@ -241,15 +239,13 @@ function SingleSheet({ current, target, flip, index, total, onNext }: SingleShee
         {flip && <div className="book-cast-shadow left-0 w-full bg-[linear-gradient(to_right,rgb(70_53_63/.4),transparent_70%)]" />}
       </div>
       {flip && (
-        <div className={`book-leaf z-30 ${flip.dir === 'next' ? 'book-leaf-single-next' : 'book-leaf-single-prev'}`} aria-hidden="true">
-          <div className="book-leaf-face book-leaf-front">
-            {flip.dir === 'next' ? <FullPage letter={current} number={index + 1} total={total} /> : <FullPage letter={target} number={targetIndex + 1} total={total} />}
-            <div className="book-leaf-shade" />
-          </div>
-          <div className="book-leaf-face book-leaf-back bg-[#F3E4C4]">
-            <div className="book-leaf-shade" />
-          </div>
-        </div>
+        <PageLeaf
+          turn={flip.dir === 'next' ? 'next' : 'in'}
+          hinge="left"
+          className={`z-30 ${flip.dir === 'next' ? 'book-leaf-single-next' : 'book-leaf-single-prev'}`}
+          front={flip.dir === 'next' ? <FullPage letter={current} number={index + 1} total={total} /> : <FullPage letter={target} number={targetIndex + 1} total={total} />}
+          back={<div className="h-full bg-[#F3E4C4]" />}
+        />
       )}
     </div>
   );
