@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { AdminIcon, ConfirmDialog, useDismiss } from '../admin/controls';
+import { navigate } from '../../hooks/useRoute';
 
 /** Avatar com a inicial do nome; ao clicar, mostra a conta, o botão de sair e o de excluir a conta. */
 export function AccountMenu({ firstName, email, onLogout, onDeleteAccount, ownedCount = 0 }: { firstName: string; email?: string; onLogout?: () => void; onDeleteAccount?: () => Promise<void>; ownedCount?: number }) {
@@ -20,6 +21,7 @@ export function AccountMenu({ firstName, email, onLogout, onDeleteAccount, owned
             <p className="font-semibold">{firstName}</p>
             {email && <p className="truncate text-xs text-stone-500">{email}</p>}
           </div>
+          <button role="menuitem" type="button" className="mt-1 w-full cursor-pointer rounded-lg px-2.5 py-2 text-left hover:bg-stone-50" onClick={() => { setOpen(false); navigate('/configuracoes'); }}>Configurações</button>
           {onLogout && <button role="menuitem" type="button" className="mt-1 w-full cursor-pointer rounded-lg px-2.5 py-2 text-left hover:bg-stone-50" onClick={onLogout}>Sair</button>}
           {onDeleteAccount && (
             <button role="menuitem" type="button" className="w-full cursor-pointer rounded-lg px-2.5 py-2 text-left text-red-700 hover:bg-red-50" onClick={() => { setOpen(false); setConfirming(true); }}>

@@ -38,6 +38,14 @@
   --color-login-error: #ffc2cf;
   --color-login-error-border: #ff9cb4;
 
+  /* Mini Mansão no Backoffice: rosa suave e marsala */
+  --color-mansao: #b24a6d;
+  --color-mansao-hover: #9e3e5f;
+  --color-mansao-deep: #7a3a52;
+  --color-mansao-soft: #fbe4ea;
+  --animate-sheet-in: sheet-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  @keyframes sheet-in { from { opacity: 0; transform: translateY(24px) } to { opacity: 1; transform: none } }
+
   --animate-fade-in: fade-in 0.4s ease both;
   --animate-reveal: reveal 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   --animate-modal-in: modal-in 0.22s steps(4) both;

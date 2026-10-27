@@ -1,7 +1,19 @@
 import { cors, fail, json, options, readJson, validDocument } from '../_lib/http.mjs';
-import { dbFetch, getUser, MAX_HOUSES_PER_USER, purgeHouseFiles, requestedHouseId, requireHouse, upsertDocuments } from '../_lib/supabase.mjs';
+import { dbFetch, getUser, purgeHouseFiles, requestedHouseId, requireHouse, upsertDocuments } from '../_lib/supabase.mjs';
+import { randomUUID } from 'node:crypto';
 
 const UUID = /^[0-9a-f-]{36}$/i;
+
+function slugify(value) {
+  const base = String(value || 'cantinho')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48) || 'cantinho';
+  return base;
+}
 
 /** Desfaz uma criação incompleta; a FK em cascata remove membros e documentos. */
 async function removeHouse(houseId) {
@@ -11,18 +23,21 @@ async function removeHouse(houseId) {
 async function createHouse(req, res, user) {
   const owned = await dbFetch(`houses?owner_id=eq.${encodeURIComponent(user.id)}&status=neq.deleted&select=id`, { headers: { Prefer: 'count=exact', Range: '0-0' } });
   const total = Number(owned.headers.get('content-range')?.split('/')[1] || 0);
+  if (total >= 1) return fail(res, 409, 'Cada conta pode ter apenas um cantinho ativo nesta primeira versão.');
   if (!owned.ok) return fail(res, 500, 'Não foi possível verificar seus limites.');
   if (total >= MAX_HOUSES_PER_USER) return fail(res, 403, `Você atingiu o limite de ${MAX_HOUSES_PER_USER} cantinhos.`);
 
   const body = await readJson(req, 10_000_000);
   const name = String(body.name || 'Meu cantinho').trim().slice(0, 80) || 'Meu cantinho';
+  const id = randomUUID();
+  const slug = `${slugify(name)}-${id.replaceAll('-', '').slice(0, 10)}`;
   if (!validDocument(body.document)) return fail(res, 400, 'Documento inicial inválido.');
 
   // O dono vem sempre da sessão validada, nunca do corpo da requisição.
   const created = await dbFetch('houses', {
     method: 'POST',
     headers: { Prefer: 'return=representation' },
-    body: JSON.stringify([{ name, owner_id: user.id }]),
+    body: JSON.stringify([{ id, name, slug, owner_id: user.id }]),
   });
   const houses = await created.json().catch(() => []);
   if (!created.ok || !houses[0]) return fail(res, 500, 'Não foi possível criar o cantinho.');
@@ -76,7 +91,7 @@ export default async function handler(req, res) {
     if (req.method === 'POST') return await createHouse(req, res, user);
     if (req.method === 'DELETE') return await deleteHouse(req, res);
 
-    const response = await dbFetch(`house_members?user_id=eq.${encodeURIComponent(user.id)}&select=house_id,role,can_add_text,house:houses!inner(id,name,status,created_at,updated_at,published_at)&house.status=eq.active&order=created_at.asc`);
+    const response = await dbFetch(`house_members?user_id=eq.${encodeURIComponent(user.id)}&select=house_id,role,can_add_text,house:houses!inner(id,name,slug,status,created_at,updated_at,published_at)&house.status=eq.active&order=created_at.asc`);
     const rows = await response.json();
     if (!response.ok) return fail(res, 500, 'Não foi possível carregar seus cantinhos.');
     return json(res, 200, rows);

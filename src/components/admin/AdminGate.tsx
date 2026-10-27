@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { MyHousesPage } from '../account/MyHousesPage';
+import { SettingsPage } from '../account/SettingsPage';
 import { AdminApp } from './AdminApp';
 import { AuthBackdrop, GlassAlert, GlassButton, GlassCard, GlassField, GlassHeader, GlassInput, GlassLink, GlassPasswordInput, PixelHeart } from './AuthBackdrop';
 import { cx } from './controls';
@@ -132,6 +133,12 @@ export function AdminGate({ path }: { path: string }) {
   if (AUTH_PATHS.includes(path)) return <Redirect to="/meus-cantinhos" />;
   if (!houses) {
     return error ? <ErrorPage message={error} onRetry={() => void refreshHouses()} /> : <Loading label="Carregando seus cantinhos…" />;
+  }
+
+  if (path === '/configuracoes') return <SettingsPage email={session?.user.email} />;
+  if (path === '/meu-cantinho') {
+    const active = getActiveHouseId(houses);
+    return <Redirect to={active ? houseAdminPath(active) : '/meus-cantinhos'} />;
   }
 
   // Rotas antigas (/admin, /admin/editor, /admin/conteudos/*) apontam para o cantinho ativo.

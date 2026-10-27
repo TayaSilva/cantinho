@@ -1,10 +1,17 @@
 import { Upload } from 'tus-js-client';
 import { friendlyUploadError } from './uploadRules';
 
-export const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, '');
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const configuredSupabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim().replace(/\/$/, '');
+const configuredSupabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim();
+const localMode = String(import.meta.env.VITE_LOCAL_MODE).toLowerCase() === 'true';
+
+// Valores de exemplo não devem ativar o modo cloud no desenvolvimento local.
+const isPlaceholder = (value: string | undefined) => !value || /SEU_PROJECT_REF|SUA_CHAVE/i.test(value);
+
+export const SUPABASE_URL = isPlaceholder(configuredSupabaseUrl) ? undefined : configuredSupabaseUrl;
+const SUPABASE_ANON_KEY = isPlaceholder(configuredSupabaseAnonKey) ? undefined : configuredSupabaseAnonKey;
 export const SUPABASE_BUCKET = (import.meta.env.VITE_SUPABASE_BUCKET as string | undefined) || 'casinha-media';
-export const cloudConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+export const cloudConfigured = !localMode && Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 const SESSION_KEY = 'casinha:supabase-session';
 

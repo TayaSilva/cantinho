@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { houseStatus, type HouseStatus, type HouseSummary } from '../../services/houses';
+import { useHousePlans } from '../../services/plans';
 import { sharePublicHouse } from '../../services/share';
 import { AdminIcon, Button, ConfirmDialog, cx, Toast } from '../admin/controls';
+import { PlanBadge } from '../plans/PlanParts';
 import { AccountMenu } from './AccountMenu';
 
 const STATUS: Record<HouseStatus, { label: string; className: string; dot: string }> = {
@@ -60,6 +62,7 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
   const [toast, setToast] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<HouseSummary | null>(null);
   const clearToast = useCallback(() => setToast(null), []);
+  const canCreate = !houses.some((item) => item.role === 'owner' && item.house.status === 'active');
 
   useEffect(() => {
     document.title = 'Meus cantinhos · Cantinho';
@@ -68,6 +71,8 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
     if (notice) setToast(notice);
     if (notice) onDismissNotice();
   }, [notice, onDismissNotice]);
+
+  const plans = useHousePlans(useMemo(() => houses.map((item) => item.house_id), [houses]));
 
   const sorted = useMemo(
     () => [...houses].sort((a, b) => new Date(b.house.updated_at || 0).getTime() - new Date(a.house.updated_at || 0).getTime()),
@@ -113,7 +118,7 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
           </span>
           <span className="text-[15px] font-bold">Cantinho</span>
         </div>
-        <Button variant="primary" onClick={() => void create()} disabled={creating}>
+        <Button variant="primary" onClick={() => void create()} disabled={creating || !canCreate} title={canCreate ? 'Criar cantinho' : 'Sua conta já possui um cantinho ativo'}>
           <AdminIcon name="plus" className="size-4" />
           <span className="hidden sm:inline">{creating ? 'Criando…' : 'Criar novo cantinho'}</span>
           <span className="sm:hidden">{creating ? 'Criando…' : 'Nova'}</span>
@@ -136,7 +141,7 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
             </span>
             <h2 className="mt-4 text-lg font-semibold">Você ainda não tem cantinhos</h2>
             <p className="mt-1.5 max-w-sm text-stone-600">Monte um cantinho com fotos, músicas e recados para quem você gosta.</p>
-            <Button variant="primary" className="mt-5" onClick={() => void create()} disabled={creating}>
+            <Button variant="primary" className="mt-5" onClick={() => void create()} disabled={creating || !canCreate}>
               {creating ? 'Criando…' : 'Criar meu primeiro cantinho'}
             </Button>
           </div>
@@ -158,6 +163,7 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
                         {status.label}
                       </span>
                     </div>
+                    {plans[item.house_id] && <PlanBadge planId={plans[item.house_id].planId} className="self-start" />}
                     <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs text-stone-500">
                       <dt>Criado em</dt>
                       <dd>{formatDate(item.house.created_at)}</dd>

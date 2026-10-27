@@ -11,11 +11,24 @@ create table if not exists public.admin_users (
 create table if not exists public.houses (
   id uuid primary key default gen_random_uuid(),
   name text not null default 'Meu cantinho',
+  slug text,
   owner_id uuid not null references auth.users(id) on delete restrict,
   status text not null default 'active' check (status in ('active', 'suspended', 'deleted')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.houses add column if not exists slug text;
+update public.houses set slug = 'cantinho-' || left(replace(id::text, '-', ''), 12) where slug is null or btrim(slug) = '';
+alter table public.houses alter column slug set not null;
+create unique index if not exists houses_slug_unique_idx on public.houses(slug);
+with ranked as (
+  select id, row_number() over (partition by owner_id order by created_at asc, id asc) as position
+  from public.houses where status = 'active'
+)
+update public.houses h set status = 'suspended', updated_at = now()
+from ranked r where h.id = r.id and r.position > 1;
+create unique index if not exists houses_one_active_per_owner_idx on public.houses(owner_id) where status = 'active';
 
 -- SPEC 2.0: data da última publicação (null = ainda é rascunho).
 alter table public.houses add column if not exists published_at timestamptz;
@@ -106,6 +119,7 @@ begin
   end if;
 end $$;
 
+alter table public.admin_users enable row level security;
 alter table public.houses enable row level security;
 alter table public.house_members enable row level security;
 alter table public.house_documents enable row level security;
@@ -113,6 +127,10 @@ alter table public.media enable row level security;
 alter table public.house_share_links enable row level security;
 alter table public.house_invitations enable row level security;
 alter table public.audit_events enable row level security;
+
+revoke all on public.admin_users, public.houses, public.house_members,
+  public.house_documents, public.media, public.house_share_links,
+  public.house_invitations, public.audit_events from anon, authenticated;
 
 create or replace function public.is_house_member(check_house_id uuid, check_user_id uuid default auth.uid()) returns boolean language sql stable security definer set search_path = public
 as $$ select exists (select 1 from public.house_members where house_id = check_house_id and user_id = check_user_id); $$;
@@ -148,11 +166,15 @@ create policy "owners manage house documents" on public.house_documents for all 
 create policy "members read their media" on public.media for select to authenticated using (public.is_house_member(house_id));
 create policy "owners manage media" on public.media for all to authenticated using (public.is_house_owner(house_id)) with check (public.is_house_owner(house_id));
 create policy "members read their house" on public.houses for select to authenticated using (public.is_house_member(id));
+create policy "users read their memberships" on public.house_members for select to authenticated using (user_id = auth.uid());
+create policy "users read their admin row" on public.admin_users for select to authenticated using (user_id = auth.uid());
 create policy "owners manage share links" on public.house_share_links for all to authenticated using (public.is_house_owner(house_id)) with check (public.is_house_owner(house_id));
 create policy "owners manage invitations" on public.house_invitations for all to authenticated using (public.is_house_owner(house_id)) with check (public.is_house_owner(house_id));
 create policy "members read audit" on public.audit_events for select to authenticated using (public.is_house_member(house_id));
 
-insert into storage.buckets (id, name, public) values ('casinha-media', 'casinha-media', false) on conflict (id) do update set public = false;
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('casinha-media', 'casinha-media', false, 52428800, array['image/*', 'audio/*', 'video/*'])
+on conflict (id) do update set public = false, file_size_limit = 52428800, allowed_mime_types = excluded.allowed_mime_types;
 drop policy if exists "admins upload casinha media" on storage.objects;
 drop policy if exists "admins delete casinha media" on storage.objects;
 drop policy if exists "authenticated can upload casinha media" on storage.objects;

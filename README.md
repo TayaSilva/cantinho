@@ -62,6 +62,25 @@ no PostgreSQL e os arquivos são enviados diretamente ao Storage.
 Ao publicar o site, configure o servidor para devolver `index.html` em qualquer
 rota (já incluídos `vercel.json` e `public/_redirects` para Vercel/Netlify).
 
+### Casinhas individuais e privacidade
+
+Antes do deploy, aplique `supabase/migrations/20261027_0001_casinhas_privadas.sql`
+no SQL Editor. A migration adiciona `houses.slug`, garante uma casa ativa por
+conta, mantém o bucket `casinha-media` privado e restringe o acesso por membro
+e proprietário. Ela não apaga documentos nem arquivos; casas ativas excedentes
+de instalações antigas ficam suspensas para preservar a regra da primeira versão.
+
+Em produção, configure `VITE_LOCAL_MODE=false`, `VITE_SUPABASE_URL` e
+`VITE_SUPABASE_ANON_KEY` no frontend. Configure `SUPABASE_URL`,
+`SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_BUCKET`,
+`APP_ORIGIN` e, opcionalmente, `MAX_STORAGE_BYTES` somente no ambiente server-side.
+Nunca coloque `SUPABASE_SERVICE_ROLE_KEY` em uma variável `VITE_*`.
+
+`/` usa o documento demo embutido e não grava alterações. `/c/:slug` exige
+sessão autenticada e membership; compartilhamento público permanece desativado.
+`/meu-cantinho` abre a casa autenticada e `/configuracoes` mostra as opções de
+privacidade da conta.
+
 ## Backoffice
 
 **Personalizar cantinho (`/admin/editor`)** — menu de categorias, pré-visualização

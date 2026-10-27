@@ -13,6 +13,7 @@ import type { HouseDraft } from '../../hooks/useHouseDraft';
 import { useHouseTime } from '../../hooks/useHouseTime';
 import type { CharacterAge, CharacterAppearance, DecorationKey, ElementType, FurnitureKey, HouseAppearance, Period } from '../../types/house';
 import { HouseScene } from '../house/HouseScene';
+import { PlanShortcut } from '../plans/PlanParts';
 import { AdminIcon, cx, Field, Group, Segmented, Swatches, TextField, ThumbGrid, Toggle } from './controls';
 import { OptionThumb } from './Thumbnails';
 
@@ -132,7 +133,10 @@ export function EditorPage({ draft }: { draft: HouseDraft }) {
       {/* ---------- Pré-visualização ---------- */}
       <section aria-label="Pré-visualização" className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 p-4 lg:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-lg font-semibold text-stone-900">Pré-visualização</h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-lg font-semibold text-stone-900">Pré-visualização</h1>
+            <PlanShortcut houseId={draft.houseId} />
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <Segmented<PeriodChoice>
               label="Período da prévia"

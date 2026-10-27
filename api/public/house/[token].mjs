@@ -4,6 +4,7 @@ import { dbFetch, hydrateMedia, resolveShareToken } from '../../_lib/supabase.mj
 export default async function handler(req, res) {
   cors(res);
   if (options(req, res)) return;
+  return fail(res, 410, 'Compartilhamento público ainda não está disponível.');
   if (req.method !== 'GET') return fail(res, 405, 'Método não permitido.');
   try {
     const share = await resolveShareToken(req.query?.token);

@@ -59,13 +59,21 @@ export async function getUser(req) {
 
 export async function getHouseForUser(userId, houseId) {
   const filter = houseId ? `id=eq.${encodeURIComponent(houseId)}` : `owner_id=eq.${encodeURIComponent(userId)}`;
-  const response = await dbFetch(`houses?${filter}&status=eq.active&select=id,owner_id,name&limit=1`);
+  const response = await dbFetch(`houses?${filter}&status=eq.active&select=id,owner_id,name,slug,created_at,updated_at,published_at&limit=1`);
   const rows = await response.json();
   if (!response.ok || !rows[0]) return null;
   const member = await dbFetch(`house_members?house_id=eq.${encodeURIComponent(rows[0].id)}&user_id=eq.${encodeURIComponent(userId)}&select=role,can_add_text&limit=1`);
   const members = await member.json();
   if (!member.ok || !members[0]) return null;
   return { house: rows[0], membership: members[0] };
+}
+
+export async function getHouseBySlugForUser(userId, slug) {
+  if (!slug || !/^[a-z0-9-]{3,100}$/.test(slug)) return null;
+  const response = await dbFetch(`houses?slug=eq.${encodeURIComponent(slug)}&status=eq.active&select=id,owner_id,name,slug,created_at,updated_at,published_at&limit=1`);
+  const rows = await response.json();
+  if (!response.ok || !rows[0]) return null;
+  return getHouseForUser(userId, rows[0].id);
 }
 
 export async function requireHouse(req, houseId, permission = 'read') {
@@ -86,6 +94,15 @@ export async function requireRequestedHouse(req, permission = 'read') {
   const houseId = requestedHouseId(req);
   if (!houseId) return null;
   return requireHouse(req, houseId, permission);
+}
+
+export async function requireSlugHouse(req, slug, permission = 'read') {
+  const user = await getUser(req);
+  if (!user || !(user.email_confirmed_at || user.confirmed_at)) return null;
+  const context = await getHouseBySlugForUser(user.id, slug);
+  if (!context) return null;
+  const allowed = permission === 'owner' ? context.membership.role === 'owner' : permission === 'text' ? context.membership.role === 'owner' || context.membership.can_add_text : true;
+  return allowed ? { user, ...context } : null;
 }
 
 export async function requireDefaultHouse(req, permission = 'read') {

@@ -312,7 +312,7 @@ export function Toast({ message, onDone }: { message: string | null; onDone: () 
 
 /* ---------- Ícones de traço (Backoffice) ---------- */
 
-export function AdminIcon({ name, className = 'size-[18px]' }: { name: 'home' | 'sofa' | 'person' | 'paw' | 'star' | 'undo' | 'eye' | 'plus' | 'up' | 'down' | 'trash' | 'upload' | 'external' | 'image' | 'video' | 'music' | 'letter' | 'calendar' | 'gift' | 'text' | 'save' | 'power' | 'link' | 'more' | 'chevron' | 'menu' | 'close'; className?: string }) {
+export function AdminIcon({ name, className = 'size-[18px]' }: { name: 'home' | 'sofa' | 'person' | 'paw' | 'star' | 'undo' | 'eye' | 'plus' | 'up' | 'down' | 'trash' | 'upload' | 'external' | 'image' | 'video' | 'music' | 'letter' | 'calendar' | 'gift' | 'text' | 'save' | 'power' | 'link' | 'more' | 'chevron' | 'menu' | 'close' | 'crown' | 'check' | 'clock' | 'alert' | 'card' | 'pix' | 'download'; className?: string }) {
   const p = { className, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true as const };
   switch (name) {
     case 'home':
@@ -369,5 +369,19 @@ export function AdminIcon({ name, className = 'size-[18px]' }: { name: 'home' | 
       return <svg {...p}><path d="M4 7h16M4 12h16M4 17h16" /></svg>;
     case 'close':
       return <svg {...p}><path d="M6 6l12 12M18 6L6 18" /></svg>;
+    case 'crown':
+      return <svg {...p}><path d="M4 18h16M5 15L3.5 7l5 4L12 5l3.5 6 5-4L19 15z" /></svg>;
+    case 'check':
+      return <svg {...p} strokeWidth={2.2}><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>;
+    case 'clock':
+      return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>;
+    case 'alert':
+      return <svg {...p}><path d="M12 3l9.5 17h-19z" /><path d="M12 10v4.5M12 17.5v.01" /></svg>;
+    case 'card':
+      return <svg {...p}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18M7 15h4" /></svg>;
+    case 'pix':
+      return <svg {...p}><path d="M12 3l9 9-9 9-9-9z" /><path d="M8 12l4-4 4 4-4 4z" /></svg>;
+    case 'download':
+      return <svg {...p}><path d="M12 4v12M7 11l5 5 5-5" /><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" /></svg>;
   }
 }

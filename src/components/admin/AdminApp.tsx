@@ -7,14 +7,15 @@ import { ContentPage } from './ContentPage';
 import type { ContentSection } from './ContentPage';
 import { AdminIcon, Button, ConfirmDialog, cx, Toast, useDismiss } from './controls';
 import { EditorPage } from './EditorPage';
+import { PlanPage } from '../plans/PlanPage';
 import { sharePublicHouse } from '../../services/share';
 import { houseAdminPath, type HouseSummary } from '../../services/houses';
 
 const CONTENT_SECTIONS: ContentSection[] = ['textos', 'fotos', 'videos', 'musicas', 'cartas', 'datas', 'mensagens'];
 
 /**
- * Backoffice de um cantinho: /admin/cantinho/:id (Personalizar cantinho) e
- * /admin/cantinho/:id/conteudos/*. `path` chega relativo ao cantinho ("/editor",
+ * Backoffice de um cantinho: /admin/cantinho/:id (Personalizar cantinho),
+ * /admin/cantinho/:id/conteudos/* e /admin/cantinho/:id/plano (Meu plano). `path` chega relativo ao cantinho ("/editor",
  * "/conteudos/fotos"). Rascunho, pré-visualizar e publicar ficam no topo, valendo
  * para as duas áreas; desfazer, restaurar padrão e compartilhar ficam no menu "⋯".
  */
@@ -23,12 +24,15 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
   const [confirm, setConfirm] = useState<null | 'reset' | 'publish' | 'switch'>(null);
   const [pendingHouse, setPendingHouse] = useState<string | null>(null);
   const [shareNotice, setShareNotice] = useState<string | null>(null);
+  const [planNotice, setPlanNotice] = useState<string | null>(null);
   // Navegação recolhível do celular (no desktop os links ficam sempre à vista).
   const [navOpen, setNavOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
   useDismiss(navOpen, navRef, useCallback(() => setNavOpen(false), []));
 
   const isContent = path.startsWith('/conteudos');
+  const isPlan = path === '/plano';
+  const isEditor = !isContent && !isPlan;
   const section = (CONTENT_SECTIONS.find((s) => path === `/conteudos/${s}`) ?? 'fotos') as ContentSection;
   const contentPath = houseAdminPath(house.house_id, '/conteudos/fotos');
   const editorPath = houseAdminPath(house.house_id);
@@ -61,8 +65,9 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
   }, [undo]);
 
   useEffect(() => {
+    if (isPlan) return; // a página do plano define o próprio título
     document.title = isContent ? 'Conteúdos · Cantinho Admin' : 'Personalizar cantinho · Cantinho Admin';
-  }, [isContent]);
+  }, [isContent, isPlan]);
 
   const preview = async () => {
     const win = window.open('about:blank', '_blank');
@@ -125,7 +130,22 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
           >
             <a href="/meus-cantinhos" onClick={link('/meus-cantinhos')} className={navClass(false)}>Meus cantinhos</a>
             <a href={contentPath} onClick={link(contentPath)} aria-current={isContent ? 'page' : undefined} className={navClass(isContent)}>Conteúdos</a>
-            <a href={editorPath} onClick={link(editorPath)} aria-current={!isContent ? 'page' : undefined} className={navClass(!isContent)}>Personalizar cantinho</a>
+            <a href={editorPath} onClick={link(editorPath)} aria-current={isEditor ? 'page' : undefined} className={navClass(isEditor)}>Personalizar cantinho</a>
+            <span className="group relative inline-flex">
+              <button
+                type="button"
+                aria-disabled="true"
+                title="Em breve"
+                onClick={() => { setNavOpen(false); setPlanNotice('Meu plano estará disponível em breve.'); }}
+                className={cx(navClass(false), 'inline-flex cursor-not-allowed items-center gap-1.5 opacity-50')}
+              >
+                <AdminIcon name="crown" className="size-4" />
+                Meu plano
+              </button>
+              <span role="status" className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-stone-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg group-hover:block group-focus-within:block">
+                Em breve
+              </span>
+            </span>
           </nav>
           <div className="flex-1" />
           <div className="flex items-center gap-1.5 md:gap-4">
@@ -192,7 +212,7 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
             <MoreMenu
               canUndo={draft.canUndo}
               onUndo={draft.undo}
-              onReset={isContent ? undefined : () => setConfirm('reset')}
+              onReset={isEditor ? () => setConfirm('reset') : undefined}
               onShare={() => void share()}
               canSave={draft.dirty && !draft.busy}
               onSave={() => void draft.saveDraft()}
@@ -202,7 +222,9 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
         </div>
       </header>
 
-      {!draft.doc ? (
+      {isPlan ? (
+        <PlanPage houseId={house.house_id} houseName={house.house.name} doc={draft.doc} />
+      ) : !draft.doc ? (
         <p className="p-10 text-center text-stone-500">Carregando…</p>
       ) : isContent ? (
         <ContentPage draft={draft} section={section} />
@@ -251,7 +273,7 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
           void draft.publish();
         }}
       />
-      <Toast message={shareNotice ?? draft.lastAction} onDone={shareNotice ? clearShareNotice : draft.clearLastAction} />
+      <Toast message={planNotice ?? shareNotice ?? draft.lastAction} onDone={planNotice ? () => setPlanNotice(null) : shareNotice ? clearShareNotice : draft.clearLastAction} />
     </div>
   );
 }
@@ -294,7 +316,7 @@ function MoreMenu({ canUndo, onUndo, onReset, onShare, canSave, onSave, publishe
               Restaurar padrão
             </button>
           )}
-          <button role="menuitem" type="button" className={item} onClick={run(onShare)}>
+          <button role="menuitem" type="button" className={item} disabled title="Compartilhamento estará disponível em breve." onClick={run(onShare)}>
             <AdminIcon name="link" className="size-[18px]" />
             Compartilhar link
           </button>

@@ -5,7 +5,7 @@ export interface HouseSummary {
   house_id: string;
   role: 'owner' | 'guest';
   can_add_text: boolean;
-  house: { id: string; name: string; status: string; created_at?: string; updated_at?: string; published_at?: string | null };
+  house: { id: string; name: string; slug?: string; status: string; created_at?: string; updated_at?: string; published_at?: string | null };
 }
 
 export type HouseStatus = 'draft' | 'published' | 'pending';
@@ -17,6 +17,10 @@ export const LEGACY_HOUSE_ID = '00000000-0000-0000-0000-000000000001';
 /** Rota do Backoffice de um cantinho: /admin/cantinho/:id[/conteudos/:secao]. */
 export function houseAdminPath(houseId: string, sub = '') {
   return `/admin/cantinho/${encodeURIComponent(houseId)}${sub}`;
+}
+
+export function housePublicPath(slug: string) {
+  return `/c/${encodeURIComponent(slug)}`;
 }
 
 export function houseStatus(item: HouseSummary): HouseStatus {
@@ -47,7 +51,7 @@ function localHouses(): HouseSummary[] {
       house_id: LEGACY_HOUSE_ID,
       role: 'owner',
       can_add_text: true,
-      house: { id: LEGACY_HOUSE_ID, name: 'Meu cantinho', status: 'active', created_at: new Date().toISOString() },
+      house: { id: LEGACY_HOUSE_ID, name: 'Meu cantinho', slug: 'demo', status: 'active', created_at: new Date().toISOString() },
     }];
     saveLocalHouses(items);
   }
@@ -74,7 +78,8 @@ export async function createHouse(name: string): Promise<HouseSummary> {
   const cleanName = name.trim().slice(0, 80) || 'Meu cantinho';
   if (!cloudConfigured) {
     const id = crypto.randomUUID();
-    const item: HouseSummary = { house_id: id, role: 'owner', can_add_text: true, house: { id, name: cleanName, status: 'active', created_at: new Date().toISOString() } };
+    const slug = `${cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'cantinho'}-${id.replaceAll('-', '').slice(0, 10)}`;
+    const item: HouseSummary = { house_id: id, role: 'owner', can_add_text: true, house: { id, name: cleanName, slug, status: 'active', created_at: new Date().toISOString() } };
     saveLocalHouses([...localHouses(), item]);
     localStorage.setItem(`casinha:draft:${id}`, JSON.stringify(defaultDocument()));
     return item;

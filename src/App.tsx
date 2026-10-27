@@ -13,8 +13,9 @@ import { ShareButton } from './components/ui/ShareButton';
 import { getOption, str } from './data/catalog';
 import { useHouseModal } from './hooks/useHouseModal';
 import { useHouseTime } from './hooks/useHouseTime';
-import { useRoute } from './hooks/useRoute';
-import { loadDraft, loadPublished, STORE_EVENT } from './services/houseStore';
+import { navigate, useRoute } from './hooks/useRoute';
+import { defaultDocument, loadDraft, loadPublished, STORE_EVENT } from './services/houseStore';
+import { authFetch } from './services/auth';
 import type { HouseDocument, Period } from './types/house';
 
 const ZOOM_STEPS = [1, 1.4, 1.8, 2.3];
@@ -27,32 +28,35 @@ function periodFromUrl(search: URLSearchParams): Period | null {
 
 export default function App() {
   const { path, search } = useRoute();
-  if (path === '/admin' || path.startsWith('/admin/') || path === '/login' || path === '/cadastro' || path === '/recuperar-senha' || path === '/redefinir-senha' || path === '/meus-cantinhos' || path === '/minhas-casinhas') {
+  if (path === '/admin' || path.startsWith('/admin/') || path === '/login' || path === '/cadastro' || path === '/recuperar-senha' || path === '/redefinir-senha' || path === '/meus-cantinhos' || path === '/minhas-casinhas' || path === '/meu-cantinho' || path === '/configuracoes') {
     return <AdminGate path={path === '/admin' ? '/admin/editor' : path} />;
   }
   // Links de e-mail que caíram no Site URL (#error_code=... ou #access_token=...) vão para o login tratar.
   if (/[#&](error_code|access_token)=/.test(window.location.hash)) return <AdminGate path="/login" />;
-  const publicToken = path.startsWith('/c/') ? decodeURIComponent(path.slice(3)) : null;
-  return <PublicHouse preview={search.get('preview') === 'draft'} period={periodFromUrl(search)} publicToken={publicToken} houseId={search.get('house') || undefined} />;
+  const publicSlug = path.startsWith('/c/') ? decodeURIComponent(path.slice(3)) : null;
+  const demo = path === '/' && !search.get('house') && search.get('preview') !== 'draft';
+  return <PublicHouse preview={search.get('preview') === 'draft'} period={periodFromUrl(search)} publicSlug={publicSlug} houseId={search.get('house') || undefined} demo={demo} />;
 }
 
 /**
  * Cantinho público. Lê apenas a versão PUBLICADA — ou o rascunho, quando aberta
  * pelo botão "Pré-visualizar" do Backoffice (?preview=draft).
  */
-function PublicHouse({ preview, period, publicToken, houseId }: { preview: boolean; period: Period | null; publicToken: string | null; houseId?: string }) {
+function PublicHouse({ preview, period, publicSlug, houseId, demo }: { preview: boolean; period: Period | null; publicSlug: string | null; houseId?: string; demo: boolean }) {
   const [doc, setDoc] = useState<HouseDocument | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
     const load = () => {
-      if (publicToken) return fetch(`/api/public/house/${encodeURIComponent(publicToken)}`).then(async (response) => {
+      if (demo) return Promise.resolve(defaultDocument()).then((d) => alive && setDoc(d));
+      if (publicSlug) return authFetch(`/api/house/by-slug/${encodeURIComponent(publicSlug)}`).then(async (response) => {
         if (!response.ok) throw new Error('Link inválido.');
         return response.json() as Promise<HouseDocument>;
       }).then((d) => alive && setDoc(d));
       return (preview ? loadDraft(houseId) : loadPublished(houseId)).then((d) => alive && setDoc(d));
     };
-    void load();
+    void load().catch((cause) => alive && setError(cause instanceof Error ? cause.message : 'Não foi possível carregar o cantinho.'));
     // Atualiza se o Backoffice salvar/publicar (nesta ou em outra aba).
     window.addEventListener(STORE_EVENT, load);
     window.addEventListener('storage', load);
@@ -61,18 +65,19 @@ function PublicHouse({ preview, period, publicToken, houseId }: { preview: boole
       window.removeEventListener(STORE_EVENT, load);
       window.removeEventListener('storage', load);
     };
-  }, [preview, publicToken, houseId]);
+  }, [preview, publicSlug, houseId, demo]);
 
+  if (error) return <main className="flex min-h-dvh items-center justify-center bg-night px-6 text-center text-wall-2"><div><p>{error}</p><button type="button" className="mt-4 underline" onClick={() => navigate('/login')}>Entrar</button></div></main>;
   if (!doc) return <main className="min-h-dvh bg-night" aria-busy="true" />;
 
   return (
     <AudioProvider tracks={doc.content.playlist.tracks}>
-      <House doc={doc} preview={preview} period={period} />
+      <House doc={doc} preview={preview} period={period} demo={demo} />
     </AudioProvider>
   );
 }
 
-function House({ doc, preview, period }: { doc: HouseDocument; preview: boolean; period: Period | null }) {
+function House({ doc, preview, period, demo }: { doc: HouseDocument; preview: boolean; period: Period | null; demo: boolean }) {
   const { appearance, content } = doc;
   const [entered, setEntered] = useState(preview);
   const [help, setHelp] = useState(false);
@@ -144,7 +149,7 @@ function House({ doc, preview, period }: { doc: HouseDocument; preview: boolean;
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-night text-ink">
       {previewBanner}
-      <header className="flex shrink-0 items-center justify-between gap-3 px-4 py-3 motion-safe:animate-fade-in sm:px-8 sm:py-4">
+      <header className="relative flex shrink-0 items-center justify-between gap-3 px-4 py-3 motion-safe:animate-fade-in sm:px-8 sm:py-4">
         <div className="flex min-w-0 items-center gap-2.5">
           <Icon name="heart" className="size-6 shrink-0 text-rug" />
           <h1 className="truncate font-pixel text-lg font-semibold text-highlight sm:text-[22px]">{content.houseName}</h1>
@@ -152,11 +157,12 @@ function House({ doc, preview, period }: { doc: HouseDocument; preview: boolean;
             {theme.label} · {clock}
           </span>
         </div>
+        {demo && <PixelButton size="sm" variant="accent" onClick={() => navigate('/login')} className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-xs sm:text-sm">Crie seu cantinho</PixelButton>}
         <div className="flex shrink-0 gap-2.5">
           <PixelButton variant="dark" size="icon" onClick={() => setHelp((h) => !h)} aria-label="Mostrar objetos interativos" aria-pressed={help} className={help ? '!bg-rug !text-ink-deep' : ''}>
             <Icon name="help" />
           </PixelButton>
-          <ShareButton />
+          <ShareButton disabled />
           <AudioControl />
           {canFullscreen && (
             <PixelButton variant="dark" size="icon" onClick={toggleFullscreen} aria-label="Tela cheia">

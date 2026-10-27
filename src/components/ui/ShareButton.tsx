@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { sharePublicHouse } from '../../services/share';
 import { Icon, PixelButton } from './PixelButton';
 
-export function ShareButton() {
+export function ShareButton({ disabled = false }: { disabled?: boolean }) {
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -16,12 +16,17 @@ export function ShareButton() {
       <PixelButton
         variant="dark"
         size="icon"
+        disabled={disabled}
         onClick={async () => {
+          if (disabled) {
+            setNotice('Compartilhamento estará disponível em breve.');
+            return;
+          }
           const result = await sharePublicHouse();
           if (result === 'shared') setNotice('Compartilhado!');
           if (result === 'copied') setNotice('Link copiado!');
         }}
-        aria-label="Compartilhar cantinho"
+        aria-label={disabled ? 'Compartilhamento em breve' : 'Compartilhar cantinho'}
       >
         <Icon name="share" />
       </PixelButton>
