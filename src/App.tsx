@@ -141,6 +141,14 @@ function House({ doc, preview, period, demo }: { doc: HouseDocument; preview: bo
         <PixelButton size="lg" className="border-4 shadow-[0_6px_0_var(--color-rug)]" onClick={() => setEntered(true)} autoFocus>
           {content.welcome.button}
         </PixelButton>
+        {demo && (
+          <p className="-mt-2 text-sm text-wall-2">
+            Já tem um cantinho?{' '}
+            <a href="/login" onClick={(event) => { event.preventDefault(); navigate('/login'); }} className="font-semibold text-highlight underline underline-offset-4 hover:text-rug">
+              Entrar na minha conta
+            </a>
+          </p>
+        )}
         {content.welcome.note && <p className="text-sm text-[#BFA3AE]">{content.welcome.note}</p>}
       </main>
     );
