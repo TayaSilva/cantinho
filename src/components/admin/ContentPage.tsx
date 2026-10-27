@@ -5,8 +5,9 @@ import { useMediaUrl } from '../../hooks/useMediaUrl';
 import { navigate } from '../../hooks/useRoute';
 import { houseAdminPath } from '../../services/houses';
 import { mediaApiUrl, putMedia } from '../../services/mediaStore';
+import { acceptFor, checkFile, limitLabel, UPLOAD_RULES, type MediaKind } from '../../services/uploadRules';
 import type { HouseContent, HouseDocument } from '../../types/house';
-import { AdminIcon, Button, cx, TextArea, TextField, Toggle } from './controls';
+import { AdminIcon, Button, ConfirmDialog, cx, TextArea, TextField, Toggle } from './controls';
 
 export type ContentSection = 'textos' | 'fotos' | 'videos' | 'musicas' | 'cartas' | 'datas' | 'mensagens';
 
@@ -97,49 +98,108 @@ function Header({ title, description, action }: { title: string; description: st
   );
 }
 
-function UploadButton({ accept, multiple, label, onFiles, variant = 'primary' }: { accept: string; multiple?: boolean; label: string; onFiles: (files: File[]) => void; variant?: 'primary' | 'secondary' }) {
-  const ref = useRef<HTMLInputElement>(null);
+type UploadProblem = { name: string; message: string };
+
+type Upload = { kind: MediaKind; busy: boolean; pick: () => void; start: (files: File[]) => void; elements: ReactNode };
+
+/**
+ * Envio de arquivos de um tipo: confere formato e tamanho antes de subir, envia os
+ * válidos e, se algo falhar, abre um modal explicando o motivo com a opção de
+ * escolher outro arquivo. Nenhum código HTTP chega à tela.
+ */
+function useUpload<T>(kind: MediaKind, make: (file: File) => Promise<T>, commit: (items: T[]) => void, multiple = true): Upload {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  return (
+  const [report, setReport] = useState<{ problems: UploadProblem[]; sent: number } | null>(null);
+
+  const start = async (files: File[]) => {
+    if (!files.length || busy) return;
+    setBusy(true);
+    const problems: UploadProblem[] = [];
+    const valid = files.filter((file) => {
+      const message = checkFile(file, kind);
+      if (message) problems.push({ name: file.name, message });
+      return !message;
+    });
+    const results = await Promise.allSettled(valid.map(make));
+    const items: T[] = [];
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') items.push(result.value);
+      else problems.push({ name: valid[i].name, message: result.reason instanceof Error ? result.reason.message : 'Não foi possível enviar o arquivo. Tente de novo.' });
+    });
+    if (items.length) commit(items);
+    if (problems.length) setReport({ problems, sent: items.length });
+    setBusy(false);
+  };
+
+  const pick = () => inputRef.current?.click();
+  const rule = UPLOAD_RULES[kind];
+  const single = report?.problems.length === 1;
+
+  const elements = (
     <>
       <input
-        ref={ref}
+        ref={inputRef}
         type="file"
-        accept={accept}
+        accept={acceptFor(kind)}
         multiple={multiple}
         className="sr-only"
         tabIndex={-1}
         aria-hidden="true"
-        onChange={async (e) => {
+        onChange={(e) => {
           const files = Array.from(e.target.files ?? []);
           e.target.value = '';
-          if (!files.length) return;
-          setBusy(true);
-          setError(null);
-          try {
-            await onFiles(files);
-          } catch (cause) {
-            setError(cause instanceof Error ? cause.message : 'Não foi possível enviar o arquivo.');
-          } finally {
-            setBusy(false);
-          }
+          void start(files);
         }}
       />
-      <Button variant={variant} onClick={() => ref.current?.click()} disabled={busy}>
-        <AdminIcon name="upload" className="size-4" />
-        {busy ? 'Enviando…' : label}
-      </Button>
-      {error && <span role="alert" className="mt-2 block max-w-xs text-xs leading-relaxed text-red-700">{error}</span>}
+      <ConfirmDialog
+        open={Boolean(report)}
+        title={single ? 'Não foi possível enviar este arquivo' : 'Alguns arquivos não foram enviados'}
+        confirmLabel="Escolher outro arquivo"
+        cancelLabel="Fechar"
+        onCancel={() => setReport(null)}
+        onConfirm={() => {
+          setReport(null);
+          pick();
+        }}
+        body={
+          <div className="flex flex-col gap-3">
+            <ul className="flex max-h-60 flex-col gap-2.5 overflow-y-auto">
+              {report?.problems.map((problem, i) => (
+                <li key={`${problem.name}-${i}`} className="rounded-lg bg-red-50 p-3">
+                  <p className="truncate font-semibold text-red-900">{problem.name}</p>
+                  <p className="text-red-800">{problem.message}</p>
+                </li>
+              ))}
+            </ul>
+            {Boolean(report?.sent) && <p>{report?.sent === 1 ? 'O outro arquivo foi enviado.' : `Os outros ${report?.sent} arquivos foram enviados.`}</p>}
+            <p className="text-xs text-stone-500">Aceito para {rule.noun}: {limitLabel(kind)}.</p>
+          </div>
+        }
+      />
     </>
+  );
+
+  return { kind, busy, pick, start: (files) => void start(files), elements };
+}
+
+function UploadButton({ upload, label, variant = 'primary' }: { upload: Upload; label: string; variant?: 'primary' | 'secondary' }) {
+  return (
+    <Button variant={variant} onClick={upload.pick} disabled={upload.busy}>
+      <AdminIcon name="upload" className="size-4" />
+      {upload.busy ? 'Enviando…' : label}
+    </Button>
   );
 }
 
-function DropZone({ accept, label, onFiles }: { accept: string; label: string; onFiles: (files: File[]) => void }) {
+/** Área para soltar ou clicar; mostra os formatos e o tamanho máximo aceitos. */
+function DropZone({ upload, label }: { upload: Upload; label: string }) {
   const [over, setOver] = useState(false);
-  const kind = accept.split('/')[0];
   return (
-    <div
+    <button
+      type="button"
+      onClick={upload.pick}
+      disabled={upload.busy}
       onDragOver={(e) => {
         e.preventDefault();
         setOver(true);
@@ -148,14 +208,16 @@ function DropZone({ accept, label, onFiles }: { accept: string; label: string; o
       onDrop={(e) => {
         e.preventDefault();
         setOver(false);
-        const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith(kind));
-        if (files.length) onFiles(files);
+        upload.start(Array.from(e.dataTransfer.files));
       }}
-      className={cx('flex items-center justify-center gap-2.5 rounded-xl border-[1.5px] border-dashed bg-white p-5 text-sm text-stone-600', over ? 'border-rose-400 bg-rose-50' : 'border-stone-300')}
+      className={cx('flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-[1.5px] border-dashed bg-white p-5 text-center text-sm text-stone-600 disabled:cursor-wait', over ? 'border-rose-400 bg-rose-50' : 'border-stone-300 hover:border-stone-400')}
     >
-      <AdminIcon name="upload" className="size-5" />
-      {label}
-    </div>
+      <span className="flex items-center gap-2.5">
+        <AdminIcon name="upload" className="size-5" />
+        {upload.busy ? 'Enviando…' : label}
+      </span>
+      <span className="text-xs text-stone-500">{limitLabel(upload.kind)}</span>
+    </button>
   );
 }
 
@@ -242,14 +304,16 @@ function TextsSection({ doc, edit }: { doc: HouseDocument; edit: Edit }) {
 /* ---------------- Fotos ---------------- */
 
 function PhotosSection({ content, edit, houseId }: { content: HouseContent; edit: Edit; houseId?: string }) {
-  const add = async (files: File[]) => {
-    const items = await Promise.all(files.map(async (f) => ({ id: newId('p'), src: await putMedia(f, houseId), caption: fileTitle(f), alt: '' })));
-    edit((c) => void c.photos.push(...items));
-  };
+  const upload = useUpload(
+    'image',
+    async (f) => ({ id: newId('p'), src: await putMedia(f, houseId), caption: fileTitle(f), alt: '' }),
+    (items) => edit((c) => void c.photos.push(...items)),
+  );
   return (
     <>
-      <Header title="Fotos do quadro" description="Aparecem na galeria quando o visitante clica no quadro, nesta ordem." action={<UploadButton accept="image/*" multiple label="Enviar fotos" onFiles={add} />} />
-      <DropZone accept="image/*" label="Solte as imagens aqui · JPG, PNG ou WebP" onFiles={add} />
+      <Header title="Fotos do quadro" description="Aparecem na galeria quando o visitante clica no quadro, nesta ordem." action={<UploadButton upload={upload} label="Enviar fotos" />} />
+      <DropZone upload={upload} label="Solte as imagens aqui ou clique para escolher" />
+      {upload.elements}
       {content.photos.length === 0 ? (
         <Empty>Nenhuma foto ainda. O quadro continua na casa e mostra um aviso até você enviar.</Empty>
       ) : (
@@ -276,14 +340,16 @@ function PhotosSection({ content, edit, houseId }: { content: HouseContent; edit
 /* ---------------- Vídeos ---------------- */
 
 function VideosSection({ content, edit, houseId }: { content: HouseContent; edit: Edit; houseId?: string }) {
-  const add = async (files: File[]) => {
-    const items = await Promise.all(files.map(async (f) => ({ id: newId('v'), src: await putMedia(f, houseId), title: fileTitle(f), description: '' })));
-    edit((c) => void c.videos.push(...items));
-  };
+  const upload = useUpload(
+    'video',
+    async (f) => ({ id: newId('v'), src: await putMedia(f, houseId), title: fileTitle(f), description: '' }),
+    (items) => edit((c) => void c.videos.push(...items)),
+  );
   return (
     <>
-      <Header title="Vídeos da TV" description="Cada vídeo vira um canal na TV. Nada toca sozinho." action={<UploadButton accept="video/*" multiple label="Enviar vídeos" onFiles={add} />} />
-      <DropZone accept="video/*" label="Solte os vídeos aqui · MP4 ou WebM" onFiles={add} />
+      <Header title="Vídeos da TV" description="Cada vídeo vira um canal na TV. Nada toca sozinho." action={<UploadButton upload={upload} label="Enviar vídeos" />} />
+      <DropZone upload={upload} label="Solte os vídeos aqui ou clique para escolher" />
+      {upload.elements}
       {content.videos.length === 0 ? (
         <Empty>Nenhum vídeo ainda.</Empty>
       ) : (
@@ -292,17 +358,7 @@ function VideosSection({ content, edit, houseId }: { content: HouseContent; edit
             <Card key={v.id} className="flex flex-col gap-4 p-4 sm:flex-row">
               <div className="sm:w-56">
                 <MediaImage src={v.poster} alt="" className="pixelated aspect-[16/10] w-full rounded-lg object-cover" />
-                <div className="mt-2">
-                  <UploadButton
-                    variant="secondary"
-                    accept="image/*"
-                    label={v.poster ? 'Trocar capa' : 'Enviar capa'}
-                    onFiles={async ([f]) => {
-                      const ref = await putMedia(f, houseId);
-                      edit((c) => void (c.videos[i].poster = ref));
-                    }}
-                  />
-                </div>
+                <PosterUpload hasPoster={Boolean(v.poster)} houseId={houseId} onPoster={(ref) => edit((c) => void (c.videos[i].poster = ref))} />
               </div>
               <div className="flex min-w-0 flex-1 flex-col gap-3">
                 <div className="flex items-center justify-between">
@@ -320,6 +376,17 @@ function VideosSection({ content, edit, houseId }: { content: HouseContent; edit
   );
 }
 
+function PosterUpload({ hasPoster, houseId, onPoster }: { hasPoster: boolean; houseId?: string; onPoster: (ref: string) => void }) {
+  const upload = useUpload('image', (f) => putMedia(f, houseId), ([ref]) => onPoster(ref), false);
+  return (
+    <div className="mt-2 flex flex-col gap-1">
+      <UploadButton upload={upload} variant="secondary" label={hasPoster ? 'Trocar capa' : 'Enviar capa'} />
+      <span className="text-xs text-stone-500">Imagem até {UPLOAD_RULES.image.maxMb} MB</span>
+      {upload.elements}
+    </div>
+  );
+}
+
 /* ---------------- Músicas ---------------- */
 
 function TrackPreview({ src }: { src: string }) {
@@ -329,14 +396,16 @@ function TrackPreview({ src }: { src: string }) {
 
 function TracksSection({ content, edit, houseId }: { content: HouseContent; edit: Edit; houseId?: string }) {
   const tracks = content.playlist.tracks;
-  const add = async (files: File[]) => {
-    const items = await Promise.all(files.map(async (f) => ({ id: newId('t'), src: await putMedia(f, houseId), title: fileTitle(f), artist: '', license: '' })));
-    edit((c) => void c.playlist.tracks.push(...items));
-  };
+  const upload = useUpload(
+    'audio',
+    async (f) => ({ id: newId('t'), src: await putMedia(f, houseId), title: fileTitle(f), artist: '', license: '' }),
+    (items) => edit((c) => void c.playlist.tracks.push(...items)),
+  );
   return (
     <>
-      <Header title="Músicas do rádio" description="Use músicas próprias ou com licença que permita o uso." action={<UploadButton accept="audio/*" multiple label="Enviar músicas" onFiles={add} />} />
-      <DropZone accept="audio/*" label="Solte os arquivos aqui · MP3, M4A ou OGG" onFiles={add} />
+      <Header title="Músicas do rádio" description="Use músicas próprias ou com licença que permita o uso." action={<UploadButton upload={upload} label="Enviar músicas" />} />
+      <DropZone upload={upload} label="Solte as músicas aqui ou clique para escolher" />
+      {upload.elements}
       {tracks.length === 0 ? (
         <Empty>Nenhuma música ainda.</Empty>
       ) : (

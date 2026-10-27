@@ -1,4 +1,5 @@
 import { Upload } from 'tus-js-client';
+import { friendlyUploadError } from './uploadRules';
 
 export const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, '');
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -315,7 +316,12 @@ export async function uploadToCloud(path: string, file: Blob): Promise<void> {
         headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}` },
         metadata: { bucketName: SUPABASE_BUCKET, objectName: path, contentType: file.type || 'application/octet-stream' },
         uploadSize: file.size,
-        onError: reject,
+        // 413/415 não melhoram com nova tentativa.
+        onShouldRetry: (error) => ![401, 403, 413, 415].includes(error.originalResponse?.getStatus() ?? 0),
+        onError: (error) => {
+          const detailed = error as Error & { originalResponse?: { getStatus(): number; getBody(): string } | null };
+          reject(friendlyUploadError(detailed.originalResponse?.getStatus(), `${error.message} ${detailed.originalResponse?.getBody() ?? ''}`));
+        },
         onSuccess: () => resolve(),
       });
       upload.start();
@@ -332,9 +338,11 @@ export async function uploadToCloud(path: string, file: Blob): Promise<void> {
       'x-upsert': 'false',
     },
     body: file,
+  }).catch((cause: unknown) => {
+    throw friendlyUploadError(undefined, cause instanceof Error ? cause.message : 'network');
   });
   if (!response.ok) {
-    const data = (await response.json().catch(() => ({}))) as { message?: string; error?: string };
-    throw new Error(data.message || data.error || 'Não foi possível enviar o arquivo.');
+    const data = (await response.json().catch(() => ({}))) as { message?: string; error?: string; statusCode?: string };
+    throw friendlyUploadError(Number(data.statusCode) || response.status, `${data.message ?? ''} ${data.error ?? ''}`);
   }
 }

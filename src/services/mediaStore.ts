@@ -1,4 +1,5 @@
 import { authFetch, cloudConfigured, uploadToCloud, getDefaultHouseId } from './auth';
+import { UploadError } from './uploadRules';
 
 /**
  * Arquivos enviados pelo Backoffice (fotos, vídeos, músicas).
@@ -79,7 +80,7 @@ export async function putMedia(file: Blob, houseId?: string): Promise<string> {
     });
     if (!response.ok) {
       const data = (await response.json().catch(() => ({}))) as { error?: string };
-      throw new Error(data.error || `O arquivo foi enviado, mas o registro falhou (HTTP ${response.status}).`);
+      throw new UploadError(response.status === 400 ? 'O arquivo é grande demais ou está em um formato não aceito.' : data.error || 'O arquivo foi enviado, mas não foi possível salvá-lo. Tente de novo.');
     }
     // A URL direta evita uma ida extra à Vercel e uma consulta ao banco quando
     // outra pessoa abre o link compartilhado.

@@ -2,7 +2,8 @@ import { cors, fail, json, options, readJson } from '../_lib/http.mjs';
 import { dbFetch, requireRequestedHouse } from '../_lib/supabase.mjs';
 
 const UUID = /^[0-9a-f-]{36}$/i;
-const MAX_BYTES = 500 * 1024 * 1024;
+// Igual ao maior limite do app (vídeos, src/services/uploadRules.ts).
+const MAX_BYTES = 50 * 1024 * 1024;
 
 export default async function handler(req, res) {
   cors(res);
