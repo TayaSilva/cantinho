@@ -157,7 +157,11 @@ function House({ doc, preview, period, demo }: { doc: HouseDocument; preview: bo
             {theme.label} · {clock}
           </span>
         </div>
-        {demo && <PixelButton size="sm" variant="accent" onClick={() => navigate('/login')} className="absolute left-1/2 hidden -translate-x-1/2 whitespace-nowrap text-xs sm:text-sm md:inline-flex">Crie seu cantinho</PixelButton>}
+        {demo && (
+          <div className="absolute left-1/2 hidden -translate-x-1/2 md:block">
+            <PixelButton size="sm" variant="accent" onClick={() => navigate('/login')} className="whitespace-nowrap text-sm">Crie seu cantinho</PixelButton>
+          </div>
+        )}
         <div className="flex shrink-0 gap-2.5">
           <PixelButton variant="dark" size="icon" onClick={() => setHelp((h) => !h)} aria-label="Mostrar objetos interativos" aria-pressed={help} className={help ? '!bg-rug !text-ink-deep' : ''}>
             <Icon name="help" />
