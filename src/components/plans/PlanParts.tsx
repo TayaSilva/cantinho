@@ -4,10 +4,8 @@
  * comparação dos planos e histórico de pagamentos.
  */
 import { useEffect, useRef } from 'react';
-import type { MouseEvent, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { EXPIRY_WARNINGS_DAYS, formatPrice, GRACE_PERIOD_DAYS, PLANS, type PlanId } from '../../data/plans';
-import { navigate } from '../../hooks/useRoute';
-import { houseAdminPath } from '../../services/houses';
 import { useHousePlan, type HousePlan, type PlanStage } from '../../services/plans';
 import { formatSize, UPLOAD_RULES } from '../../services/uploadRules';
 import { AdminIcon, cx } from '../admin/controls';
@@ -57,28 +55,28 @@ export function StageBadge({ stage }: { stage: PlanStage }) {
 
 /**
  * Atalho discreto do editor: "Mini Mansão" para quem está no grátis,
- * selo do plano para quem já é Premium. Os dois levam a "Meu plano".
+ * selo do plano para quem já é Premium. "Meu plano" ainda não está
+ * disponível, então o atalho aparece desativado com o aviso "Em breve".
  */
 export function PlanShortcut({ houseId }: { houseId: string }) {
   const plan = useHousePlan(houseId);
   if (!plan) return null;
-  const href = houseAdminPath(houseId, '/plano');
-  const go = (event: MouseEvent<HTMLAnchorElement>) => {
-    event.preventDefault();
-    navigate(href);
-  };
-  if (plan.planId === 'mansao') {
-    return (
-      <a href={href} onClick={go} title="Ver meu plano" className="rounded-full no-underline focus-visible:outline-2 focus-visible:outline-rose-500">
-        <PlanBadge planId="mansao" className="py-1" />
-      </a>
-    );
-  }
+  if (plan.planId === 'mansao') return <PlanBadge planId="mansao" className="py-1" />;
   return (
-    <a href={href} onClick={go} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-mansao-soft bg-white px-3 text-[13px] font-medium text-mansao no-underline hover:bg-mansao-soft/50 focus-visible:outline-2 focus-visible:outline-rose-500">
-      <AdminIcon name="crown" className="size-4" />
-      Mini Mansão
-    </a>
+    <span className="group relative inline-flex">
+      <button
+        type="button"
+        aria-disabled="true"
+        title="Em breve"
+        className="inline-flex h-9 cursor-not-allowed items-center gap-1.5 rounded-lg border border-mansao-soft bg-white px-3 text-[13px] font-medium text-mansao opacity-50 focus-visible:outline-2 focus-visible:outline-rose-500"
+      >
+        <AdminIcon name="crown" className="size-4" />
+        Mini Mansão
+      </button>
+      <span role="status" className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-stone-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg group-hover:block group-focus-within:block">
+        Em breve
+      </span>
+    </span>
   );
 }
 
