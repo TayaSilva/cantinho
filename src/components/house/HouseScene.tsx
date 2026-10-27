@@ -41,11 +41,12 @@ import { iso, pts } from './iso';
 import { Pet, petAnchor, petHitbox } from './Pet';
 import { Room, StringLights } from './Room';
 
-/** Pessoas 3 e 4 sentam no sofá 2, de costas; só existem com ele visível. */
+/** Pessoas 3 e 4 sentam no sofá 2, de costas. A 2, 3 e 4 podem ser ocultadas; 3 e 4 também somem sem o sofá 2. */
 const backAOf = (index: number) => (index < 2 ? undefined : OPPOSITE_SOFA_A);
 const characterRect = (appearance: HouseAppearance, index: number): Rect =>
   characterHitbox(CHARACTER_SEATS[index], appearance.characters[index].age ?? 'adult', backAOf(index));
-const characterSeated = (appearance: HouseAppearance, index: number) => index < 2 || appearance.furniture.sofa2.visible;
+const characterSeated = (appearance: HouseAppearance, index: number) =>
+  index === 0 || (appearance.characters[index].enabled !== false && (index < 2 || appearance.furniture.sofa2.visible));
 
 /* ==================================================================
  * Desenho da cena (um único SVG em camadas)
@@ -99,9 +100,9 @@ export function SceneSvg({ appearance, theme, runtime, children }: SceneSvgProps
       {f.cushions.visible && <Cushions opt={opt('cushions', 'cushions')} />}
 
       {/* 5. personagens */}
-      {appearance.characters.slice(0, 2).map((look, i) => (
-        <Character key={i} look={look} seat={CHARACTER_SEATS[i]} index={i} />
-      ))}
+      {appearance.characters.slice(0, 2).map((look, i) =>
+        characterSeated(appearance, i) ? <Character key={i} look={look} seat={CHARACTER_SEATS[i]} index={i} /> : null,
+      )}
       {f.sofa.visible && <SofaFront opt={opt('sofa', 'sofa')} />}
       {f.lamp.visible && <Lamp opt={lampOpt} on={runtime.lampOn} />}
       {f.table.visible && <Table opt={opt('table', 'table')} items={deco.tableItems} />}
@@ -113,8 +114,9 @@ export function SceneSvg({ appearance, theme, runtime, children }: SceneSvgProps
       {f.sofa2.visible && (
         <g>
           <OppositeSofaSeat opt={opt('sofa2', 'sofa')} backA={OPPOSITE_SOFA_A} />
-          <CharacterFromBehind look={appearance.characters[2]} seat={CHARACTER_SEATS[2]} backA={OPPOSITE_SOFA_A} />
-          <CharacterFromBehind look={appearance.characters[3]} seat={CHARACTER_SEATS[3]} backA={OPPOSITE_SOFA_A} />
+          {[2, 3].map((i) =>
+            characterSeated(appearance, i) ? <CharacterFromBehind key={i} look={appearance.characters[i]} seat={CHARACTER_SEATS[i]} backA={OPPOSITE_SOFA_A} /> : null,
+          )}
           <OppositeSofaBack opt={opt('sofa2', 'sofa')} backA={OPPOSITE_SOFA_A} />
         </g>
       )}

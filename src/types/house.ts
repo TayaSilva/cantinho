@@ -110,6 +110,8 @@ export interface FurnitureSetting {
 }
 
 export interface CharacterAppearance {
+  /** Personagem 1 sempre aparece; 2, 3 e 4 podem ser ocultados (ausente = visível). */
+  enabled?: boolean;
   name: string;
   age?: CharacterAge;
   skinTone: string;

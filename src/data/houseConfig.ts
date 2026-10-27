@@ -179,6 +179,7 @@ export const defaultAppearance: HouseAppearance = {
   books: 'books.classicos',
   characters: [
     {
+      enabled: true,
       name: 'Lia',
       age: 'adult',
       skinTone: 'skin.2',
@@ -190,6 +191,7 @@ export const defaultAppearance: HouseAppearance = {
       expression: 'face.sorriso',
     },
     {
+      enabled: true,
       name: 'Théo',
       age: 'adult',
       skinTone: 'skin.3',
@@ -201,6 +203,7 @@ export const defaultAppearance: HouseAppearance = {
       expression: 'face.sorriso',
     },
     {
+      enabled: true,
       name: 'Pessoa 3',
       age: 'adult',
       skinTone: 'skin.1',
@@ -212,6 +215,7 @@ export const defaultAppearance: HouseAppearance = {
       expression: 'face.sorriso',
     },
     {
+      enabled: true,
       name: 'Pessoa 4',
       age: 'adult',
       skinTone: 'skin.4',

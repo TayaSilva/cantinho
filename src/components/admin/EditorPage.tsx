@@ -93,8 +93,11 @@ export function EditorPage({ draft }: { draft: HouseDraft }) {
     setSelected(c === 'personagem1' ? 'character1' : c === 'personagem2' ? 'character2' : c === 'animal' ? 'pet' : c === 'moveis' ? furnitureKey : null);
   };
 
-  const categorySub = (c: EditorCategory) =>
-    c === 'personagem1' ? ap.characters[0].name : c === 'personagem2' ? ap.characters[1].name : c === 'animal' ? (ap.pet.enabled ? ap.pet.name : 'Oculto') : undefined;
+  const categorySub = (c: EditorCategory) => {
+    const slot = ['personagem1', 'personagem2', 'personagem3', 'personagem4'].indexOf(c);
+    if (slot >= 0) return slot > 0 && ap.characters[slot].enabled === false ? 'Oculto' : ap.characters[slot].name;
+    return c === 'animal' ? (ap.pet.enabled ? ap.pet.name : 'Oculto') : undefined;
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
@@ -316,7 +319,7 @@ function MoveisPanel({ ap, setAp, current, onPick }: { ap: HouseAppearance; setA
                 : current === 'plants'
                   ? 'Vale para a planta ao lado do rádio. A do canto fica em Decorações.'
                   : current === 'sofa2'
-                    ? 'Opcional: coloca um sofá de frente para o principal, com os personagens 3 e 4.'
+                    ? 'Opcional: um sofá de frente para o principal. Quem senta nele (personagens 3 e 4) se escolhe nos painéis deles.'
                     : undefined
             }
             checked={setting.visible}
@@ -331,7 +334,8 @@ function MoveisPanel({ ap, setAp, current, onPick }: { ap: HouseAppearance; setA
 
 function CharacterPanel({ ap, setAp, slot, onSwitch }: { ap: HouseAppearance; setAp: SetAp; slot: 0 | 1 | 2 | 3; onSwitch: (s: 0 | 1 | 2 | 3) => void }) {
   const ch = ap.characters[slot];
-  type CharacterOptionKey = Exclude<keyof CharacterAppearance, 'age'>;
+  type CharacterOptionKey = Exclude<keyof CharacterAppearance, 'age' | 'enabled'>;
+  const enabled = slot === 0 || ch.enabled !== false;
   const set = (key: CharacterOptionKey) => (id: string) => setAp((a) => void (a.characters[slot][key] = id));
   const sec = (k: string, title: string, type: ElementType, kind: 'swatch' | 'thumb', value: string): ReactNode => (
     <Field title={title} aside={nameOf(type, value)} key={k}>
@@ -355,26 +359,36 @@ function CharacterPanel({ ap, setAp, slot, onSwitch }: { ap: HouseAppearance; se
           { id: '3', label: `Personagem 4 · ${ap.characters[3].name || '—'}` },
         ]}
       />
-      {slot >= 2 && !ap.furniture.sofa2.visible && (
-        <p className="rounded-lg bg-stone-50 p-3 text-xs leading-relaxed text-stone-500">Este personagem só aparece com o Sofá 2 ligado (em Móveis).</p>
+      {slot >= 1 && (
+        <Toggle
+          label="Exibir na casinha"
+          description="Ocultar não apaga as escolhas: ao reativar, tudo volta como estava."
+          checked={enabled}
+          onChange={(v) => setAp((a) => void (a.characters[slot].enabled = v))}
+        />
       )}
-      <TextField label="Nome" value={ch.name} maxLength={24} onChange={(v) => setAp((a) => void (a.characters[slot].name = v), `name-${slot}`)} />
-      <Segmented<CharacterAge>
-        label="Tipo"
-        value={ch.age ?? 'adult'}
-        onChange={(value) => setAp((a) => void (a.characters[slot].age = value))}
-        options={[
-          { id: 'adult', label: 'Adulto' },
-          { id: 'child', label: 'Criança' },
-        ]}
-      />
-      {sec('skinTone', 'Tom de pele', 'skinTone', 'swatch', ch.skinTone)}
-      {sec('hairStyle', 'Estilo de cabelo', 'hairStyle', 'thumb', ch.hairStyle)}
-      {sec('hairColor', 'Cor do cabelo', 'hairColor', 'swatch', ch.hairColor)}
-      {sec('outfit', 'Roupa', 'outfit', 'thumb', ch.outfit)}
-      {sec('outfitColor', 'Cor da roupa', 'outfitColor', 'swatch', ch.outfitColor)}
-      {sec('accessory', 'Acessório', 'accessory', 'thumb', ch.accessory)}
-      {sec('expression', 'Expressão', 'expression', 'thumb', ch.expression)}
+      {slot >= 2 && enabled && !ap.furniture.sofa2.visible && (
+        <p className="rounded-lg bg-stone-50 p-3 text-xs leading-relaxed text-stone-500">Ligado, mas só aparece com o Sofá 2 ligado (em Móveis).</p>
+      )}
+      <div className={cx('flex flex-col gap-7', !enabled && 'pointer-events-none opacity-40')} aria-disabled={!enabled}>
+        <TextField label="Nome" value={ch.name} maxLength={24} onChange={(v) => setAp((a) => void (a.characters[slot].name = v), `name-${slot}`)} />
+        <Segmented<CharacterAge>
+          label="Tipo"
+          value={ch.age ?? 'adult'}
+          onChange={(value) => setAp((a) => void (a.characters[slot].age = value))}
+          options={[
+            { id: 'adult', label: 'Adulto' },
+            { id: 'child', label: 'Criança' },
+          ]}
+        />
+        {sec('skinTone', 'Tom de pele', 'skinTone', 'swatch', ch.skinTone)}
+        {sec('hairStyle', 'Estilo de cabelo', 'hairStyle', 'thumb', ch.hairStyle)}
+        {sec('hairColor', 'Cor do cabelo', 'hairColor', 'swatch', ch.hairColor)}
+        {sec('outfit', 'Roupa', 'outfit', 'thumb', ch.outfit)}
+        {sec('outfitColor', 'Cor da roupa', 'outfitColor', 'swatch', ch.outfitColor)}
+        {sec('accessory', 'Acessório', 'accessory', 'thumb', ch.accessory)}
+        {sec('expression', 'Expressão', 'expression', 'thumb', ch.expression)}
+      </div>
     </div>
   );
 }
