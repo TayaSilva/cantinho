@@ -4,23 +4,40 @@
  * seletor segmentado, diálogo de confirmação e aviso rápido.
  */
 import { useEffect, useId, useRef } from 'react';
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode, RefObject } from 'react';
 
 export function cx(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(' ');
+}
+
+/** Fecha um menu suspenso ao clicar fora de `ref` ou apertar Esc. */
+export function useDismiss(open: boolean, ref: RefObject<HTMLElement | null>, close: () => void) {
+  useEffect(() => {
+    if (!open) return;
+    const onEvent = (event: MouseEvent | KeyboardEvent) => {
+      if (event instanceof KeyboardEvent ? event.key === 'Escape' : !ref.current?.contains(event.target as Node)) close();
+    };
+    document.addEventListener('mousedown', onEvent);
+    document.addEventListener('keydown', onEvent);
+    return () => {
+      document.removeEventListener('mousedown', onEvent);
+      document.removeEventListener('keydown', onEvent);
+    };
+  }, [open, ref, close]);
 }
 
 /* ---------- Botões ---------- */
 
 type BtnVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
-export function Button({ variant = 'secondary', className, children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: BtnVariant }) {
+export function Button({ variant = 'secondary', size = 'md', className, children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: BtnVariant; size?: 'md' | 'lg' }) {
   return (
     <button
       type="button"
       {...rest}
       className={cx(
-        'inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3.5 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 disabled:cursor-not-allowed disabled:opacity-45',
+        'inline-flex cursor-pointer items-center justify-center text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 disabled:cursor-not-allowed disabled:opacity-45',
+        size === 'md' ? 'h-9 gap-1.5 rounded-lg px-3.5' : 'h-11 gap-2 rounded-xl px-4',
         variant === 'primary' && 'bg-stone-900 font-semibold text-white hover:bg-stone-700',
         variant === 'secondary' && 'border border-stone-200 bg-white text-stone-900 hover:bg-stone-50',
         variant === 'ghost' && 'text-stone-700 hover:bg-stone-100',
@@ -291,7 +308,7 @@ export function Toast({ message, onDone }: { message: string | null; onDone: () 
 
 /* ---------- Ícones de traço (Backoffice) ---------- */
 
-export function AdminIcon({ name, className = 'size-[18px]' }: { name: 'home' | 'sofa' | 'person' | 'paw' | 'star' | 'undo' | 'eye' | 'plus' | 'up' | 'down' | 'trash' | 'upload' | 'external' | 'image' | 'video' | 'music' | 'letter' | 'calendar' | 'gift' | 'text'; className?: string }) {
+export function AdminIcon({ name, className = 'size-[18px]' }: { name: 'home' | 'sofa' | 'person' | 'paw' | 'star' | 'undo' | 'eye' | 'plus' | 'up' | 'down' | 'trash' | 'upload' | 'external' | 'image' | 'video' | 'music' | 'letter' | 'calendar' | 'gift' | 'text' | 'save' | 'power' | 'link' | 'more' | 'chevron'; className?: string }) {
   const p = { className, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true as const };
   switch (name) {
     case 'home':
@@ -334,5 +351,15 @@ export function AdminIcon({ name, className = 'size-[18px]' }: { name: 'home' | 
       return <svg {...p}><rect x="3" y="8" width="18" height="13" rx="1" /><path d="M3 12h18M12 8v13M12 8S10 3 7.5 4.5 9 8 12 8zM12 8s2-5 4.5-3.5S15 8 12 8z" /></svg>;
     case 'text':
       return <svg {...p}><path d="M4 6h16M4 12h10M4 18h13" /></svg>;
+    case 'save':
+      return <svg {...p}><path d="M5 3h11l4 4v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a1 1 0 0 1 1-1z" /><path d="M8 3v5h7V3M8 21v-7h8v7" /></svg>;
+    case 'power':
+      return <svg {...p}><path d="M12 3v8" /><path d="M7.5 6.5a7 7 0 1 0 9 0" /></svg>;
+    case 'link':
+      return <svg {...p}><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></svg>;
+    case 'more':
+      return <svg {...p} fill="currentColor" stroke="none"><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></svg>;
+    case 'chevron':
+      return <svg {...p}><path d="M6 9l6 6 6-6" /></svg>;
   }
 }

@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { houseStatus, type HouseStatus, type HouseSummary } from '../../services/houses';
 import { sharePublicHouse } from '../../services/share';
 import { AdminIcon, Button, ConfirmDialog, cx, Toast } from '../admin/controls';
+import { AccountMenu } from './AccountMenu';
 
 const STATUS: Record<HouseStatus, { label: string; className: string; dot: string }> = {
   draft: { label: 'Rascunho', className: 'bg-stone-100 text-stone-700', dot: 'bg-stone-500' },
@@ -37,40 +38,6 @@ function Thumbnail({ id }: { id: string }) {
         <rect x="5" y="8" width="2" height="2" fill={bg} />
         <rect x="10" y="8" width="2" height="4" fill={roof} />
       </svg>
-    </div>
-  );
-}
-
-function AccountMenu({ firstName, email, onLogout }: { firstName: string; email?: string; onLogout?: () => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const close = (event: MouseEvent | KeyboardEvent) => {
-      if (event instanceof KeyboardEvent ? event.key === 'Escape' : !ref.current?.contains(event.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', close);
-    document.addEventListener('keydown', close);
-    return () => {
-      document.removeEventListener('mousedown', close);
-      document.removeEventListener('keydown', close);
-    };
-  }, [open]);
-  return (
-    <div ref={ref} className="relative">
-      <button type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="flex size-9 cursor-pointer items-center justify-center rounded-full bg-rose-50 text-sm font-semibold text-rose-800 hover:bg-rose-100 focus-visible:outline-2 focus-visible:outline-rose-500">
-        {firstName.slice(0, 1).toUpperCase()}
-        <span className="sr-only">Menu da conta</span>
-      </button>
-      {open && (
-        <div role="menu" className="absolute right-0 z-40 mt-2 w-60 rounded-xl border border-stone-200 bg-white p-2 text-sm shadow-lg">
-          <div className="border-b border-stone-100 px-2.5 pt-1 pb-2.5">
-            <p className="font-semibold">{firstName}</p>
-            {email && <p className="truncate text-xs text-stone-500">{email}</p>}
-          </div>
-          {onLogout && <button role="menuitem" type="button" className="mt-1 w-full cursor-pointer rounded-lg px-2.5 py-2 text-left hover:bg-stone-50" onClick={onLogout}>Sair</button>}
-        </div>
-      )}
     </div>
   );
 }
