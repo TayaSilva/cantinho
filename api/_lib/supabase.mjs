@@ -28,6 +28,27 @@ export function storageFetch(path, init = {}) {
   return fetch(`${SUPABASE_URL}/storage/v1/${path}`, { ...init, headers: headers(init.headers, SUPABASE_SERVICE_ROLE_KEY) });
 }
 
+/** API administrativa do Auth (ex.: excluir usuário). Só com a chave server-side. */
+export function authAdminFetch(path, init = {}) {
+  assertConfig();
+  return fetch(`${SUPABASE_URL}/auth/v1/${path}`, { ...init, headers: headers(init.headers, SUPABASE_SERVICE_ROLE_KEY) });
+}
+
+/**
+ * Remove do Storage os arquivos de um cantinho (a FK em cascata não alcança o bucket).
+ * Lança erro se algo falhar, para quem chamou não apagar o cantinho pela metade.
+ */
+export async function purgeHouseFiles(houseId) {
+  const lookup = await dbFetch(`media?house_id=eq.${encodeURIComponent(houseId)}&select=storage_path`);
+  const media = await lookup.json().catch(() => []);
+  if (!lookup.ok) throw new Error('Não foi possível consultar as mídias do cantinho.');
+  const prefixes = media.map((row) => row.storage_path).filter((path) => typeof path === 'string' && path.startsWith(`${houseId}/`));
+  for (let i = 0; i < prefixes.length; i += 100) {
+    const removed = await storageFetch(`object/${BUCKET}`, { method: 'DELETE', body: JSON.stringify({ prefixes: prefixes.slice(i, i + 100) }) });
+    if (!removed.ok) throw new Error('Não foi possível remover os arquivos do cantinho.');
+  }
+}
+
 export async function getUser(req) {
   assertConfig();
   const authorization = req.headers.authorization;

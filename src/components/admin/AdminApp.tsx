@@ -18,7 +18,7 @@ const CONTENT_SECTIONS: ContentSection[] = ['textos', 'fotos', 'videos', 'musica
  * "/conteudos/fotos"). Rascunho, pré-visualizar e publicar ficam no topo, valendo
  * para as duas áreas; desfazer, restaurar padrão e compartilhar ficam no menu "⋯".
  */
-export function AdminApp({ path, house, houses, firstName, email, onHouseChange, onLogout }: { path: string; house: HouseSummary; houses: HouseSummary[]; firstName: string; email?: string; onHouseChange: (id: string) => void; onLogout?: () => void }) {
+export function AdminApp({ path, house, houses, firstName, email, onHouseChange, onLogout, onDeleteAccount }: { path: string; house: HouseSummary; houses: HouseSummary[]; firstName: string; email?: string; onHouseChange: (id: string) => void; onLogout?: () => void; onDeleteAccount?: () => Promise<void> }) {
   const draft = useHouseDraft(house.house_id);
   const [confirm, setConfirm] = useState<null | 'reset' | 'publish' | 'switch'>(null);
   const [pendingHouse, setPendingHouse] = useState<string | null>(null);
@@ -122,7 +122,7 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
               Ver cantinho publicado
             </a>
             <span className="h-8 w-px bg-stone-200" aria-hidden="true" />
-            <AccountMenu firstName={firstName} email={email} onLogout={onLogout} />
+            <AccountMenu firstName={firstName} email={email} onLogout={onLogout} onDeleteAccount={onDeleteAccount} ownedCount={houses.length} />
           </div>
         </div>
 

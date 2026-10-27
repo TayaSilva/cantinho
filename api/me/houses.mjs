@@ -1,5 +1,5 @@
 import { cors, fail, json, options, readJson, validDocument } from '../_lib/http.mjs';
-import { BUCKET, dbFetch, getUser, MAX_HOUSES_PER_USER, requestedHouseId, requireHouse, storageFetch, upsertDocuments } from '../_lib/supabase.mjs';
+import { dbFetch, getUser, MAX_HOUSES_PER_USER, purgeHouseFiles, requestedHouseId, requireHouse, upsertDocuments } from '../_lib/supabase.mjs';
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -53,13 +53,10 @@ async function deleteHouse(req, res) {
   const context = await requireHouse(req, houseId, 'owner');
   if (!context) return fail(res, 403, 'Apenas o dono pode excluir o cantinho.');
 
-  const lookup = await dbFetch(`media?house_id=eq.${encodeURIComponent(houseId)}&select=storage_path`);
-  const media = await lookup.json().catch(() => []);
-  if (!lookup.ok) return fail(res, 500, 'Não foi possível consultar as mídias do cantinho.');
-  const prefixes = media.map((row) => row.storage_path).filter((path) => typeof path === 'string' && path.startsWith(`${houseId}/`));
-  for (let i = 0; i < prefixes.length; i += 100) {
-    const removed = await storageFetch(`object/${BUCKET}`, { method: 'DELETE', body: JSON.stringify({ prefixes: prefixes.slice(i, i + 100) }) });
-    if (!removed.ok) return fail(res, 500, 'Não foi possível remover os arquivos do cantinho.');
+  try {
+    await purgeHouseFiles(houseId);
+  } catch (error) {
+    return fail(res, 500, error instanceof Error ? error.message : 'Não foi possível remover os arquivos do cantinho.');
   }
 
   const deleted = await dbFetch(`houses?id=eq.${encodeURIComponent(houseId)}&owner_id=eq.${encodeURIComponent(context.user.id)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });

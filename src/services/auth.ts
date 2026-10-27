@@ -209,6 +209,20 @@ export async function signOut() {
   writeSession(null);
 }
 
+/** Exclui a conta e todos os cantinhos dela (o servidor confere a sessão e o "EXCLUIR"). */
+export async function deleteAccount(): Promise<void> {
+  const response = await authFetch('/api/me/account', {
+    method: 'DELETE',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ confirm: 'EXCLUIR' }),
+  });
+  if (!response.ok) {
+    const data = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error || 'Não foi possível excluir a conta.');
+  }
+  writeSession(null);
+}
+
 export async function getSession(): Promise<AuthSession | null> {
   const session = readSession();
   if (!session) return null;

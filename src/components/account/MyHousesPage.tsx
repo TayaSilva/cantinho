@@ -42,7 +42,7 @@ function Thumbnail({ id }: { id: string }) {
   );
 }
 
-export function MyHousesPage({ firstName, email, houses, notice, error, onDismissNotice, onOpen, onCreate, onDelete, onLogout }: {
+export function MyHousesPage({ firstName, email, houses, notice, error, onDismissNotice, onOpen, onCreate, onDelete, onLogout, onDeleteAccount }: {
   firstName: string;
   email?: string;
   houses: HouseSummary[];
@@ -53,6 +53,7 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
   onCreate: () => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onLogout?: () => void;
+  onDeleteAccount?: () => Promise<void>;
 }) {
   const [creating, setCreating] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -117,7 +118,7 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
           <span className="hidden sm:inline">{creating ? 'Criando…' : 'Criar novo cantinho'}</span>
           <span className="sm:hidden">{creating ? 'Criando…' : 'Nova'}</span>
         </Button>
-        <AccountMenu firstName={firstName} email={email} onLogout={onLogout} />
+        <AccountMenu firstName={firstName} email={email} onLogout={onLogout} onDeleteAccount={onDeleteAccount} ownedCount={houses.filter((item) => item.role === 'owner').length} />
       </header>
 
       <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6">

@@ -4,7 +4,7 @@ import { MyHousesPage } from '../account/MyHousesPage';
 import { AdminApp } from './AdminApp';
 import { AuthBackdrop, GlassAlert, GlassButton, GlassCard, GlassField, GlassHeader, GlassInput, GlassLink, GlassPasswordInput, PixelHeart } from './AuthBackdrop';
 import { cx } from './controls';
-import { AuthError, cloudConfigured, consumeAuthRedirect, getSession, hasRecoveryToken, requestPasswordReset, resendConfirmation, signIn, signOut, signUp, updatePassword, verifySignupCode, type AuthSession } from '../../services/auth';
+import { AuthError, cloudConfigured, consumeAuthRedirect, deleteAccount, getSession, hasRecoveryToken, requestPasswordReset, resendConfirmation, signIn, signOut, signUp, updatePassword, verifySignupCode, type AuthSession } from '../../services/auth';
 import { createHouse, deleteHouse, getActiveHouseId, houseAdminPath, listHouses, setActiveHouseId, type HouseSummary } from '../../services/houses';
 import { navigate } from '../../hooks/useRoute';
 
@@ -104,6 +104,13 @@ export function AdminGate({ path }: { path: string }) {
   };
 
   const logout = cloudConfigured ? () => void signOut().then(() => navigate('/login')) : undefined;
+  const deleteMyAccount = cloudConfigured
+    ? async () => {
+        await deleteAccount();
+        setNotice('Sua conta foi excluída.');
+        navigate('/login');
+      }
+    : undefined;
 
   if (path === '/redefinir-senha' || recovery) {
     return <RecoveryPage onDone={() => { setRecovery(false); setNotice('Senha alterada. Entre com sua nova senha.'); navigate('/login'); }} />;
@@ -130,10 +137,10 @@ export function AdminGate({ path }: { path: string }) {
     const house = houses.find((item) => item.house_id === target.id);
     if (!house) return <AccessDenied />;
     if (house.role !== 'owner') return <AccessDenied message="Você foi convidado para este cantinho, mas apenas o dono pode editá-lo." />;
-    return <AdminApp key={house.house_id} path={target.sub} house={house} houses={houses.filter((item) => item.role === 'owner')} firstName={firstName} email={session?.user.email} onHouseChange={openHouse} onLogout={logout} />;
+    return <AdminApp key={house.house_id} path={target.sub} house={house} houses={houses.filter((item) => item.role === 'owner')} firstName={firstName} email={session?.user.email} onHouseChange={openHouse} onLogout={logout} onDeleteAccount={deleteMyAccount} />;
   }
   if (path !== '/meus-cantinhos') return <Redirect to="/meus-cantinhos" />;
-  return <MyHousesPage firstName={firstName} email={session?.user.email} houses={houses} notice={notice} error={error} onDismissNotice={() => setNotice(null)} onOpen={openHouse} onCreate={createNewHouse} onDelete={removeHouse} onLogout={logout} />;
+  return <MyHousesPage firstName={firstName} email={session?.user.email} houses={houses} notice={notice} error={error} onDismissNotice={() => setNotice(null)} onOpen={openHouse} onCreate={createNewHouse} onDelete={removeHouse} onLogout={logout} onDeleteAccount={deleteMyAccount} />;
 }
 
 function Shell({ children }: { children: ReactNode }) {
