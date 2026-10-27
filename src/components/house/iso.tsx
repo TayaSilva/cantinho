@@ -38,6 +38,7 @@ export interface IsoBoxSpec {
   side?: string;
   front?: string;
   outline?: boolean;
+  outlineColor?: string;
   className?: string;
 }
 
@@ -55,7 +56,7 @@ export function IsoBox(spec: IsoBoxSpec) {
   const top = spec.top ?? shade(spec.color, -0.15);
   const side = spec.side ?? shade(spec.color, 0.2);
   const front = spec.front ?? spec.color;
-  const stroke = spec.outline === false ? {} : { stroke: OUTLINE, strokeWidth: 0.8, strokeLinejoin: 'round' as const };
+  const stroke = spec.outline === false ? {} : { stroke: spec.outlineColor ?? OUTLINE, strokeWidth: 0.8, strokeLinejoin: 'round' as const };
   return (
     <g className={spec.className}>
       <polygon points={pts([iso(a1, c2, z1), iso(a2, c2, z1), iso(a2, c2, z2), iso(a1, c2, z2)])} fill={side} {...stroke} />

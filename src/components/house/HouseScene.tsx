@@ -39,6 +39,25 @@ import { iso, pts } from './iso';
 import { Pet, petAnchor, petHitbox } from './Pet';
 import { Room, StringLights } from './Room';
 
+function scaledCharacterRect(rect: Rect, age?: string): Rect {
+  if (age !== 'child') return rect;
+  const w = rect.w * 0.86;
+  const h = rect.h * 0.86;
+  return { x: rect.x + (rect.w - w) / 2, y: rect.y + (rect.h - h) / 2, w, h };
+}
+
+function secondCharacterRect(index: number, age?: string): Rect {
+  const rect = index === 2 ? { x: 145, y: 126, w: 26, h: 34 } : { x: 116, y: 138, w: 26, h: 34 };
+  return scaledCharacterRect(rect, age);
+}
+
+function secondCharacterAnchor(index: number, age?: string): { x: number; y: number } {
+  const point = index === 2 ? { x: 158, y: 123 } : { x: 129, y: 135 };
+  if (age !== 'child') return point;
+  const baseY = index === 2 ? 160 : 175;
+  return { x: point.x, y: point.y + (baseY - point.y) * 0.14 };
+}
+
 /* ==================================================================
  * Desenho da cena (um único SVG em camadas)
  * ================================================================== */
@@ -273,10 +292,10 @@ export function HouseScene({
                 id={`character${i + 1}`}
                 label={c.name}
                 ariaLabel={`Falar com ${c.name}`}
-                hitbox={i < 2 ? characterHitbox(CHARACTER_SEATS[i]) : i === 2 ? { x: 145, y: 126, w: 26, h: 34 } : { x: 116, y: 138, w: 26, h: 34 }}
+                hitbox={i < 2 ? characterHitbox(CHARACTER_SEATS[i], c.age ?? 'adult') : secondCharacterRect(i, c.age)}
                 showLabel={showLabels}
                 onActivate={() => {
-                  const p = i < 2 ? characterAnchor(CHARACTER_SEATS[i]) : i === 2 ? { x: 158, y: 123 } : { x: 129, y: 135 };
+                  const p = i < 2 ? characterAnchor(CHARACTER_SEATS[i], c.age ?? 'adult') : secondCharacterAnchor(i, c.age);
                   say(phrases[i], p.x, p.y);
                 }}
               />
@@ -326,10 +345,10 @@ const FLOOR = pts([iso(0, 0), iso(120, 0), iso(120, 120), iso(0, 120)]);
 
 /** Retângulos clicáveis de um alvo do editor (considera visibilidade). */
 export function targetRects(appearance: HouseAppearance, target: EditorTarget): Rect[] {
-  if (target === 'character1') return [characterHitbox(CHARACTER_SEATS[0])];
-  if (target === 'character2') return [characterHitbox(CHARACTER_SEATS[1])];
-  if (target === 'character3') return [{ x: 145, y: 126, w: 26, h: 34 }];
-  if (target === 'character4') return [{ x: 116, y: 138, w: 26, h: 34 }];
+  if (target === 'character1') return [characterHitbox(CHARACTER_SEATS[0], appearance.characters[0].age ?? 'adult')];
+  if (target === 'character2') return [characterHitbox(CHARACTER_SEATS[1], appearance.characters[1].age ?? 'adult')];
+  if (target === 'character3') return [secondCharacterRect(2, appearance.characters[2].age)];
+  if (target === 'character4') return [secondCharacterRect(3, appearance.characters[3].age)];
   if (target === 'pet') return appearance.pet.enabled ? [petHitbox(appearance.pet)] : [];
   if (target in appearance.furniture) {
     const key = target as keyof HouseAppearance['furniture'];

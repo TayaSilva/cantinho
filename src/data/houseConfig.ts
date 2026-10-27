@@ -180,6 +180,7 @@ export const defaultAppearance: HouseAppearance = {
   characters: [
     {
       name: 'Lia',
+      age: 'adult',
       skinTone: 'skin.2',
       hairStyle: 'hair.longo',
       hairColor: 'hairColor.preto',
@@ -190,6 +191,7 @@ export const defaultAppearance: HouseAppearance = {
     },
     {
       name: 'Théo',
+      age: 'adult',
       skinTone: 'skin.3',
       hairStyle: 'hair.curto',
       hairColor: 'hairColor.castanho-escuro',
@@ -200,6 +202,7 @@ export const defaultAppearance: HouseAppearance = {
     },
     {
       name: 'Pessoa 3',
+      age: 'adult',
       skinTone: 'skin.1',
       hairStyle: 'hair.chanel',
       hairColor: 'hairColor.branco',
@@ -210,6 +213,7 @@ export const defaultAppearance: HouseAppearance = {
     },
     {
       name: 'Pessoa 4',
+      age: 'adult',
       skinTone: 'skin.4',
       hairStyle: 'hair.rabo',
       hairColor: 'hairColor.castanho-claro',

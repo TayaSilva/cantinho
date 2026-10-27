@@ -1,16 +1,30 @@
 import type { ReactNode } from 'react';
 import { getOption, str } from '../../data/catalog';
-import type { CharacterAppearance, Rect } from '../../types/house';
-import { boundsOf, boxPoints, FaceA, FaceC, iso, IsoBox, pts, shade } from './iso';
+import type { CharacterAge, CharacterAppearance, Rect } from '../../types/house';
+import { boundsOf, boxPoints, FaceA, FaceC, iso, IsoBox, shade } from './iso';
+import { HairBack, HairFront, hairTop } from './Hair';
 
 /** Área clicável do personagem (cabeça + tronco), em unidades da cena. */
-export function characterHitbox(seat: number): Rect {
-  return boundsOf(boxPoints({ a: [6, 14], c: [seat - 1, seat + 9], z: [12, 40] }), 0);
+export const CHILD_SCALE = 0.86;
+
+function scalePoint(point: [number, number], seat: number, age: CharacterAge = 'adult'): [number, number] {
+  if (age !== 'child') return point;
+  const base = iso(13, seat + 4, 0);
+  return [base[0] + (point[0] - base[0]) * CHILD_SCALE, base[1] + (point[1] - base[1]) * CHILD_SCALE];
+}
+
+export function characterHitbox(seat: number, age: CharacterAge = 'adult'): Rect {
+  const r = boundsOf(boxPoints({ a: [6, 14], c: [seat - 1, seat + 9], z: [12, 40] }), 0);
+  const corners: [number, number][] = [[r.x, r.y], [r.x + r.w, r.y], [r.x, r.y + r.h], [r.x + r.w, r.y + r.h]];
+  const points = corners.map((point) => scalePoint(point, seat, age));
+  const xs = points.map(([x]) => x);
+  const ys = points.map(([, y]) => y);
+  return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
 }
 
 /** Ponto acima da cabeça, para o balão de fala. */
-export function characterAnchor(seat: number): { x: number; y: number } {
-  const r = characterHitbox(seat);
+export function characterAnchor(seat: number, age: CharacterAge = 'adult'): { x: number; y: number } {
+  const r = characterHitbox(seat, age);
   return { x: r.x + r.w / 2, y: r.y - 2 };
 }
 
@@ -29,6 +43,7 @@ const PANTS: Record<string, string> = {
  */
 export function Character({ look, seat, index = 0 }: { look: CharacterAppearance; seat: number; index?: number }) {
   const cc = seat;
+  const age = look.age ?? 'adult';
   const skin = str(getOption('skinTone', look.skinTone), 'color');
   const hair = str(getOption('hairColor', look.hairColor), 'color');
   const hairStyle = str(getOption('hairStyle', look.hairStyle), 'style', 'short');
@@ -41,17 +56,14 @@ export function Character({ look, seat, index = 0 }: { look: CharacterAppearance
   const pants = outfit === 'overalls' ? color : PANTS[outfit] ?? '#5C6E8A';
   const shoes = '#46353F';
   const longSleeves = outfit === 'hoodie' || outfit === 'sweater' || outfit === 'overalls' || outfit === 'jacket' || outfit === 'jumpsuit';
-  const hairDark = shade(hair, 0.2);
+  const base = iso(13, cc + 4, 0);
+  const transform = age === 'child' ? `translate(${base[0]} ${base[1]}) scale(${CHILD_SCALE}) translate(${-base[0]} ${-base[1]})` : undefined;
 
   const parts: ReactNode[] = [];
   const box = (key: string, a: [number, number], c: [number, number], z: [number, number], col: string, extra: Partial<{ top: string; side: string; outline: boolean }> = {}) =>
     parts.push(<IsoBox key={key} a={a} c={c} z={z} color={col} {...extra} />);
 
   /* --- cabelo de trás (antes do corpo) --- */
-  if (hairStyle === 'long') box('hair-back', [6, 8.5], [cc - 1, cc + 9], [15, 36], hair, { outline: false, side: hairDark });
-  if (hairStyle === 'wavy') box('hair-back', [5.5, 8.5], [cc - 1.5, cc + 9.5], [22, 36], hair, { outline: false, side: hairDark });
-  if (hairStyle === 'coily') box('hair-back', [3.5, 9], [cc - 3, cc + 11], [26, 44], hair, { side: hairDark });
-  if (hairStyle === 'ponytail') box('hair-back', [5, 9], [cc + 7, cc + 13], [24, 38], hair, { outline: false, side: hairDark });
   if (outfit === 'hoodie') box('hood', [4.5, 7.5], [cc, cc + 8], [22, 30], shade(color, 0.12));
 
   /* --- corpo --- */
@@ -105,52 +117,13 @@ export function Character({ look, seat, index = 0 }: { look: CharacterAppearance
   /* --- cabeça --- */
   const head = <IsoBox key="head" a={[6, 14]} c={[cc - 1, cc + 9]} z={[26, 36]} color={skin} top={skin} />;
 
-  /* --- cabelo de cima --- */
-  const top: ReactNode[] = [];
-  if (hairStyle === 'coily') {
-    top.push(<IsoBox key="afro-top" a={[5, 15]} c={[cc - 3, cc + 11]} z={[36, 45]} color={hair} side={hairDark} />);
-    top.push(<IsoBox key="afro-side" a={[8, 14]} c={[cc + 9, cc + 11]} z={[29, 36]} color={hair} side={hairDark} outline={false} />);
-    top.push(<FaceA key="afro-front" a={15.05} c={[cc - 3, cc + 11]} z={[36, 38]} fill={hairDark} />);
-  } else {
-    top.push(<IsoBox key="hair-top" a={[5.5, 14.5]} c={[cc - 1.5, cc + 9.5]} z={[36, 39]} color={hair} side={hairDark} />);
-    if (hairStyle === 'curly') {
-      [
-        [6, cc - 1],
-        [9, cc + 3],
-        [6, cc + 6],
-        [11, cc - 1],
-        [11, cc + 6],
-      ].forEach(([a, c], i) => top.push(<IsoBox key={`curl${i}`} a={[a, a + 3.5]} c={[c, c + 3.5]} z={[39, 41]} color={hair} side={hairDark} outline={false} />));
-      top.push(<IsoBox key="curl-side" a={[6, 12]} c={[cc + 9, cc + 10.5]} z={[27, 36]} color={hair} side={hairDark} outline={false} />);
-    }
-    if (hairStyle === 'wavy') {
-      top.push(<IsoBox key="wave-side" a={[6, 12]} c={[cc + 9, cc + 10]} z={[25, 36]} color={hair} side={hairDark} outline={false} />);
-      top.push(<IsoBox key="wave-tip" a={[10, 13]} c={[cc + 9, cc + 10.5]} z={[25, 28]} color={hair} side={hairDark} outline={false} />);
-    }
-    if (hairStyle === 'bob') {
-      top.push(<IsoBox key="bob-side" a={[6, 13]} c={[cc + 9, cc + 11]} z={[26, 36]} color={hair} side={hairDark} outline={false} />);
-      top.push(<IsoBox key="bob-tip" a={[10, 14]} c={[cc + 8.5, cc + 11]} z={[25, 28]} color={hair} side={hairDark} outline={false} />);
-    }
-    if (hairStyle === 'ponytail') {
-      top.push(<IsoBox key="ponytail" a={[3, 8]} c={[cc - 3, cc + 1]} z={[34, 43]} color={hair} side={hairDark} outline={false} />);
-    }
-    // franja
-    top.push(<FaceA key="fringe" a={14.05} c={[cc - 1, cc + 9]} z={[hairStyle === 'curly' ? 33.5 : 33, 36]} fill={hair} />);
-    if (hairStyle === 'curly') {
-      top.push(<FaceA key="fringe-n1" a={14.1} c={[cc + 1, cc + 2.5]} z={[33, 33.5]} fill={hair} />);
-      top.push(<FaceA key="fringe-n2" a={14.1} c={[cc + 6, cc + 7.5]} z={[33, 33.5]} fill={hair} />);
-    }
-    // lateral
-    const low = hairStyle === 'short' ? 31 : hairStyle === 'long' ? 26 : hairStyle === 'bob' ? 27 : 29;
-    top.push(<polygon key="side" points={pts([iso(6, cc + 9.05, 36), iso(14, cc + 9.05, 36), iso(14, cc + 9.05, 33), iso(10, cc + 9.05, 31), iso(6, cc + 9.05, low)])} fill={hair} />);
-  }
-
   return (
-    <g className="character">
+    <g className="character" transform={transform}>
+      <HairBack style={hairStyle} color={hair} cc={cc} />
       {parts}
       {details}
       {head}
-      {top}
+      <HairFront style={hairStyle} color={hair} cc={cc} />
       <Face cc={cc} kind={expression} late={index % 2 === 1} />
       {/* braço da frente e mão */}
       {longSleeves ? (
@@ -162,7 +135,7 @@ export function Character({ look, seat, index = 0 }: { look: CharacterAppearance
         </g>
       )}
       <IsoBox a={[11, 15]} c={[cc + 8.2, cc + 9.8]} z={[15, 17]} color={skin} outline={false} />
-      <Accessory kind={accessory} cc={cc} coily={hairStyle === 'coily'} />
+      <Accessory kind={accessory} cc={cc} style={hairStyle} />
     </g>
   );
 }
@@ -240,8 +213,8 @@ function Face({ cc, kind, late }: { cc: number; kind: string; late: boolean }) {
 
 /* ---------------- Acessórios ---------------- */
 
-function Accessory({ kind, cc, coily }: { kind: string; cc: number; coily: boolean }) {
-  const topZ = coily ? 45 : 39;
+function Accessory({ kind, cc, style }: { kind: string; cc: number; style: string }) {
+  const topZ = hairTop(style);
   switch (kind) {
     case 'glasses': {
       const lens = (c: number, key: string) => (

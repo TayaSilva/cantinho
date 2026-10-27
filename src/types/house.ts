@@ -6,6 +6,8 @@
 
 export type Period = 'manha' | 'tarde' | 'noite' | 'madrugada';
 
+export type CharacterAge = 'adult' | 'child';
+
 export type ModalId = 'radio' | 'tv' | 'photos' | 'book' | 'calendar' | 'chest';
 
 /** Retângulo em unidades da cena (base 320 × 224). */
@@ -109,6 +111,7 @@ export interface FurnitureSetting {
 
 export interface CharacterAppearance {
   name: string;
+  age?: CharacterAge;
   skinTone: string;
   hairStyle: string;
   hairColor: string;

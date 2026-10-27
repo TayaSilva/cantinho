@@ -11,7 +11,7 @@ import {
 import type { EditorCategory, EditorTarget } from '../../data/houseConfig';
 import type { HouseDraft } from '../../hooks/useHouseDraft';
 import { useHouseTime } from '../../hooks/useHouseTime';
-import type { CharacterAppearance, DecorationKey, ElementType, FurnitureKey, HouseAppearance, Period } from '../../types/house';
+import type { CharacterAge, CharacterAppearance, DecorationKey, ElementType, FurnitureKey, HouseAppearance, Period } from '../../types/house';
 import { HouseScene } from '../house/HouseScene';
 import { AdminIcon, cx, Field, Group, Segmented, Swatches, TextField, ThumbGrid, Toggle } from './controls';
 import { OptionThumb } from './Thumbnails';
@@ -323,13 +323,14 @@ function MoveisPanel({ ap, setAp, current, onPick }: { ap: HouseAppearance; setA
 
 function CharacterPanel({ ap, setAp, slot, onSwitch }: { ap: HouseAppearance; setAp: SetAp; slot: 0 | 1 | 2 | 3; onSwitch: (s: 0 | 1 | 2 | 3) => void }) {
   const ch = ap.characters[slot];
-  const set = (key: keyof CharacterAppearance) => (id: string) => setAp((a) => void (a.characters[slot][key] = id));
+  type CharacterOptionKey = Exclude<keyof CharacterAppearance, 'age'>;
+  const set = (key: CharacterOptionKey) => (id: string) => setAp((a) => void (a.characters[slot][key] = id));
   const sec = (k: string, title: string, type: ElementType, kind: 'swatch' | 'thumb', value: string): ReactNode => (
     <Field title={title} aside={nameOf(type, value)} key={k}>
       {kind === 'swatch' ? (
-        <Swatches label={title} items={swatchesFor(type)} value={value} onChange={set(k as keyof CharacterAppearance)} />
+        <Swatches label={title} items={swatchesFor(type)} value={value} onChange={set(k as CharacterOptionKey)} />
       ) : (
-        <ThumbGrid label={title} items={thumbsFor(type, ap, slot)} value={value} onChange={set(k as keyof CharacterAppearance)} />
+        <ThumbGrid label={title} items={thumbsFor(type, ap, slot)} value={value} onChange={set(k as CharacterOptionKey)} />
       )}
     </Field>
   );
@@ -347,6 +348,15 @@ function CharacterPanel({ ap, setAp, slot, onSwitch }: { ap: HouseAppearance; se
         ]}
       />
       <TextField label="Nome" value={ch.name} maxLength={24} onChange={(v) => setAp((a) => void (a.characters[slot].name = v), `name-${slot}`)} />
+      <Segmented<CharacterAge>
+        label="Tipo"
+        value={ch.age ?? 'adult'}
+        onChange={(value) => setAp((a) => void (a.characters[slot].age = value))}
+        options={[
+          { id: 'adult', label: 'Adulto' },
+          { id: 'child', label: 'Criança' },
+        ]}
+      />
       {sec('skinTone', 'Tom de pele', 'skinTone', 'swatch', ch.skinTone)}
       {sec('hairStyle', 'Estilo de cabelo', 'hairStyle', 'thumb', ch.hairStyle)}
       {sec('hairColor', 'Cor do cabelo', 'hairColor', 'swatch', ch.hairColor)}

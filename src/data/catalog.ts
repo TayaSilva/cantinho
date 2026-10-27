@@ -144,7 +144,7 @@ export const catalog: AssetOption[] = [
   o('hairStyle', 'hair.curto', 'Curto liso', { style: 'short' }),
   o('hairStyle', 'hair.ondulado', 'Médio ondulado', { style: 'wavy' }),
   o('hairStyle', 'hair.cacheado', 'Cacheado', { style: 'curly' }),
-  o('hairStyle', 'hair.crespo', 'Crespo', { style: 'coily' }),
+  o('hairStyle', 'hair.crespo', 'Afro puff', { style: 'coily' }),
   o('hairStyle', 'hair.longo', 'Longo liso', { style: 'long' }),
   o('hairStyle', 'hair.chanel', 'Chanel', { style: 'bob' }),
   o('hairStyle', 'hair.rabo', 'Rabo de cavalo', { style: 'ponytail' }),
@@ -154,6 +154,7 @@ export const catalog: AssetOption[] = [
   o('hairColor', 'hairColor.castanho-claro', 'Castanho claro', { color: '#8A5A3B' }),
   o('hairColor', 'hairColor.loiro', 'Loiro', { color: '#D9B26A' }),
   o('hairColor', 'hairColor.ruivo', 'Ruivo', { color: '#B5562F' }),
+  o('hairColor', 'hairColor.grisalho', 'Grisalho', { color: '#A3A1A8' }),
   o('hairColor', 'hairColor.branco', 'Branco', { color: '#F4EDE4' }),
 
   o('outfit', 'outfit.camiseta', 'Camiseta', { style: 'tshirt' }),

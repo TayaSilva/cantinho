@@ -5,7 +5,7 @@
  */
 import type { ReactNode } from 'react';
 import { CHARACTER_SEATS, periods } from '../../data/houseConfig';
-import { getOption } from '../../data/catalog';
+import { getOption, str } from '../../data/catalog';
 import type { CharacterAppearance, ElementType, HouseAppearance, PetAppearance } from '../../types/house';
 import { Character } from '../house/Character';
 import { DynamicWindow } from '../house/DynamicWindow';
@@ -13,6 +13,7 @@ import { Bookshelf, Calendar, Chest, Cushions, Lamp, PhotoFrame, Plant, Radio, R
 import { boundsOf, boxPoints } from '../house/iso';
 import { Pet, petHitbox } from '../house/Pet';
 import { Room } from '../house/Room';
+import { hairTop } from '../house/Hair';
 
 /** Recorte quadrado em volta de um retângulo da cena. */
 function squareView(r: { x: number; y: number; w: number; h: number }, pad = 2): string {
@@ -141,12 +142,16 @@ export function OptionThumb({ type, optionId, appearance, slot = 0 }: ThumbProps
     case 'outfit': {
       const look: CharacterAppearance = { ...appearance.characters[slot], [type]: optionId };
       const cc = CHARACTER_SEATS[0];
+      const selectedHairStyle = type === 'hairStyle'
+        ? str(getOption('hairStyle', optionId), 'style', 'short')
+        : str(getOption('hairStyle', appearance.characters[slot].hairStyle), 'style', 'short');
+      const hairHigh = Math.max(45, hairTop(selectedHairStyle) + 3);
       const area =
         type === 'outfit'
           ? boundsOf(boxPoints({ a: [7, 22], c: [cc - 2, cc + 10], z: [0, 27] }), 0)
           : type === 'expression'
             ? boundsOf(boxPoints({ a: [14, 14], c: [cc - 1, cc + 9], z: [26, 36] }), 0)
-            : boundsOf(boxPoints({ a: [4, 15], c: [cc - 3, cc + 11], z: [26, 45] }), 0);
+            : boundsOf(boxPoints({ a: [4, 15], c: [cc - 3, cc + 11], z: [26, hairHigh] }), 0);
       const seat = cc;
       const view = squareView(area, type === 'expression' ? 1 : 1.5);
       return (
