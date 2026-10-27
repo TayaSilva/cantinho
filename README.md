@@ -1,4 +1,4 @@
-# Casinha Interativa em Pixel Art + Backoffice
+# Cantinho Interativo em Pixel Art + Backoffice
 
 React + Vite + TypeScript + Tailwind CSS 4.
 
@@ -53,10 +53,10 @@ no PostgreSQL e os arquivos são enviados diretamente ao Storage.
 
 | Endereço | O que é |
 |---|---|
-| `/` | Casinha pública (mostra só a versão **publicada**) |
+| `/` | Cantinho público (mostra só a versão **publicada**) |
 | `/?preview=draft` | Pré-visualização do rascunho (aberta pelo botão do Backoffice) |
 | `/?periodo=noite` | Força um período na janela (`manha`, `tarde`, `noite`, `madrugada`) |
-| `/admin/editor` | **Personalizar casinha** — editor visual |
+| `/admin/editor` | **Personalizar cantinho** — editor visual |
 | `/admin/conteudos/fotos` | Conteúdos: `textos`, `fotos`, `videos`, `musicas`, `cartas`, `datas`, `mensagens` |
 
 Ao publicar o site, configure o servidor para devolver `index.html` em qualquer
@@ -64,7 +64,7 @@ rota (já incluídos `vercel.json` e `public/_redirects` para Vercel/Netlify).
 
 ## Backoffice
 
-**Personalizar casinha (`/admin/editor`)** — menu de categorias, pré-visualização
+**Personalizar cantinho (`/admin/editor`)** — menu de categorias, pré-visualização
 clicável e painel de propriedades:
 
 - **Ambiente:** cor das paredes, piso, modelo de janela, cortina e cor, janela
@@ -101,7 +101,7 @@ src/
 │   │   ├── ContentPage.tsx  gestão de conteúdos
 │   │   ├── Thumbnails.tsx   miniaturas das opções
 │   │   └── controls.tsx     amostras, miniaturas, interruptores, campos…
-│   ├── house/               a casinha
+│   ├── house/               o cantinho
 │   │   ├── HouseScene.tsx   cena em camadas + áreas clicáveis (visitante/editor)
 │   │   ├── Room.tsx         piso, paredes, luzinhas
 │   │   ├── DynamicWindow.tsx janela, cortinas e céu por horário
@@ -127,7 +127,7 @@ src/
 
 Nesta versão tudo fica **no navegador**: o rascunho e a versão publicada em
 `localStorage`, e os arquivos enviados em IndexedDB. Ou seja, cada navegador tem a
-sua casinha — ótimo para testar e demonstrar, mas para compartilhar com outra
+seu cantinho — ótimo para testar e demonstrar, mas para compartilhar com outra
 pessoa é preciso um backend.
 
 A aparência é um JSON versionado (`HouseAppearance`) com IDs estáveis do catálogo,
@@ -140,7 +140,7 @@ editor não mudam.
 
 Cada opção em `data/catalog.ts` tem `id`, `elementType`, `name`, `sortOrder`,
 `isActive` e os parâmetros de desenho em `value`. Para desativar uma opção sem
-quebrar casinhas que já a usam, marque `isActive: false`. Se um ID salvo deixar de
+quebrar cantinhos que já a usam, marque `isActive: false`. Se um ID salvo deixar de
 existir, a casa usa a primeira opção do tipo — nada quebra.
 
 Não há login nesta versão: proteja `/admin` no servidor (ou adicione autenticação)

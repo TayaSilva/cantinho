@@ -1,5 +1,5 @@
 /**
- * CONTEÚDO PADRÃO DA CASINHA (textos, fotos, vídeos, músicas, cartas, datas).
+ * CONTEÚDO PADRÃO DO CANTINHO (textos, fotos, vídeos, músicas, cartas, datas).
  * É o ponto de partida do Backoffice: tudo pode ser editado em /admin/conteudos.
  * A aparência (cores, móveis, personagens, pet) fica em houseConfig.ts.
  *
@@ -31,7 +31,7 @@ export const defaultContent: HouseContent = {
   welcome: {
     title: 'Um cantinho especial para você.',
     description: 'Cada cantinho desta casa guarda uma lembrança. Entre e descubra.',
-    button: 'Entrar na casinha',
+    button: 'Entrar no cantinho',
     note: 'Esta casa tem música — o som só começa quando você der play.',
   },
 

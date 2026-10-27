@@ -5,7 +5,7 @@ import { AdminIcon, Button, ConfirmDialog, cx, Toast } from '../admin/controls';
 
 const STATUS: Record<HouseStatus, { label: string; className: string; dot: string }> = {
   draft: { label: 'Rascunho', className: 'bg-stone-100 text-stone-700', dot: 'bg-stone-500' },
-  published: { label: 'Publicada', className: 'bg-emerald-50 text-emerald-800', dot: 'bg-emerald-600' },
+  published: { label: 'Publicado', className: 'bg-emerald-50 text-emerald-800', dot: 'bg-emerald-600' },
   pending: { label: 'Alterações pendentes', className: 'bg-amber-100 text-amber-900', dot: 'bg-amber-600' },
 };
 
@@ -18,7 +18,7 @@ function formatDate(value: string | undefined, withTime = false) {
   return Number.isNaN(date.getTime()) ? '—' : (withTime ? dateTimeFormat : dateFormat).format(date);
 }
 
-/** Miniatura simples em pixel art, com cor estável derivada do id da casinha. */
+/** Miniatura simples em pixel art, com cor estável derivada do id do cantinho. */
 function Thumbnail({ id }: { id: string }) {
   const palettes = [
     ['#FBE4EA', '#C2577A', '#7A3A52'],
@@ -94,7 +94,7 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
   const clearToast = useCallback(() => setToast(null), []);
 
   useEffect(() => {
-    document.title = 'Minhas casinhas · Casinha';
+    document.title = 'Meus cantinhos · Cantinho';
   }, []);
   useEffect(() => {
     if (notice) setToast(notice);
@@ -112,7 +112,7 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
     try {
       await onCreate();
     } catch (cause) {
-      setActionError(cause instanceof Error ? cause.message : 'Não foi possível criar a casinha.');
+      setActionError(cause instanceof Error ? cause.message : 'Não foi possível criar o cantinho.');
       setCreating(false);
     }
   };
@@ -130,9 +130,9 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
     if (!target) return;
     try {
       await onDelete(target.house_id);
-      setToast('Casinha excluída.');
+      setToast('Cantinho excluído.');
     } catch (cause) {
-      setActionError(cause instanceof Error ? cause.message : 'Não foi possível excluir a casinha.');
+      setActionError(cause instanceof Error ? cause.message : 'Não foi possível excluir o cantinho.');
     }
   };
 
@@ -143,11 +143,11 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
           <span className="flex size-8 items-center justify-center rounded-lg bg-rose-50">
             <AdminIcon name="home" className="size-4 text-rose-700" />
           </span>
-          <span className="text-[15px] font-bold">Casinha</span>
+          <span className="text-[15px] font-bold">Cantinho</span>
         </div>
         <Button variant="primary" onClick={() => void create()} disabled={creating}>
           <AdminIcon name="plus" className="size-4" />
-          <span className="hidden sm:inline">{creating ? 'Criando…' : 'Criar nova casinha'}</span>
+          <span className="hidden sm:inline">{creating ? 'Criando…' : 'Criar novo cantinho'}</span>
           <span className="sm:hidden">{creating ? 'Criando…' : 'Nova'}</span>
         </Button>
         <AccountMenu firstName={firstName} email={email} onLogout={onLogout} />
@@ -156,7 +156,7 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
       <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6">
         <div>
           <h1 className="text-2xl font-bold">Olá, {firstName}</h1>
-          <p className="mt-1 text-stone-600">Estas são as suas casinhas. Escolha uma para editar ou crie um novo cantinho.</p>
+          <p className="mt-1 text-stone-600">Estes são os seus cantinhos. Escolha um para editar ou crie um novo.</p>
         </div>
 
         {(actionError || error) && <p role="alert" className="rounded-lg bg-red-50 p-3 text-red-800">{actionError || error}</p>}
@@ -166,10 +166,10 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
             <span className="flex size-14 items-center justify-center rounded-2xl bg-rose-50">
               <AdminIcon name="home" className="size-7 text-rose-700" />
             </span>
-            <h2 className="mt-4 text-lg font-semibold">Você ainda não tem casinhas</h2>
+            <h2 className="mt-4 text-lg font-semibold">Você ainda não tem cantinhos</h2>
             <p className="mt-1.5 max-w-sm text-stone-600">Monte um cantinho com fotos, músicas e recados para quem você gosta.</p>
             <Button variant="primary" className="mt-5" onClick={() => void create()} disabled={creating}>
-              {creating ? 'Criando…' : 'Criar minha primeira casinha'}
+              {creating ? 'Criando…' : 'Criar meu primeiro cantinho'}
             </Button>
           </div>
         ) : (
@@ -191,9 +191,9 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
                       </span>
                     </div>
                     <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs text-stone-500">
-                      <dt>Criada em</dt>
+                      <dt>Criado em</dt>
                       <dd>{formatDate(item.house.created_at)}</dd>
-                      <dt>Atualizada</dt>
+                      <dt>Atualizado</dt>
                       <dd>{formatDate(item.house.updated_at, true)}</dd>
                       {!owner && (<><dt>Acesso</dt><dd>Convidado</dd></>)}
                     </dl>
@@ -205,13 +205,13 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
                       <span className="sr-only sm:not-sr-only">Ver</span>
                     </Button>
                     {owner && (
-                      <Button onClick={() => void share(item.house_id)} disabled={houseStatus(item) === 'draft'} title={houseStatus(item) === 'draft' ? 'Publique a casinha para poder compartilhá-la' : 'Compartilhar link'}>
+                      <Button onClick={() => void share(item.house_id)} disabled={houseStatus(item) === 'draft'} title={houseStatus(item) === 'draft' ? 'Publique o cantinho para poder compartilhá-lo' : 'Compartilhar link'}>
                         <AdminIcon name="external" className="size-4" />
                         <span className="sr-only sm:not-sr-only">Compartilhar</span>
                       </Button>
                     )}
                     {owner && (
-                      <Button variant="ghost" className="ml-auto" onClick={() => setToDelete(item)} title="Excluir casinha">
+                      <Button variant="ghost" className="ml-auto" onClick={() => setToDelete(item)} title="Excluir cantinho">
                         <AdminIcon name="trash" className="size-4" />
                         <span className="sr-only">Excluir</span>
                       </Button>
@@ -226,8 +226,8 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
 
       <ConfirmDialog
         open={!!toDelete}
-        title="Excluir esta casinha?"
-        body={<><b>{toDelete?.house.name}</b> será excluída junto com fotos, vídeos, músicas, textos e links de compartilhamento. Esta ação não pode ser desfeita.</>}
+        title="Excluir este cantinho?"
+        body={<><b>{toDelete?.house.name}</b> será excluído junto com fotos, vídeos, músicas, textos e links de compartilhamento. Esta ação não pode ser desfeita.</>}
         confirmLabel="Excluir definitivamente"
         danger
         onCancel={() => setToDelete(null)}

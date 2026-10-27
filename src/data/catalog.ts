@@ -5,7 +5,7 @@
  * combinar entre si (mesma escala, perspectiva e posição). O administrador só
  * escolhe entre elas — nada de enviar imagens de móveis ou personagens.
  *
- * Para desativar uma opção sem quebrar casinhas que já a usam, troque
+ * Para desativar uma opção sem quebrar cantinhos que já a usam, troque
  * `isActive` para false: ela some do editor, mas continua desenhando onde já
  * está escolhida.
  */
@@ -239,7 +239,7 @@ export function optionsFor(type: ElementType, variantGroup?: string): AssetOptio
 
 /**
  * Busca uma opção pelo ID. Se o ID não existir (catálogo mudou), cai na
- * primeira opção do tipo — a casinha nunca quebra.
+ * primeira opção do tipo — o cantinho nunca quebra.
  */
 export function getOption(type: ElementType, id: string | undefined, variantGroup?: string): AssetOption {
   const found = id ? byId.get(id) : undefined;

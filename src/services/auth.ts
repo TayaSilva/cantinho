@@ -63,7 +63,7 @@ function writeSession(session: AuthSession | null) {
   window.dispatchEvent(new Event('casinha:auth-changed'));
 }
 
-export type AuthErrorCode = 'invalid_credentials' | 'email_not_confirmed' | 'rate_limited' | 'weak_password' | 'unknown';
+export type AuthErrorCode = 'invalid_credentials' | 'email_not_confirmed' | 'invalid_code' | 'rate_limited' | 'weak_password' | 'unknown';
 
 export class AuthError extends Error {
   constructor(public code: AuthErrorCode, message: string) {
@@ -76,6 +76,7 @@ function authError(status: number, data: Record<string, unknown>): AuthError {
   const raw = [data.error_code, data.code, data.msg, data.error_description, data.error].filter((v) => typeof v === 'string').join(' ').toLowerCase();
   if (status === 429 || raw.includes('rate limit') || raw.includes('over_')) return new AuthError('rate_limited', 'Muitas tentativas. Aguarde alguns minutos e tente novamente.');
   if (raw.includes('not confirmed') || raw.includes('email_not_confirmed')) return new AuthError('email_not_confirmed', 'Confirme seu e-mail antes de entrar. Se não recebeu o link, podemos reenviar.');
+  if (raw.includes('otp_expired') || raw.includes('token has expired')) return new AuthError('invalid_code', 'Código inválido ou expirado. Peça um novo código.');
   if (raw.includes('invalid') && (raw.includes('credentials') || raw.includes('grant'))) return new AuthError('invalid_credentials', 'E-mail ou senha incorretos.');
   if (raw.includes('weak') || raw.includes('password should')) return new AuthError('weak_password', 'Escolha uma senha mais forte, com pelo menos 8 caracteres.');
   return new AuthError('unknown', 'Não foi possível concluir a operação. Tente novamente.');
@@ -151,7 +152,7 @@ export async function signIn(email: string, password: string): Promise<AuthSessi
 }
 
 export async function signUp(firstName: string, email: string, password: string): Promise<{ session: AuthSession | null; needsEmailConfirmation: boolean }> {
-  const data = await authRequest(`signup?${redirectTo('/minhas-casinhas')}`, {
+  const data = await authRequest(`signup?${redirectTo('/meus-cantinhos')}`, {
     email,
     password,
     data: { first_name: firstName },
@@ -161,8 +162,15 @@ export async function signUp(firstName: string, email: string, password: string)
   return { session, needsEmailConfirmation: !session };
 }
 
+/** Confirma o cadastro com o código de 6 dígitos enviado por e-mail ({{ .Token }} no template). */
+export async function verifySignupCode(email: string, code: string): Promise<AuthSession> {
+  const session = sessionFromResponse(await authRequest('verify', { type: 'signup', email, token: code }));
+  writeSession(session);
+  return session;
+}
+
 export async function resendConfirmation(email: string): Promise<void> {
-  await authRequest(`resend?${redirectTo('/minhas-casinhas')}`, { type: 'signup', email });
+  await authRequest(`resend?${redirectTo('/meus-cantinhos')}`, { type: 'signup', email });
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {
@@ -215,7 +223,7 @@ export async function authFetch(input: RequestInfo | URL, init?: RequestInit): P
 export async function getDefaultHouseId(): Promise<string> {
   const response = await authFetch('/api/me/houses', { cache: 'no-store' });
   const data = (await response.json().catch(() => [])) as Array<{ house_id?: string }>;
-  if (!response.ok || !data[0]?.house_id) throw new Error('Sua conta ainda não possui uma casinha.');
+  if (!response.ok || !data[0]?.house_id) throw new Error('Sua conta ainda não possui um cantinho.');
   return data[0].house_id;
 }
 

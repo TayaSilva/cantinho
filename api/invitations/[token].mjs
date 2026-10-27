@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   const invite = rows[0];
   if (!lookup.ok || !invite || new Date(invite.expires_at) <= new Date() || String(user.email || '').toLowerCase() !== String(invite.email).toLowerCase()) return fail(res, 404, 'Convite inválido, expirado ou destinado a outro e-mail.');
   const member = await dbFetch('house_members', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify([{ house_id: invite.house_id, user_id: user.id, role: 'guest', can_add_text: true }]) });
-  if (!member.ok) return fail(res, 500, 'Não foi possível vincular a conta à casinha.');
+  if (!member.ok) return fail(res, 500, 'Não foi possível vincular a conta ao cantinho.');
   await dbFetch(`house_invitations?id=eq.${encodeURIComponent(invite.id)}`, { method: 'PATCH', body: JSON.stringify({ accepted_at: new Date().toISOString() }) });
   return json(res, 200, { ok: true, houseId: invite.house_id });
 }

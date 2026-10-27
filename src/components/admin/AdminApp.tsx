@@ -12,8 +12,8 @@ import { houseAdminPath, type HouseSummary } from '../../services/houses';
 const CONTENT_SECTIONS: ContentSection[] = ['textos', 'fotos', 'videos', 'musicas', 'cartas', 'datas', 'mensagens'];
 
 /**
- * Backoffice de uma casinha: /admin/casinha/:id (Personalizar casinha) e
- * /admin/casinha/:id/conteudos/*. `path` chega relativo à casinha ("/editor",
+ * Backoffice de um cantinho: /admin/cantinho/:id (Personalizar cantinho) e
+ * /admin/cantinho/:id/conteudos/*. `path` chega relativo ao cantinho ("/editor",
  * "/conteudos/fotos"). Rascunho, desfazer, restaurar padrão, pré-visualizar e
  * publicar ficam no topo, valendo para as duas áreas.
  */
@@ -55,7 +55,7 @@ export function AdminApp({ path, house, houses, onHouseChange, onLogout }: { pat
   }, [undo]);
 
   useEffect(() => {
-    document.title = isContent ? 'Conteúdos · Casinha Admin' : 'Personalizar casinha · Casinha Admin';
+    document.title = isContent ? 'Conteúdos · Cantinho Admin' : 'Personalizar cantinho · Cantinho Admin';
   }, [isContent]);
 
   const preview = async () => {
@@ -105,27 +105,27 @@ export function AdminApp({ path, house, houses, onHouseChange, onLogout }: { pat
               <path d="M1 3h1v-1h3v1h2v-1h3v1h1v3h-1v1h-1v1h-1v1h-1v1h-2v-1h-1v-1h-1v-1h-1v-1h-1z" fill="#C2577A" />
             </svg>
           </span>
-          <span className="text-[15px] font-bold">Casinha</span>
+          <span className="text-[15px] font-bold">Cantinho</span>
           <span className="rounded-full border border-stone-200 px-2 py-0.5 text-xs text-stone-500">Admin</span>
         </div>
         <nav aria-label="Principal" className="flex flex-wrap gap-1">
-          <a href="/minhas-casinhas" onClick={link('/minhas-casinhas')} className="rounded-lg px-3 py-2 font-medium text-stone-600 no-underline hover:bg-stone-50">
-            Minhas casinhas
+          <a href="/meus-cantinhos" onClick={link('/meus-cantinhos')} className="rounded-lg px-3 py-2 font-medium text-stone-600 no-underline hover:bg-stone-50">
+            Meus cantinhos
           </a>
           <a href={contentPath} onClick={link(contentPath)} aria-current={isContent ? 'page' : undefined} className={cx('rounded-lg px-3 py-2 font-medium no-underline', isContent ? 'bg-stone-100 text-stone-900' : 'text-stone-600 hover:bg-stone-50')}>
             Conteúdos
           </a>
           <a href={editorPath} onClick={link(editorPath)} aria-current={!isContent ? 'page' : undefined} className={cx('rounded-lg px-3 py-2 font-medium no-underline', !isContent ? 'bg-stone-100 text-stone-900' : 'text-stone-600 hover:bg-stone-50')}>
-            Personalizar casinha
+            Personalizar cantinho
           </a>
           <a href={`/?house=${encodeURIComponent(house.house_id)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 font-medium text-stone-600 no-underline hover:bg-stone-50">
-            Ver casinha publicada
+            Ver cantinho publicado
             <AdminIcon name="external" className="size-3.5" />
           </a>
         </nav>
         <div className="flex-1" />
         <div className="flex flex-wrap items-center gap-2">
-          <select aria-label="Casinha ativa" value={house.house_id} onChange={(event) => chooseHouse(event.target.value)} className="h-9 max-w-48 rounded-lg border border-stone-200 bg-white px-2 text-sm font-medium outline-none focus:border-rose-500">
+          <select aria-label="Cantinho ativo" value={house.house_id} onChange={(event) => chooseHouse(event.target.value)} className="h-9 max-w-48 rounded-lg border border-stone-200 bg-white px-2 text-sm font-medium outline-none focus:border-rose-500">
             {houses.map((item) => <option key={item.house_id} value={item.house_id}>{item.house.name}</option>)}
           </select>
           <span
@@ -194,9 +194,9 @@ export function AdminApp({ path, house, houses, onHouseChange, onLogout }: { pat
       />
       <ConfirmDialog
         open={confirm === 'switch'}
-        title="Trocar de casinha?"
-        body="Existem alterações não salvas nesta casinha. Se você trocar agora, elas serão descartadas."
-        confirmLabel="Trocar de casinha"
+        title="Trocar de cantinho?"
+        body="Existem alterações não salvas neste cantinho. Se você trocar agora, elas serão descartadas."
+        confirmLabel="Trocar de cantinho"
         danger
         onCancel={() => { setConfirm(null); setPendingHouse(null); }}
         onConfirm={() => {
@@ -209,7 +209,7 @@ export function AdminApp({ path, house, houses, onHouseChange, onLogout }: { pat
       <ConfirmDialog
         open={confirm === 'publish'}
         title="Publicar alterações?"
-        body={<>A partir de agora, os visitantes verão esta versão da casinha{draft.pending > 0 ? ` (${draft.pending} ${draft.pending === 1 ? 'alteração' : 'alterações'})` : ''}.</>}
+        body={<>A partir de agora, os visitantes verão esta versão do cantinho{draft.pending > 0 ? ` (${draft.pending} ${draft.pending === 1 ? 'alteração' : 'alterações'})` : ''}.</>}
         confirmLabel="Publicar"
         onCancel={() => setConfirm(null)}
         onConfirm={() => {

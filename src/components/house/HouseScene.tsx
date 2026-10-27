@@ -78,7 +78,7 @@ export function SceneSvg({ appearance, theme, runtime, children }: SceneSvgProps
   const pet = appearance.pet;
 
   return (
-    <svg viewBox={`0 0 ${SCENE.width} ${SCENE.height}`} className="absolute inset-0 size-full" shapeRendering="crispEdges" role="img" aria-label="Sala da casinha em pixel art">
+    <svg viewBox={`0 0 ${SCENE.width} ${SCENE.height}`} className="absolute inset-0 size-full" shapeRendering="crispEdges" role="img" aria-label="Sala do cantinho em pixel art">
       {/* 1–2. piso e paredes */}
       <Room appearance={appearance} />
       {deco.stringLights && <StringLights />}

@@ -21,7 +21,7 @@ export function ShareButton() {
           if (result === 'shared') setNotice('Compartilhado!');
           if (result === 'copied') setNotice('Link copiado!');
         }}
-        aria-label="Compartilhar casinha"
+        aria-label="Compartilhar cantinho"
       >
         <Icon name="share" />
       </PixelButton>

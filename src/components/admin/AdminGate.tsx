@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { MyHousesPage } from '../account/MyHousesPage';
 import { AdminApp } from './AdminApp';
-import { AuthError, cloudConfigured, consumeAuthRedirect, getSession, hasRecoveryToken, requestPasswordReset, resendConfirmation, signIn, signOut, signUp, updatePassword, type AuthSession } from '../../services/auth';
+import { AuthError, cloudConfigured, consumeAuthRedirect, getSession, hasRecoveryToken, requestPasswordReset, resendConfirmation, signIn, signOut, signUp, updatePassword, verifySignupCode, type AuthSession } from '../../services/auth';
 import { createHouse, deleteHouse, getActiveHouseId, houseAdminPath, listHouses, setActiveHouseId, type HouseSummary } from '../../services/houses';
 import { navigate } from '../../hooks/useRoute';
 
@@ -24,15 +24,15 @@ function Loading({ label = 'Carregando acesso…' }: { label?: string }) {
   return <main className="flex min-h-dvh items-center justify-center bg-stone-50 font-admin text-sm text-stone-600" aria-busy="true">{label}</main>;
 }
 
-/** /admin/casinha/:id/resto → { id, sub } */
+/** /admin/cantinho/:id/resto → { id, sub } */
 function parseHousePath(path: string): { id: string; sub: string } | null {
-  const match = /^\/admin\/casinha\/([^/]+)(\/.*)?$/.exec(path);
+  const match = /^\/admin\/(?:cantinho|casinha)\/([^/]+)(\/.*)?$/.exec(path);
   return match ? { id: decodeURIComponent(match[1]), sub: match[2] || '/editor' } : null;
 }
 
 /**
  * Porta de entrada das áreas autenticadas: login, cadastro, recuperação de senha,
- * /minhas-casinhas e o Backoffice de cada casinha (/admin/casinha/:id).
+ * /meus-cantinhos e o Backoffice de cada cantinho (/admin/cantinho/:id).
  * A interface só esconde o que não pertence à conta; a autorização de verdade
  * é refeita pela API e pelas políticas do banco a cada requisição.
  */
@@ -50,7 +50,7 @@ export function AdminGate({ path }: { path: string }) {
     try {
       setHouses(await listHouses());
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Não foi possível carregar suas casinhas.');
+      setError(cause instanceof Error ? cause.message : 'Não foi possível carregar seus cantinhos.');
     }
   };
 
@@ -79,7 +79,7 @@ export function AdminGate({ path }: { path: string }) {
   // A lista volta atualizada (status, datas) sempre que se retorna a ela.
   const lastPath = useRef(path);
   useEffect(() => {
-    if (path === '/minhas-casinhas' && lastPath.current !== path && (session || !cloudConfigured)) void refreshHouses();
+    if (path === '/meus-cantinhos' && lastPath.current !== path && (session || !cloudConfigured)) void refreshHouses();
     lastPath.current = path;
   }, [path, session]);
 
@@ -109,25 +109,25 @@ export function AdminGate({ path }: { path: string }) {
     const mode: AuthMode = path === '/cadastro' ? 'signup' : path === '/recuperar-senha' ? 'recovery' : 'login';
     return <AuthPage mode={mode} notice={notice} linkError={linkError} onNotice={setNotice} />;
   }
-  if (AUTH_PATHS.includes(path)) return <Redirect to="/minhas-casinhas" />;
+  if (AUTH_PATHS.includes(path)) return <Redirect to="/meus-cantinhos" />;
   if (!houses) {
-    return error ? <ErrorPage message={error} onRetry={() => void refreshHouses()} /> : <Loading label="Carregando suas casinhas…" />;
+    return error ? <ErrorPage message={error} onRetry={() => void refreshHouses()} /> : <Loading label="Carregando seus cantinhos…" />;
   }
 
-  // Rotas antigas (/admin, /admin/editor, /admin/conteudos/*) apontam para a casinha ativa.
+  // Rotas antigas (/admin, /admin/editor, /admin/conteudos/*) apontam para o cantinho ativo.
   if (path === '/admin/editor' || path.startsWith('/admin/conteudos')) {
     const active = getActiveHouseId(houses);
-    return <Redirect to={active ? houseAdminPath(active, path.slice('/admin'.length)) : '/minhas-casinhas'} />;
+    return <Redirect to={active ? houseAdminPath(active, path.slice('/admin'.length)) : '/meus-cantinhos'} />;
   }
 
   const target = parseHousePath(path);
   if (target) {
     const house = houses.find((item) => item.house_id === target.id);
     if (!house) return <AccessDenied />;
-    if (house.role !== 'owner') return <AccessDenied message="Você foi convidado para esta casinha, mas apenas o dono pode editá-la." />;
+    if (house.role !== 'owner') return <AccessDenied message="Você foi convidado para este cantinho, mas apenas o dono pode editá-lo." />;
     return <AdminApp key={house.house_id} path={target.sub} house={house} houses={houses.filter((item) => item.role === 'owner')} onHouseChange={openHouse} onLogout={logout} />;
   }
-  if (path !== '/minhas-casinhas') return <Redirect to="/minhas-casinhas" />;
+  if (path !== '/meus-cantinhos') return <Redirect to="/meus-cantinhos" />;
 
   const firstName = session?.user.user_metadata?.first_name || 'amigo';
   return <MyHousesPage firstName={firstName} email={session?.user.email} houses={houses} notice={notice} error={error} onDismissNotice={() => setNotice(null)} onOpen={openHouse} onCreate={createNewHouse} onDelete={removeHouse} onLogout={logout} />;
@@ -146,13 +146,13 @@ function ErrorPage({ message, onRetry }: { message: string; onRetry: () => void 
   return <Shell><Card><p role="alert" className="text-sm text-red-800">{message}</p><button type="button" className="self-start text-sm underline" onClick={onRetry}>Tentar novamente</button></Card></Shell>;
 }
 
-function AccessDenied({ message = 'Esta casinha não existe ou não pertence à sua conta.' }: { message?: string }) {
+function AccessDenied({ message = 'Este cantinho não existe ou não pertence à sua conta.' }: { message?: string }) {
   return (
     <Shell>
       <Card>
         <h1 className="text-xl font-bold">Acesso negado</h1>
         <p className="text-sm leading-relaxed text-stone-600">{message}</p>
-        <button type="button" className="rounded-lg bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-700" onClick={() => navigate('/minhas-casinhas')}>Ir para minhas casinhas</button>
+        <button type="button" className="rounded-lg bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-700" onClick={() => navigate('/meus-cantinhos')}>Ir para meus cantinhos</button>
       </Card>
     </Shell>
   );
@@ -218,12 +218,14 @@ function AuthPage({ mode, notice, linkError, onNotice }: { mode: AuthMode; notic
   const [errors, setErrors] = useState<{ firstName?: string; email?: string; password?: string }>({});
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const [confirmEmail, setConfirmEmail] = useState<string | null>(null);
 
   useEffect(() => {
     setErrors({});
     setError(linkError);
     setNeedsConfirmation(false);
     setSentTo(null);
+    setConfirmEmail(null);
   }, [mode, linkError]);
 
   const validate = () => {
@@ -248,7 +250,7 @@ function AuthPage({ mode, notice, linkError, onNotice }: { mode: AuthMode; notic
     try {
       if (mode === 'signup') {
         const result = await signUp(firstName.trim(), cleanEmail, password);
-        if (result.needsEmailConfirmation) setSentTo(cleanEmail);
+        if (result.needsEmailConfirmation) setConfirmEmail(cleanEmail);
       } else if (mode === 'recovery') {
         await requestPasswordReset(cleanEmail);
         setSentTo(cleanEmail);
@@ -265,33 +267,30 @@ function AuthPage({ mode, notice, linkError, onNotice }: { mode: AuthMode; notic
     }
   };
 
+  if (confirmEmail) return <ConfirmCodePage email={confirmEmail} onConfirmed={() => onNotice('E-mail confirmado! Sua conta está pronta.')} onBack={() => { setConfirmEmail(null); navigate('/login'); }} />;
+
   if (sentTo) {
     return (
       <Shell>
         <Card>
           <div>
-            <p className="text-xs font-semibold tracking-[.08em] text-rose-700 uppercase">Casinha</p>
+            <p className="text-xs font-semibold tracking-[.08em] text-rose-700 uppercase">Cantinho</p>
             <h1 className="mt-1 text-2xl font-bold">Confira seu e-mail</h1>
           </div>
-          <p className="text-sm leading-relaxed text-stone-600">
-            {mode === 'signup'
-              ? <>Se for possível criar a conta para <b>{sentTo}</b>, você receberá um link de confirmação. Ele vale por tempo limitado.</>
-              : <>Se houver uma conta para <b>{sentTo}</b>, enviaremos as instruções para criar uma nova senha.</>}
-          </p>
-          {mode === 'signup' && <ResendButton email={sentTo} />}
+          <p className="text-sm leading-relaxed text-stone-600">Se houver uma conta para <b>{sentTo}</b>, enviaremos as instruções para criar uma nova senha.</p>
           <button type="button" className="self-start text-sm underline" onClick={() => navigate('/login')}>Voltar para o login</button>
         </Card>
       </Shell>
     );
   }
 
-  const title = mode === 'signup' ? 'Crie sua conta' : mode === 'recovery' ? 'Recupere sua senha' : 'Entre na sua casinha';
+  const title = mode === 'signup' ? 'Crie sua conta' : mode === 'recovery' ? 'Recupere sua senha' : 'Entre no seu cantinho';
   const subtitle = mode === 'recovery' ? 'Informe seu e-mail e enviaremos um link para criar uma nova senha.' : 'Um cantinho só seu, protegido e fácil de compartilhar.';
   return (
     <Shell>
       <Card onSubmit={submit}>
         <div>
-          <p className="text-xs font-semibold tracking-[.08em] text-rose-700 uppercase">Casinha</p>
+          <p className="text-xs font-semibold tracking-[.08em] text-rose-700 uppercase">Cantinho</p>
           <h1 className="mt-1 text-2xl font-bold">{title}</h1>
           <p className="mt-2 text-sm leading-relaxed text-stone-600">{subtitle}</p>
         </div>
@@ -310,7 +309,12 @@ function AuthPage({ mode, notice, linkError, onNotice }: { mode: AuthMode; notic
           </Field>
         )}
         {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-        {needsConfirmation && <ResendButton email={email.trim()} />}
+        {needsConfirmation && (
+          <div className="flex flex-col gap-1.5">
+            <button type="button" className="self-start text-sm underline" onClick={() => setConfirmEmail(email.trim())}>Digitar código de confirmação</button>
+            <ResendButton email={email.trim()} />
+          </div>
+        )}
         {notice && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
         <button type="submit" disabled={busy} className="rounded-lg bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-700 disabled:opacity-50">
           {busy ? 'Aguarde…' : mode === 'signup' ? 'Criar conta' : mode === 'recovery' ? 'Enviar instruções' : 'Entrar'}
@@ -320,6 +324,46 @@ function AuthPage({ mode, notice, linkError, onNotice }: { mode: AuthMode; notic
           {mode === 'recovery' && <button type="button" className="underline" onClick={() => navigate('/login')}>Voltar para o login</button>}
           {mode !== 'recovery' && <button type="button" className="underline" onClick={() => navigate(mode === 'signup' ? '/login' : '/cadastro')}>{mode === 'signup' ? 'Já tenho conta' : 'Criar conta'}</button>}
         </div>
+      </Card>
+    </Shell>
+  );
+}
+
+/** Tela pós-cadastro: confirma a conta com o código de 6 dígitos do e-mail. */
+function ConfirmCodePage({ email, onConfirmed, onBack }: { email: string; onConfirmed: () => void; onBack: () => void }) {
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!/^\d{6}$/.test(code)) return setError('Digite os 6 dígitos do código.');
+    setBusy(true);
+    setError(null);
+    try {
+      // A sessão gravada dispara casinha:auth-changed e o AdminGate leva para /meus-cantinhos.
+      await verifySignupCode(email, code);
+      onConfirmed();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível confirmar o código.');
+      setBusy(false);
+    }
+  };
+  return (
+    <Shell>
+      <Card onSubmit={submit}>
+        <div>
+          <p className="text-xs font-semibold tracking-[.08em] text-rose-700 uppercase">Cantinho</p>
+          <h1 className="mt-1 text-2xl font-bold">Confira seu e-mail</h1>
+        </div>
+        <p className="text-sm leading-relaxed text-stone-600">Se for possível criar a conta para <b>{email}</b>, você receberá um código de 6 dígitos. Digite-o abaixo; ele vale por tempo limitado.</p>
+        <Field label="Código de confirmação">
+          <input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))} aria-invalid={!!error || undefined} className={`tracking-[.3em] ${inputClass(!!error)}`} />
+        </Field>
+        {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+        <button type="submit" disabled={busy} className="rounded-lg bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-700 disabled:opacity-50">{busy ? 'Confirmando…' : 'Confirmar'}</button>
+        <ResendButton email={email} />
+        <p className="text-xs text-stone-500">Ao reenviar, o código anterior deixa de valer.</p>
+        <button type="button" className="self-start text-sm underline" onClick={onBack}>Voltar para o login</button>
       </Card>
     </Shell>
   );

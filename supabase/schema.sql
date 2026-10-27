@@ -10,7 +10,7 @@ create table if not exists public.admin_users (
 
 create table if not exists public.houses (
   id uuid primary key default gen_random_uuid(),
-  name text not null default 'Minha casinha',
+  name text not null default 'Meu cantinho',
   owner_id uuid not null references auth.users(id) on delete restrict,
   status text not null default 'active' check (status in ('active', 'suspended', 'deleted')),
   created_at timestamptz not null default now(),
@@ -99,7 +99,7 @@ begin
     select id into first_owner from auth.users order by created_at limit 1;
   end if;
   if first_owner is not null then
-    insert into public.houses(id, name, owner_id) values (legacy_house, 'Minha casinha', first_owner) on conflict (id) do nothing;
+    insert into public.houses(id, name, owner_id) values (legacy_house, 'Meu cantinho', first_owner) on conflict (id) do nothing;
     insert into public.house_members(house_id, user_id, role, can_add_text) values (legacy_house, first_owner, 'owner', true) on conflict (house_id, user_id) do update set role = 'owner', can_add_text = true;
     update public.house_documents set house_id = legacy_house where house_id = legacy_house;
     update public.media set house_id = legacy_house where house_id = legacy_house;

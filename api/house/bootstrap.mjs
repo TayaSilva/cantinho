@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') return fail(res, 405, 'Método não permitido.');
   try {
     const context = await requireRequestedHouse(req, req.method === 'POST' ? 'owner' : 'read');
-    if (!context) return fail(res, 401, 'Acesso à casinha não autorizado.');
+    if (!context) return fail(res, 401, 'Acesso ao cantinho não autorizado.');
     const existing = await dbFetch(`house_documents?house_id=eq.${context.house.id}&status=eq.published&select=document&limit=1`);
     const existingRows = await existing.json();
     if (existingRows[0]) return json(res, 200, existingRows[0].document);

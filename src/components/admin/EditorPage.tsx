@@ -58,7 +58,7 @@ const LINKED_CONTENT: Partial<Record<FurnitureKey, string>> = {
 type PeriodChoice = 'auto' | Period;
 
 /**
- * /admin/editor — Personalizar casinha.
+ * /admin/editor — Personalizar cantinho.
  * Menu de categorias · pré-visualização clicável · painel de propriedades.
  */
 export function EditorPage({ draft }: { draft: HouseDraft }) {
@@ -312,7 +312,7 @@ function MoveisPanel({ ap, setAp, current, onPick }: { ap: HouseAppearance; setA
           <p className="rounded-lg bg-stone-50 p-3 text-xs leading-relaxed text-stone-500">O sofá fica sempre visível porque os personagens estão sentados nele.</p>
         ) : (
           <Toggle
-            label="Mostrar na casinha"
+            label="Mostrar no cantinho"
             description={
               linked
                 ? `Ocultar não apaga ${linked} — ao mostrar de novo, tudo continua lá.`
@@ -361,7 +361,7 @@ function CharacterPanel({ ap, setAp, slot, onSwitch }: { ap: HouseAppearance; se
       />
       {slot >= 1 && (
         <Toggle
-          label="Exibir na casinha"
+          label="Exibir no cantinho"
           description="Ocultar não apaga as escolhas: ao reativar, tudo volta como estava."
           checked={enabled}
           onChange={(v) => setAp((a) => void (a.characters[slot].enabled = v))}
@@ -404,7 +404,7 @@ function PetPanel({ ap, setAp }: { ap: HouseAppearance; setAp: SetAp }) {
   return (
     <div className="flex flex-col gap-7" id="sec-pet">
       <Toggle
-        label="Exibir animal na casinha"
+        label="Exibir animal no cantinho"
         description="Ocultar não apaga as escolhas: ao reativar, tudo volta como estava."
         checked={pet.enabled}
         onChange={(v) => setAp((a) => void (a.pet.enabled = v))}

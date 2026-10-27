@@ -23,7 +23,7 @@ interface BaseModalProps {
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select, textarea, video[controls], [tabindex]:not([tabindex="-1"])';
 
 /**
- * Modal padrão da casinha:
+ * Modal padrão do cantinho:
  * fundo escurecido, conteúdo central, botão de fechar, tecla Esc,
  * clique fora, foco preso dentro do modal e animação curta
  * (desligada para quem prefere menos movimento).

@@ -20,7 +20,7 @@ export async function sharePublicHouse(houseId?: string): Promise<ShareResult> {
 
   if (share) {
     try {
-      await share({ title: document.title || 'Nossa casinha', text: 'Vem conhecer nosso cantinho.', url });
+      await share({ title: document.title || 'Nosso cantinho', text: 'Vem conhecer nosso cantinho.', url });
       return 'shared';
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return null;

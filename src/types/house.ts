@@ -1,5 +1,5 @@
 /**
- * Tipos centrais da casinha.
+ * Tipos centrais do cantinho.
  * Coordenadas de cena usam a resolução base da arte (320 × 224) e são
  * convertidas para porcentagem na hora de desenhar.
  */
@@ -83,7 +83,7 @@ export interface AssetOption {
 }
 
 /* ================================================================
- * Aparência da casinha (equivale a house_appearance, house_characters
+ * Aparência do cantinho (equivale a house_appearance, house_characters
  * e house_pet) — guardada como JSON versionado.
  * ================================================================ */
 

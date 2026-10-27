@@ -84,7 +84,7 @@ const oldDocument = db.prepare('SELECT * FROM house_documents WHERE id = 1').get
 const oldMedia = db.prepare('SELECT COUNT(*) AS count FROM media').get();
 const insertHouse = db.prepare('INSERT OR IGNORE INTO houses (id, name, owner_id, status, created_at, updated_at) VALUES (?, ?, ?, \'active\', ?, ?)');
 const insertMember = db.prepare('INSERT OR IGNORE INTO house_members (house_id, user_id, role, can_add_text) VALUES (?, ?, \'owner\', 1)');
-insertHouse.run(LEGACY_HOUSE_ID, 'Minha casinha', LOCAL_USER_ID, now(), now());
+insertHouse.run(LEGACY_HOUSE_ID, 'Meu cantinho', LOCAL_USER_ID, now(), now());
 insertMember.run(LEGACY_HOUSE_ID, LOCAL_USER_ID);
 if (oldDocument) {
   const insertLegacy = db.prepare('INSERT OR IGNORE INTO house_documents_multi (house_id, status, document, updated_at) VALUES (?, ?, ?, ?)');
@@ -105,7 +105,7 @@ const statements = {
 };
 
 function ensureHouse(houseId) {
-  insertHouse.run(houseId, houseId === LEGACY_HOUSE_ID ? 'Minha casinha' : 'Minha casinha', LOCAL_USER_ID, now(), now());
+  insertHouse.run(houseId, houseId === LEGACY_HOUSE_ID ? 'Meu cantinho' : 'Meu cantinho', LOCAL_USER_ID, now(), now());
   insertMember.run(houseId, LOCAL_USER_ID);
 }
 function getDocument(houseId, status) { return statements.document.get(houseId, status); }
@@ -168,4 +168,4 @@ async function route(req, res) {
 }
 
 const server = createServer(async (req, res) => { res.setHeader('access-control-allow-origin', '*'); try { await route(req, res); } catch (error) { console.error(error); if (!res.headersSent) fail(res, 500, 'Erro interno do servidor.'); else res.destroy(); } });
-server.listen(port, host, () => { console.log(`Casinha API em http://${host}:${port}`); console.log(`Banco SQLite multi-casa: ${dbPath}`); console.log(`Uploads: ${uploadsDir}`); });
+server.listen(port, host, () => { console.log(`Cantinho API em http://${host}:${port}`); console.log(`Banco SQLite multi-casa: ${dbPath}`); console.log(`Uploads: ${uploadsDir}`); });

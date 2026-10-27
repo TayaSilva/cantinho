@@ -14,9 +14,9 @@ const ACTIVE_HOUSE_KEY = 'casinha:active-house:v1';
 const LOCAL_HOUSES_KEY = 'casinha:local-houses:v1';
 export const LEGACY_HOUSE_ID = '00000000-0000-0000-0000-000000000001';
 
-/** Rota do Backoffice de uma casinha: /admin/casinha/:id[/conteudos/:secao]. */
+/** Rota do Backoffice de um cantinho: /admin/cantinho/:id[/conteudos/:secao]. */
 export function houseAdminPath(houseId: string, sub = '') {
-  return `/admin/casinha/${encodeURIComponent(houseId)}${sub}`;
+  return `/admin/cantinho/${encodeURIComponent(houseId)}${sub}`;
 }
 
 export function houseStatus(item: HouseSummary): HouseStatus {
@@ -47,7 +47,7 @@ function localHouses(): HouseSummary[] {
       house_id: LEGACY_HOUSE_ID,
       role: 'owner',
       can_add_text: true,
-      house: { id: LEGACY_HOUSE_ID, name: 'Minha casinha', status: 'active', created_at: new Date().toISOString() },
+      house: { id: LEGACY_HOUSE_ID, name: 'Meu cantinho', status: 'active', created_at: new Date().toISOString() },
     }];
     saveLocalHouses(items);
   }
@@ -66,12 +66,12 @@ export async function listHouses(): Promise<HouseSummary[]> {
   if (!cloudConfigured) return localHouses();
   const response = await authFetch('/api/me/houses', { cache: 'no-store' });
   const data = (await response.json().catch(() => ({}))) as HouseSummary[] | { error?: string };
-  if (!response.ok || !Array.isArray(data)) throw new Error((!Array.isArray(data) && data.error) || 'Não foi possível carregar suas casinhas.');
+  if (!response.ok || !Array.isArray(data)) throw new Error((!Array.isArray(data) && data.error) || 'Não foi possível carregar seus cantinhos.');
   return data;
 }
 
 export async function createHouse(name: string): Promise<HouseSummary> {
-  const cleanName = name.trim().slice(0, 80) || 'Minha casinha';
+  const cleanName = name.trim().slice(0, 80) || 'Meu cantinho';
   if (!cloudConfigured) {
     const id = crypto.randomUUID();
     const item: HouseSummary = { house_id: id, role: 'owner', can_add_text: true, house: { id, name: cleanName, status: 'active', created_at: new Date().toISOString() } };
@@ -85,11 +85,11 @@ export async function createHouse(name: string): Promise<HouseSummary> {
     body: JSON.stringify({ name: cleanName, document: defaultDocument() }),
   });
   const data = (await response.json().catch(() => ({}))) as HouseSummary & { error?: string };
-  if (!response.ok) throw new Error(data.error || 'Não foi possível criar a casinha.');
+  if (!response.ok) throw new Error(data.error || 'Não foi possível criar o cantinho.');
   return data;
 }
 
-/** Exclui a casinha, seus documentos e arquivos. Não pode ser desfeito. */
+/** Exclui o cantinho, seus documentos e arquivos. Não pode ser desfeito. */
 export async function deleteHouse(houseId: string): Promise<void> {
   if (!cloudConfigured) {
     saveLocalHouses(localHouses().filter((item) => item.house_id !== houseId));
@@ -100,7 +100,7 @@ export async function deleteHouse(houseId: string): Promise<void> {
   const response = await authFetch(`/api/me/houses?house_id=${encodeURIComponent(houseId)}`, { method: 'DELETE' });
   if (!response.ok) {
     const data = (await response.json().catch(() => ({}))) as { error?: string };
-    throw new Error(data.error || 'Não foi possível excluir a casinha.');
+    throw new Error(data.error || 'Não foi possível excluir o cantinho.');
   }
 }
 

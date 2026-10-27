@@ -1,6 +1,6 @@
 /**
  * Miniaturas de seleção: cada opção do catálogo é desenhada com os mesmos
- * componentes da casinha, recortada em volta do objeto. Assim a miniatura é
+ * componentes do cantinho, recortada em volta do objeto. Assim a miniatura é
  * sempre fiel ao que vai aparecer na cena.
  */
 import type { ReactNode } from 'react';

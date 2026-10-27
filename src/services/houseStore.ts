@@ -1,5 +1,5 @@
 /**
- * Persistência da casinha: RASCUNHO e PUBLICADO.
+ * Persistência do cantinho: RASCUNHO e PUBLICADO.
  *
  * - O Backoffice edita sempre o rascunho.
  * - Os visitantes só leem o publicado.

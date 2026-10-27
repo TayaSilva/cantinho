@@ -27,15 +27,17 @@ function periodFromUrl(search: URLSearchParams): Period | null {
 
 export default function App() {
   const { path, search } = useRoute();
-  if (path === '/admin' || path.startsWith('/admin/') || path === '/login' || path === '/cadastro' || path === '/recuperar-senha' || path === '/redefinir-senha' || path === '/minhas-casinhas') {
+  if (path === '/admin' || path.startsWith('/admin/') || path === '/login' || path === '/cadastro' || path === '/recuperar-senha' || path === '/redefinir-senha' || path === '/meus-cantinhos' || path === '/minhas-casinhas') {
     return <AdminGate path={path === '/admin' ? '/admin/editor' : path} />;
   }
+  // Links de e-mail que caíram no Site URL (#error_code=... ou #access_token=...) vão para o login tratar.
+  if (/[#&](error_code|access_token)=/.test(window.location.hash)) return <AdminGate path="/login" />;
   const publicToken = path.startsWith('/c/') ? decodeURIComponent(path.slice(3)) : null;
   return <PublicHouse preview={search.get('preview') === 'draft'} period={periodFromUrl(search)} publicToken={publicToken} houseId={search.get('house') || undefined} />;
 }
 
 /**
- * Casinha pública. Lê apenas a versão PUBLICADA — ou o rascunho, quando aberta
+ * Cantinho público. Lê apenas a versão PUBLICADA — ou o rascunho, quando aberta
  * pelo botão "Pré-visualizar" do Backoffice (?preview=draft).
  */
 function PublicHouse({ preview, period, publicToken, houseId }: { preview: boolean; period: Period | null; publicToken: string | null; houseId?: string }) {
@@ -165,7 +167,7 @@ function House({ doc, preview, period }: { doc: HouseDocument; preview: boolean;
       </header>
 
       <main className="relative min-h-0 flex-1">
-        <h2 className="sr-only">Sala da casinha</h2>
+        <h2 className="sr-only">Sala do cantinho</h2>
         <div className="size-full motion-safe:animate-reveal">
           <HouseScene
             appearance={appearance}
@@ -214,7 +216,7 @@ function House({ doc, preview, period }: { doc: HouseDocument; preview: boolean;
   );
 }
 
-/** Miniatura da casinha na tela de entrada. */
+/** Miniatura do cantinho na tela de entrada. */
 function WelcomeHouse() {
   return (
     <svg className="motion-safe:animate-bob" width="192" height="168" viewBox="0 0 64 56" shapeRendering="crispEdges" aria-hidden="true">

@@ -1,11 +1,11 @@
-# Plano: múltiplas casinhas por usuário
+# Plano: múltiplos cantinhos por usuário
 
 ## Resumo
 
 A estrutura do banco já permite que um usuário tenha várias casas, mas o frontend e as APIs ainda usam automaticamente a primeira casa encontrada. O objetivo é adicionar:
 
-- seletor de casinha no topo do painel;
-- criação de novas casinhas pelo próprio usuário;
+- seletor de cantinho no topo do painel;
+- criação de novos cantinhos pelo próprio usuário;
 - novas casas iniciando com o modelo padrão;
 - persistência da casa selecionada;
 - validação server-side de pertencimento;
@@ -18,7 +18,7 @@ Adicionar um seletor no cabeçalho do `/admin` com:
 
 - nome de cada casa disponível;
 - casa atualmente selecionada;
-- botão “Nova casinha”;
+- botão “Novo cantinho”;
 - troca de casa sem sair da conta.
 
 A casa selecionada será salva no `localStorage`. O identificador também será enviado nas chamadas de API e sempre validado pelo backend.
@@ -29,7 +29,7 @@ Usar o endpoint existente `/api/me/houses` com suporte a `POST`, evitando criar 
 
 Fluxo:
 
-1. usuário clica em “Nova casinha”;
+1. usuário clica em “Novo cantinho”;
 2. informa o nome;
 3. frontend envia o documento padrão;
 4. backend cria `houses`, `house_members`, `draft` e `published`;

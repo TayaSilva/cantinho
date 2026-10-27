@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return fail(res, 405, 'Método não permitido.');
   try {
     const context = await requireRequestedHouse(req, 'owner');
-    if (!context) return fail(res, 401, 'Apenas o dono pode publicar a casinha.');
+    if (!context) return fail(res, 401, 'Apenas o dono pode publicar o cantinho.');
     const body = await readJson(req);
     if (!validDocument(body.document)) return fail(res, 400, 'Documento inválido.');
     const saved = { ...body.document, updatedAt: new Date().toISOString() };
