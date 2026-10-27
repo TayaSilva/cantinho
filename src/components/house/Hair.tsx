@@ -159,3 +159,29 @@ export function HairFront({ style: styleValue, color, cc }: HairProps) {
     </g>
   );
 }
+
+/** Cabelo visto de costas (sofá da frente): o eixo a é espelhado a partir de `backA`. */
+export function HairBackView({ style: styleValue, color, cc, backA }: HairProps & { backA: number }) {
+  const style = normalizeHairStyle(styleValue);
+  const spec = SPECS[style];
+  const p = palette(color);
+  const a = ([lo, hi]: readonly [number, number]): [number, number] => [backA - hi, backA - lo];
+  return (
+    <g className="hair-back">
+      <IsoBox a={a(spec.a)} c={[cc + spec.c[0], cc + spec.c[1]]} z={[29, spec.cap ?? spec.top]} color={p.base} top={p.top} side={p.side} outlineColor={p.deep} />
+      {style === 'coily' && (
+        <>
+          <IsoBox a={a([5.4, 14.2])} c={[cc - 0.4, cc + 8.4]} z={[38, 48]} color={p.base} top={p.top} side={p.side} outlineColor={p.deep} />
+          <FaceA a={backA - 5.35} c={[cc - 0.4, cc + 8.4]} z={[37.6, 38.8]} fill="#C2577A" />
+        </>
+      )}
+      {spec.back !== undefined && <IsoBox a={a([5.5, 8.8])} c={[cc - 1.4, cc + 9.4]} z={[spec.back, 36]} color={p.base} top={p.top} side={p.side} outlineColor={p.deep} />}
+      {style === 'ponytail' && (
+        <>
+          <IsoBox a={a([2.4, 6.1])} c={[cc + 2.3, cc + 5.7]} z={[26, 37.5]} color={p.base} side={p.side} outlineColor={p.deep} />
+          <FaceA a={backA - 2.35} c={[cc + 2.3, cc + 5.7]} z={[36, 37]} fill="#C2577A" />
+        </>
+      )}
+    </g>
+  );
+}

@@ -117,7 +117,7 @@ export const editorHitboxes: Partial<Record<EditorTarget, Rect[]>> = {
   tv: [{ x: 189, y: 72, w: 52, h: 68 }],
   radio: [{ x: 235, y: 98, w: 31, h: 54 }],
   sofa: [{ x: 69, y: 87, w: 70, h: 58 }],
-  sofa2: [{ x: 78, y: 120, w: 138, h: 76 }],
+  sofa2: [{ x: 160, y: 133, w: 68, h: 59 }],
   cushions: [{ x: 92, y: 92, w: 14, h: 18 }, { x: 122, y: 84, w: 14, h: 18 }],
   lamp: [{ x: 52, y: 92, w: 30, h: 62 }],
   table: [{ x: 108, y: 120, w: 49, h: 37 }],
@@ -163,7 +163,7 @@ export const defaultAppearance: HouseAppearance = {
   },
   furniture: {
     sofa: { model: 'sofa.classico', visible: true },
-    sofa2: { model: 'sofa.classico', visible: true },
+    sofa2: { model: 'sofa.classico', visible: false },
     table: { model: 'table.madeira', visible: true },
     rug: { model: 'rug.classico', visible: true },
     bookshelf: { model: 'shelf.alta', visible: true },
@@ -242,9 +242,9 @@ export const defaultAppearance: HouseAppearance = {
 
 /** Lugar de cada personagem no sofá (eixo c da grade isométrica). */
 export const CHARACTER_SEATS = [52, 68, 52, 68] as const;
-// Mesmo modelo e escala do sofá principal, espelhado para ficar de frente para a TV
-// e posicionado no espaço entre o abajur e o baú.
-export const SECOND_SOFA_TRANSFORM = 'translate(282 34) scale(-1 1)';
+// Sofá 2: mesmo modelo do principal, do outro lado da mesinha e virado para ele.
+// Valor do eixo a onde termina o encosto (as pessoas 3 e 4 aparecem de costas).
+export const OPPOSITE_SOFA_A = 110;
 
 /** Posição do pet no tapete. */
 export const PET_POSITION = { a: 60, c: 74 } as const;

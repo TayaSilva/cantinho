@@ -2,29 +2,34 @@ import type { ReactNode } from 'react';
 import { getOption, str } from '../../data/catalog';
 import type { CharacterAge, CharacterAppearance, Rect } from '../../types/house';
 import { boundsOf, boxPoints, FaceA, FaceC, iso, IsoBox, shade } from './iso';
-import { HairBack, HairFront, hairTop } from './Hair';
+import { HairBack, HairBackView, HairFront, hairTop } from './Hair';
 
 /** Área clicável do personagem (cabeça + tronco), em unidades da cena. */
 export const CHILD_SCALE = 0.86;
 
-function scalePoint(point: [number, number], seat: number, age: CharacterAge = 'adult'): [number, number] {
+function scalePoint(point: [number, number], base: [number, number], age: CharacterAge = 'adult'): [number, number] {
   if (age !== 'child') return point;
-  const base = iso(13, seat + 4, 0);
   return [base[0] + (point[0] - base[0]) * CHILD_SCALE, base[1] + (point[1] - base[1]) * CHILD_SCALE];
 }
 
-export function characterHitbox(seat: number, age: CharacterAge = 'adult'): Rect {
-  const r = boundsOf(boxPoints({ a: [6, 14], c: [seat - 1, seat + 9], z: [12, 40] }), 0);
+/** Faixa do eixo a espelhada para quem senta de costas, com o encosto terminando em `backA`. */
+const flip = (backA: number, [lo, hi]: [number, number]): [number, number] => [backA - hi, backA - lo];
+
+/** Com `backA`, calcula a área de um personagem visto de costas (sofá da frente). */
+export function characterHitbox(seat: number, age: CharacterAge = 'adult', backA?: number): Rect {
+  const a: [number, number] = backA === undefined ? [6, 14] : flip(backA, [6, 14]);
+  const base = iso(backA === undefined ? 13 : backA - 13, seat + 4, 0);
+  const r = boundsOf(boxPoints({ a, c: [seat - 1, seat + 9], z: [12, 40] }), 0);
   const corners: [number, number][] = [[r.x, r.y], [r.x + r.w, r.y], [r.x, r.y + r.h], [r.x + r.w, r.y + r.h]];
-  const points = corners.map((point) => scalePoint(point, seat, age));
+  const points = corners.map((point) => scalePoint(point, base, age));
   const xs = points.map(([x]) => x);
   const ys = points.map(([, y]) => y);
   return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
 }
 
 /** Ponto acima da cabeça, para o balão de fala. */
-export function characterAnchor(seat: number, age: CharacterAge = 'adult'): { x: number; y: number } {
-  const r = characterHitbox(seat, age);
+export function characterAnchor(seat: number, age: CharacterAge = 'adult', backA?: number): { x: number; y: number } {
+  const r = characterHitbox(seat, age, backA);
   return { x: r.x + r.w / 2, y: r.y - 2 };
 }
 
@@ -260,4 +265,68 @@ function Accessory({ kind, cc, style }: { kind: string; cc: number; style: strin
     default:
       return null;
   }
+}
+
+/* ---------------- Visto de costas ---------------- */
+
+/**
+ * Personagem do sofá da frente, visto de costas e virado para o sofá principal.
+ * O encosto (desenhado depois) esconde as pernas; aparecem tronco, braços e nuca.
+ */
+export function CharacterFromBehind({ look, seat, backA }: { look: CharacterAppearance; seat: number; backA: number }) {
+  const cc = seat;
+  const a = (range: [number, number]) => flip(backA, range);
+  const age = look.age ?? 'adult';
+  const skin = str(getOption('skinTone', look.skinTone), 'color');
+  const hair = str(getOption('hairColor', look.hairColor), 'color');
+  const hairStyle = str(getOption('hairStyle', look.hairStyle), 'style', 'short');
+  const outfit = str(getOption('outfit', look.outfit), 'style', 'tshirt');
+  const color = str(getOption('outfitColor', look.outfitColor), 'color');
+  const accessory = str(getOption('accessory', look.accessory), 'kind', 'none');
+  const shirt = outfit === 'overalls' || outfit === 'jumpsuit' ? '#F4EDE4' : color;
+  const longSleeves = outfit === 'hoodie' || outfit === 'sweater' || outfit === 'overalls' || outfit === 'jacket' || outfit === 'jumpsuit';
+  const base = iso(backA - 13, cc + 4, 0);
+  const transform = age === 'child' ? `translate(${base[0]} ${base[1]}) scale(${CHILD_SCALE}) translate(${-base[0]} ${-base[1]})` : undefined;
+  const topZ = hairTop(hairStyle);
+  const arm = (key: string, c: [number, number]) =>
+    longSleeves ? (
+      <IsoBox key={key} a={a([8, 12])} c={c} z={[15, 24]} color={shirt} />
+    ) : (
+      <g key={key}>
+        <IsoBox a={a([8, 12])} c={c} z={[20, 24]} color={shirt} />
+        <IsoBox a={a([8, 12])} c={c} z={[15, 20]} color={skin} outline={false} />
+      </g>
+    );
+
+  return (
+    <g className="character" transform={transform}>
+      {arm('arm-far', [cc - 2, cc])}
+      <IsoBox a={a([7, 13])} c={[cc, cc + 8]} z={[11, 26]} color={shirt} />
+      {(outfit === 'overalls' || outfit === 'jumpsuit') && (
+        <>
+          <FaceA a={backA - 6.95} c={[cc + 1.5, cc + 2.5]} z={[11, 26]} fill={color} />
+          <FaceA a={backA - 6.95} c={[cc + 5.5, cc + 6.5]} z={[11, 26]} fill={color} />
+        </>
+      )}
+      {arm('arm-near', [cc + 8, cc + 10])}
+      <IsoBox a={a([6, 14])} c={[cc - 1, cc + 9]} z={[26, 36]} color={skin} top={skin} />
+      {outfit === 'hoodie' && <IsoBox a={a([4.5, 7.5])} c={[cc, cc + 8]} z={[22, 30]} color={shade(color, 0.12)} />}
+      <HairBackView style={hairStyle} color={hair} cc={cc} backA={backA} />
+      {accessory === 'cap' && <IsoBox a={a([5, 14.8])} c={[cc - 1.8, cc + 9.8]} z={[topZ - 2, topZ + 2.5]} color="#C2577A" />}
+      {accessory === 'bow' && (
+        <>
+          <IsoBox a={a([7, 10])} c={[cc + 4, cc + 7]} z={[topZ - 0.5, topZ + 3]} color="#E7A9B4" />
+          <IsoBox a={a([7, 10])} c={[cc + 8, cc + 11]} z={[topZ - 0.5, topZ + 3]} color="#E7A9B4" />
+          <IsoBox a={a([7.3, 9.7])} c={[cc + 7, cc + 8]} z={[topZ, topZ + 2.4]} color="#C98190" />
+        </>
+      )}
+      {accessory === 'headphones' && (
+        <>
+          <IsoBox a={a([8, 11.5])} c={[cc - 2.5, cc - 1]} z={[28.5, 34.5]} color="#E3A857" outline={false} />
+          <IsoBox a={a([8.5, 10.5])} c={[cc - 2, cc + 10]} z={[topZ, topZ + 1.5]} color="#3A3340" />
+          <IsoBox a={a([7.5, 12])} c={[cc + 9, cc + 11]} z={[28.5, 34.5]} color="#E3A857" />
+        </>
+      )}
+    </g>
+  );
 }

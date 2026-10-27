@@ -310,7 +310,15 @@ function MoveisPanel({ ap, setAp, current, onPick }: { ap: HouseAppearance; setA
         ) : (
           <Toggle
             label="Mostrar na casinha"
-            description={linked ? `Ocultar não apaga ${linked} — ao mostrar de novo, tudo continua lá.` : current === 'plants' ? 'Vale para a planta ao lado do rádio. A do canto fica em Decorações.' : undefined}
+            description={
+              linked
+                ? `Ocultar não apaga ${linked} — ao mostrar de novo, tudo continua lá.`
+                : current === 'plants'
+                  ? 'Vale para a planta ao lado do rádio. A do canto fica em Decorações.'
+                  : current === 'sofa2'
+                    ? 'Opcional: coloca um sofá de frente para o principal, com os personagens 3 e 4.'
+                    : undefined
+            }
             checked={setting.visible}
             onChange={(v) => setAp((a) => void (a.furniture[current].visible = v))}
           />
@@ -347,6 +355,9 @@ function CharacterPanel({ ap, setAp, slot, onSwitch }: { ap: HouseAppearance; se
           { id: '3', label: `Personagem 4 · ${ap.characters[3].name || '—'}` },
         ]}
       />
+      {slot >= 2 && !ap.furniture.sofa2.visible && (
+        <p className="rounded-lg bg-stone-50 p-3 text-xs leading-relaxed text-stone-500">Este personagem só aparece com o Sofá 2 ligado (em Móveis).</p>
+      )}
       <TextField label="Nome" value={ch.name} maxLength={24} onChange={(v) => setAp((a) => void (a.characters[slot].name = v), `name-${slot}`)} />
       <Segmented<CharacterAge>
         label="Tipo"

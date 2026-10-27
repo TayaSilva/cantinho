@@ -3,7 +3,7 @@ import type { KeyboardEvent, ReactNode } from 'react';
 import { getOption, str } from '../../data/catalog';
 import {
   CHARACTER_SEATS,
-  SECOND_SOFA_TRANSFORM,
+  OPPOSITE_SOFA_A,
   editorHitboxes,
   MUSIC_NOTES,
   ROOM_OUTLINE,
@@ -14,7 +14,7 @@ import {
 } from '../../data/houseConfig';
 import type { EditorTarget, VisitorAction } from '../../data/houseConfig';
 import type { HouseAppearance, HouseContent, ModalId, PeriodTheme, Rect, SceneRuntime } from '../../types/house';
-import { Character, characterAnchor, characterHitbox } from './Character';
+import { Character, characterAnchor, characterHitbox, CharacterFromBehind } from './Character';
 import { DynamicWindow } from './DynamicWindow';
 import {
   Bookshelf,
@@ -22,6 +22,8 @@ import {
   Chest,
   Cushions,
   Lamp,
+  OppositeSofaBack,
+  OppositeSofaSeat,
   lampGlowCenter,
   PhotoFrame,
   Plant,
@@ -39,24 +41,11 @@ import { iso, pts } from './iso';
 import { Pet, petAnchor, petHitbox } from './Pet';
 import { Room, StringLights } from './Room';
 
-function scaledCharacterRect(rect: Rect, age?: string): Rect {
-  if (age !== 'child') return rect;
-  const w = rect.w * 0.86;
-  const h = rect.h * 0.86;
-  return { x: rect.x + (rect.w - w) / 2, y: rect.y + (rect.h - h) / 2, w, h };
-}
-
-function secondCharacterRect(index: number, age?: string): Rect {
-  const rect = index === 2 ? { x: 145, y: 126, w: 26, h: 34 } : { x: 116, y: 138, w: 26, h: 34 };
-  return scaledCharacterRect(rect, age);
-}
-
-function secondCharacterAnchor(index: number, age?: string): { x: number; y: number } {
-  const point = index === 2 ? { x: 158, y: 123 } : { x: 129, y: 135 };
-  if (age !== 'child') return point;
-  const baseY = index === 2 ? 160 : 175;
-  return { x: point.x, y: point.y + (baseY - point.y) * 0.14 };
-}
+/** Pessoas 3 e 4 sentam no sofá 2, de costas; só existem com ele visível. */
+const backAOf = (index: number) => (index < 2 ? undefined : OPPOSITE_SOFA_A);
+const characterRect = (appearance: HouseAppearance, index: number): Rect =>
+  characterHitbox(CHARACTER_SEATS[index], appearance.characters[index].age ?? 'adult', backAOf(index));
+const characterSeated = (appearance: HouseAppearance, index: number) => index < 2 || appearance.furniture.sofa2.visible;
 
 /* ==================================================================
  * Desenho da cena (um único SVG em camadas)
@@ -107,26 +96,28 @@ export function SceneSvg({ appearance, theme, runtime, children }: SceneSvgProps
       {f.radio.visible && <Radio opt={opt('radio', 'radio')} />}
       {f.plants.visible && <Plant opt={plantOpt} origin={[108, 3]} size={9} />}
       {f.sofa.visible && <SofaBack opt={opt('sofa', 'sofa')} />}
-      {f.sofa2.visible && <SofaBack opt={opt('sofa2', 'sofa')} transform={SECOND_SOFA_TRANSFORM} />}
       {f.cushions.visible && <Cushions opt={opt('cushions', 'cushions')} />}
 
       {/* 5. personagens */}
       {appearance.characters.slice(0, 2).map((look, i) => (
         <Character key={i} look={look} seat={CHARACTER_SEATS[i]} index={i} />
       ))}
-      {f.sofa2.visible && (
-        <g transform={SECOND_SOFA_TRANSFORM}>
-          <Character look={appearance.characters[2]} seat={CHARACTER_SEATS[2]} index={2} />
-          <Character look={appearance.characters[3]} seat={CHARACTER_SEATS[3]} index={3} />
-        </g>
-      )}
       {f.sofa.visible && <SofaFront opt={opt('sofa', 'sofa')} />}
-      {f.sofa2.visible && <SofaFront opt={opt('sofa2', 'sofa')} transform={SECOND_SOFA_TRANSFORM} />}
       {f.lamp.visible && <Lamp opt={lampOpt} on={runtime.lampOn} />}
       {f.table.visible && <Table opt={opt('table', 'table')} items={deco.tableItems} />}
 
       {/* 6. animal */}
       {pet.enabled && <Pet pet={pet} happy={runtime.petHappy} sleeping={night && !runtime.petHappy} />}
+
+      {/* sofá 2, de frente para o principal: fica mais perto da câmera que a mesa e o pet */}
+      {f.sofa2.visible && (
+        <g>
+          <OppositeSofaSeat opt={opt('sofa2', 'sofa')} backA={OPPOSITE_SOFA_A} />
+          <CharacterFromBehind look={appearance.characters[2]} seat={CHARACTER_SEATS[2]} backA={OPPOSITE_SOFA_A} />
+          <CharacterFromBehind look={appearance.characters[3]} seat={CHARACTER_SEATS[3]} backA={OPPOSITE_SOFA_A} />
+          <OppositeSofaBack opt={opt('sofa2', 'sofa')} backA={OPPOSITE_SOFA_A} />
+        </g>
+      )}
 
       {f.chest.visible && <Chest opt={opt('chest', 'chest')} open={runtime.chestOpen} />}
 
@@ -286,20 +277,22 @@ export function HouseScene({
                   onActivate={() => runAction(h.action, { x: h.hitbox.x + h.hitbox.w / 2, y: h.hitbox.y - 2 })}
                 />
               ))}
-            {appearance.characters.map((c, i) => (
-              <InteractiveObject
-                key={`char-${i}`}
-                id={`character${i + 1}`}
-                label={c.name}
-                ariaLabel={`Falar com ${c.name}`}
-                hitbox={i < 2 ? characterHitbox(CHARACTER_SEATS[i], c.age ?? 'adult') : secondCharacterRect(i, c.age)}
-                showLabel={showLabels}
-                onActivate={() => {
-                  const p = i < 2 ? characterAnchor(CHARACTER_SEATS[i], c.age ?? 'adult') : secondCharacterAnchor(i, c.age);
-                  say(phrases[i], p.x, p.y);
-                }}
-              />
-            ))}
+            {appearance.characters.map((c, i) =>
+              characterSeated(appearance, i) ? (
+                <InteractiveObject
+                  key={`char-${i}`}
+                  id={`character${i + 1}`}
+                  label={c.name}
+                  ariaLabel={`Falar com ${c.name}`}
+                  hitbox={characterRect(appearance, i)}
+                  showLabel={showLabels}
+                  onActivate={() => {
+                    const p = characterAnchor(CHARACTER_SEATS[i], c.age ?? 'adult', backAOf(i));
+                    say(phrases[i], p.x, p.y);
+                  }}
+                />
+              ) : null,
+            )}
             {pet.enabled && (
               <InteractiveObject
                 id="pet"
@@ -345,10 +338,8 @@ const FLOOR = pts([iso(0, 0), iso(120, 0), iso(120, 120), iso(0, 120)]);
 
 /** Retângulos clicáveis de um alvo do editor (considera visibilidade). */
 export function targetRects(appearance: HouseAppearance, target: EditorTarget): Rect[] {
-  if (target === 'character1') return [characterHitbox(CHARACTER_SEATS[0], appearance.characters[0].age ?? 'adult')];
-  if (target === 'character2') return [characterHitbox(CHARACTER_SEATS[1], appearance.characters[1].age ?? 'adult')];
-  if (target === 'character3') return [secondCharacterRect(2, appearance.characters[2].age)];
-  if (target === 'character4') return [secondCharacterRect(3, appearance.characters[3].age)];
+  const charIndex = ['character1', 'character2', 'character3', 'character4'].indexOf(target);
+  if (charIndex >= 0) return characterSeated(appearance, charIndex) ? [characterRect(appearance, charIndex)] : [];
   if (target === 'pet') return appearance.pet.enabled ? [petHitbox(appearance.pet)] : [];
   if (target in appearance.furniture) {
     const key = target as keyof HouseAppearance['furniture'];
@@ -358,7 +349,7 @@ export function targetRects(appearance: HouseAppearance, target: EditorTarget): 
 }
 
 /** Ordem de empilhamento: o que vem depois fica por cima. */
-const REGION_ORDER: EditorTarget[] = ['rug', 'window', 'frame', 'calendar', 'plants', 'bookshelf', 'tv', 'radio', 'sofa', 'sofa2', 'cushions', 'character1', 'character2', 'character3', 'character4', 'lamp', 'table', 'pet', 'chest'];
+const REGION_ORDER: EditorTarget[] = ['rug', 'window', 'frame', 'calendar', 'plants', 'bookshelf', 'tv', 'radio', 'sofa', 'cushions', 'character1', 'character2', 'lamp', 'table', 'pet', 'sofa2', 'character3', 'character4', 'chest'];
 
 function EditorRegions({ appearance, selected, onSelect }: { appearance: HouseAppearance; selected: EditorTarget | null; onSelect?: (t: EditorTarget) => void }) {
   const props = (target: EditorTarget) => ({

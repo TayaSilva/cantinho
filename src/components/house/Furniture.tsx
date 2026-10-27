@@ -616,6 +616,50 @@ export function SofaFront({ opt, transform }: { opt: AssetOption; transform?: st
   );
 }
 
+/*
+ * Sofá da frente: o mesmo sofá espelhado no eixo a, com o encosto em `backA`,
+ * virado para o sofá principal. Quem senta nele aparece de costas.
+ */
+const flipA = (backA: number, lo: number, hi: number): [number, number] => [backA - hi, backA - lo];
+
+/** Assento e braço do fundo do sofá da frente (desenhados antes dos personagens). */
+export function OppositeSofaSeat({ opt, backA }: { opt: AssetOption; backA: number }) {
+  const color = str(opt, 'color');
+  const variant = str(opt, 'variant');
+  const g = sofaGeometry(variant);
+  const cushion = shade(color, -0.12);
+  return (
+    <g>
+      {g.legs &&
+        [
+          [1, 43],
+          [17, 43],
+          [1, 87],
+          [17, 87],
+        ].map(([a, c]) => <IsoBox key={`${a}-${c}`} a={flipA(backA, a, a + 2)} c={[c, c + 2]} z={[0, g.base]} color={WOOD_DEEP} outline={false} />)}
+      <IsoBox a={flipA(backA, 0, 20)} c={[42, 42 + g.armW]} z={[g.base, g.arm]} color={color} />
+      {variant === 'chesterfield' && <IsoBox a={flipA(backA, 0, 20)} c={[41.5, 48.5]} z={[g.arm, g.arm + 2]} color={shade(color, -0.1)} />}
+      <IsoBox a={flipA(backA, 7, 20)} c={[42 + g.armW, 90 - g.armW]} z={[g.base, 7]} color={color} />
+      <IsoBox a={flipA(backA, 7, 20)} c={[42 + g.armW, 66]} z={[7, 11]} color={cushion} />
+      <IsoBox a={flipA(backA, 7, 20)} c={[66, 90 - g.armW]} z={[7, 11]} color={cushion} />
+    </g>
+  );
+}
+
+/** Braço da frente e encosto do sofá da frente (desenhados depois dos personagens). */
+export function OppositeSofaBack({ opt, backA }: { opt: AssetOption; backA: number }) {
+  const color = str(opt, 'color');
+  const variant = str(opt, 'variant');
+  const g = sofaGeometry(variant);
+  return (
+    <g>
+      <IsoBox a={flipA(backA, 0, 20)} c={[90 - g.armW, 90]} z={[g.base, g.arm]} color={color} />
+      {variant === 'chesterfield' && <IsoBox a={flipA(backA, 0, 20)} c={[83.5, 90.5]} z={[g.arm, g.arm + 2]} color={shade(color, -0.1)} />}
+      <IsoBox a={flipA(backA, 0, 7)} c={[42, 90]} z={[g.base, g.back]} color={color} />
+    </g>
+  );
+}
+
 export function Cushions({ opt }: { opt: AssetOption }) {
   const a = str(opt, 'a');
   const b = str(opt, 'b');
