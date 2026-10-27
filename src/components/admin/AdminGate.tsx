@@ -236,6 +236,13 @@ function AuthPage({ mode, notice, linkError, onNotice, onWelcome }: { mode: Auth
     setConfirmEmail(null);
   }, [mode, linkError]);
 
+  // Avisos ("Sua conta foi excluída.", "E-mail confirmado!") valem só para a tela em que
+  // chegaram: ao trocar entre login, cadastro e recuperação, somem.
+  const firstMode = useRef(mode);
+  useEffect(() => {
+    if (mode !== firstMode.current) onNotice(null);
+  }, [mode, onNotice]);
+
   // Nada fica vermelho antes do primeiro envio; depois, os erros acompanham a digitação.
   const errors = tried ? validate(mode, firstName, email, password) : {};
 
