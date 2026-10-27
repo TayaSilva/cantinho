@@ -207,8 +207,8 @@ export function EditorPage({ draft }: { draft: HouseDraft }) {
 
 type SetAp = (fn: (a: HouseAppearance) => void, key?: string) => void;
 
-function swatchesFor(type: ElementType, key = 'color') {
-  return optionsFor(type).map((o) => ({ id: o.id, name: o.name, color: str(o, key) }));
+function swatchesFor(type: ElementType, key = 'color', group?: string) {
+  return optionsFor(type, group).map((o) => ({ id: o.id, name: o.name, color: str(o, key) }));
 }
 
 function thumbsFor(type: ElementType, ap: HouseAppearance, slot?: 0 | 1 | 2 | 3, group?: string) {
@@ -397,6 +397,7 @@ function PetPanel({ ap, setAp }: { ap: HouseAppearance; setAp: SetAp }) {
   const pet = ap.pet;
   const typeName = nameOf('petType', pet.type);
   const look = pet.appearanceByType[pet.type] ?? optionsFor('petAppearance', pet.type)[0]?.id ?? '';
+  const colorTitle = pet.type === 'pet.passaro' ? 'Cor das penas' : 'Cor do pelo';
   const accessories = optionsFor('petAccessory').map((o) => {
     const fits = petAccessoryFits(o.id, pet.type);
     return { id: o.id, name: o.name, thumb: <OptionThumb type="petAccessory" optionId={o.id} appearance={ap} />, disabled: !fits, disabledReason: `${o.name} não combina com ${typeName.toLowerCase()}` };
@@ -425,10 +426,10 @@ function PetPanel({ ap, setAp }: { ap: HouseAppearance; setAp: SetAp }) {
             }
           />
         </Field>
-        <Field title="Aparência" aside={nameOf('petAppearance', look, pet.type)}>
-          <ThumbGrid
-            label="Aparência"
-            items={thumbsFor('petAppearance', ap, undefined, pet.type)}
+        <Field title={colorTitle} aside={nameOf('petAppearance', look, pet.type)}>
+          <Swatches
+            label={colorTitle}
+            items={swatchesFor('petAppearance', 'fur', pet.type)}
             value={look}
             onChange={(id) => setAp((a) => void (a.pet.appearanceByType = { ...a.pet.appearanceByType, [a.pet.type]: id }))}
           />
