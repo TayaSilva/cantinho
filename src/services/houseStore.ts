@@ -31,16 +31,26 @@ export function defaultDocument(): HouseDocument {
 }
 
 /** Completa campos que faltarem (ex.: documento salvo antes de uma atualização do catálogo). */
-function mergeDefaults<T>(base: T, saved: unknown): T {
+function mergeDefaults<T>(base: T, saved: unknown, path = ''): T {
   if (Array.isArray(base)) {
-    const savedArray = Array.isArray(saved) ? saved : [];
-    return base.map((item, index) => mergeDefaults(item, savedArray[index])) as T;
+    if (!Array.isArray(saved)) return structuredClone(base);
+
+    // Listas de conteúdo são editáveis e podem legitimamente ficar vazias.
+    // Apenas os quatro personagens são slots fixos e precisam ser completados
+    // quando um documento antigo ainda não os possui.
+    const length = path === 'appearance.characters' ? base.length : saved.length;
+    return Array.from({ length }, (_, index) => {
+      if (index >= saved.length || saved[index] === undefined) {
+        return index < base.length ? structuredClone(base[index]) : undefined;
+      }
+      return index < base.length ? mergeDefaults(base[index], saved[index], `${path}[${index}]`) : saved[index];
+    }) as T;
   }
   if (base && typeof base === 'object') {
     const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
     if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
       for (const [k, v] of Object.entries(saved as Record<string, unknown>)) {
-        out[k] = k in out ? mergeDefaults(out[k], v) : v;
+        out[k] = k in out ? mergeDefaults(out[k], v, path ? `${path}.${k}` : k) : v;
       }
     }
     return out as T;
