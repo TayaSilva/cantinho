@@ -134,6 +134,7 @@ function House({ doc, preview, period, demo }: { doc: HouseDocument; preview: bo
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-7 bg-night px-6 py-12 text-center motion-safe:animate-fade-in">
         <WelcomeHouse />
+        {demo && <PixelButton size="sm" variant="accent" onClick={() => navigate('/login')} className="text-sm md:hidden">Crie seu cantinho</PixelButton>}
         <div className="flex max-w-2xl flex-col items-center gap-3.5">
           <h1 className="font-pixel text-4xl leading-tight font-semibold text-highlight sm:text-5xl">{content.welcome.title}</h1>
           <p className="text-lg leading-relaxed text-wall-2 sm:text-xl">{content.welcome.description}</p>
@@ -157,7 +158,7 @@ function House({ doc, preview, period, demo }: { doc: HouseDocument; preview: bo
             {theme.label} · {clock}
           </span>
         </div>
-        {demo && <PixelButton size="sm" variant="accent" onClick={() => navigate('/login')} className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-xs sm:text-sm">Crie seu cantinho</PixelButton>}
+        {demo && <PixelButton size="sm" variant="accent" onClick={() => navigate('/login')} className="absolute left-1/2 hidden -translate-x-1/2 whitespace-nowrap text-xs sm:text-sm md:inline-flex">Crie seu cantinho</PixelButton>}
         <div className="flex shrink-0 gap-2.5">
           <PixelButton variant="dark" size="icon" onClick={() => setHelp((h) => !h)} aria-label="Mostrar objetos interativos" aria-pressed={help} className={help ? '!bg-rug !text-ink-deep' : ''}>
             <Icon name="help" />
