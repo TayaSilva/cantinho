@@ -49,10 +49,11 @@ function mediaParts(ref: string) {
   return separator < 0 ? { id: value, storagePath: undefined } : { id: value.slice(0, separator), storagePath: value.slice(separator + 1) };
 }
 
-export function mediaApiUrl(src: string): string | undefined {
+export function mediaApiUrl(src: string, houseId?: string): string | undefined {
   if (!isMediaRef(src)) return src;
-  const { id } = mediaParts(src);
-  return `${API_BASE}/api/media/${encodeURIComponent(id)}`;
+  const { id, storagePath } = mediaParts(src);
+  const context = storagePath?.split('/')[0] || houseId;
+  return `${API_BASE}/api/media/${encodeURIComponent(id)}${context ? `?house_id=${encodeURIComponent(context)}` : ''}`;
 }
 
 function newId(): string {
@@ -61,17 +62,17 @@ function newId(): string {
 }
 
 /** Guarda um arquivo e devolve a referência para salvar no conteúdo. */
-export async function putMedia(file: Blob): Promise<string> {
+export async function putMedia(file: Blob, houseId?: string): Promise<string> {
   const namedFile = file as Blob & { name?: string };
   const originalName = namedFile.name || 'upload';
 
   if (cloudConfigured) {
     const id = newId();
-    const houseId = await getDefaultHouseId();
+    const selectedHouseId = houseId || await getDefaultHouseId();
     const extension = originalName.includes('.') ? originalName.slice(originalName.lastIndexOf('.')).replace(/[^a-zA-Z0-9.]/g, '').slice(0, 10) : '';
-    const storagePath = `${houseId}/${id}${extension}`;
+    const storagePath = `${selectedHouseId}/${id}${extension}`;
     await uploadToCloud(storagePath, file);
-    const response = await authFetch(`${API_BASE}/api/media/complete`, {
+    const response = await authFetch(`${API_BASE}/api/media/complete?house_id=${encodeURIComponent(selectedHouseId)}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ id, storagePath, name: originalName, type: file.type || 'application/octet-stream', size: file.size }),
@@ -82,17 +83,18 @@ export async function putMedia(file: Blob): Promise<string> {
     }
     // A URL direta evita uma ida extra à Vercel e uma consulta ao banco quando
     // outra pessoa abre o link compartilhado.
-    return PREFIX + id;
+    return `${PREFIX}${id}@${selectedHouseId}`;
   }
 
   try {
+    const selectedHouseId = houseId || '00000000-0000-0000-0000-000000000001';
     const bytes = new Uint8Array(await file.arrayBuffer());
     let binary = '';
     const chunkSize = 0x8000;
     for (let i = 0; i < bytes.length; i += chunkSize) {
       binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
     }
-    const response = await fetch(`${API_BASE}/api/media`, {
+    const response = await fetch(`${API_BASE}/api/media?house_id=${encodeURIComponent(selectedHouseId)}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -103,7 +105,7 @@ export async function putMedia(file: Blob): Promise<string> {
     });
     if (response.ok) {
       const body = (await response.json()) as { ref?: string };
-      if (body.ref) return body.ref;
+      if (body.ref) return body.ref.includes('@') ? body.ref : `${body.ref}@${selectedHouseId}`;
     }
   } catch {
     // O fallback local permite trabalhar sem a API durante o desenvolvimento.
@@ -114,10 +116,11 @@ export async function putMedia(file: Blob): Promise<string> {
   return PREFIX + id;
 }
 
-export async function deleteMedia(ref: string): Promise<void> {
+export async function deleteMedia(ref: string, houseId?: string): Promise<void> {
   if (!isMediaRef(ref)) return;
   const { id } = mediaParts(ref);
-  await authFetch(`${API_BASE}/api/media/${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => undefined);
+  const apiUrl = mediaApiUrl(ref, houseId);
+  await authFetch(apiUrl || `${API_BASE}/api/media/${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => undefined);
   await tx('readwrite', (s) => s.delete(id));
   const url = urlCache.get(ref);
   if (url) URL.revokeObjectURL(url);
@@ -125,13 +128,13 @@ export async function deleteMedia(ref: string): Promise<void> {
 }
 
 /** Transforma qualquer `src` (URL normal ou "media:<id>") em URL utilizável. */
-export async function resolveMedia(src: string | undefined): Promise<string | undefined> {
+export async function resolveMedia(src: string | undefined, houseId?: string): Promise<string | undefined> {
   if (!src) return undefined;
   if (!isMediaRef(src)) return src;
   const cached = urlCache.get(src);
   if (cached) return cached;
   const { id } = mediaParts(src);
-  const apiUrl = mediaApiUrl(src) as string;
+  const apiUrl = mediaApiUrl(src, houseId) as string;
 
   // Em produção, a API já é o resolvedor da mídia: ela responde com um
   // redirect para o objeto no Storage. Fazer um HEAD antes do GET atrasava

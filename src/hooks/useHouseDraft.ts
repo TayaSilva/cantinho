@@ -11,7 +11,7 @@ export type DraftStatus = 'loading' | 'saved' | 'unsaved' | 'saving' | 'publishi
  * Estado de edição do Backoffice: rascunho em memória, histórico para
  * desfazer, salvar rascunho, restaurar padrão e publicar.
  */
-export function useHouseDraft() {
+export function useHouseDraft(houseId = '00000000-0000-0000-0000-000000000001') {
   const [doc, setDoc] = useState<HouseDocument | null>(null);
   const [savedJson, setSavedJson] = useState('');
   const [published, setPublished] = useState<HouseDocument | null>(null);
@@ -24,7 +24,12 @@ export function useHouseDraft() {
 
   useEffect(() => {
     let alive = true;
-    Promise.all([loadDraft(), loadPublished()]).then(([d, p]) => {
+    setDoc(null);
+    setSavedJson('');
+    setPublished(null);
+    historyRef.current = [];
+    setHistorySize(0);
+    Promise.all([loadDraft(houseId), loadPublished(houseId)]).then(([d, p]) => {
       if (!alive) return;
       docRef.current = d;
       setDoc(d);
@@ -34,7 +39,7 @@ export function useHouseDraft() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [houseId]);
 
   /**
    * Aplica uma alteração ao rascunho. `coalesceKey` agrupa alterações seguidas
@@ -74,23 +79,23 @@ export function useHouseDraft() {
   const saveDraft = useCallback(async () => {
     if (!doc) return;
     setBusy('saving');
-    const saved = await saveDraftDoc(doc);
+    const saved = await saveDraftDoc(doc, houseId);
     commit(saved);
     setSavedJson(JSON.stringify(saved));
     setBusy(null);
     setLastAction('Rascunho salvo');
-  }, [doc]);
+  }, [doc, houseId]);
 
   const publish = useCallback(async () => {
     if (!doc) return;
     setBusy('publishing');
-    const saved = await publishDoc(doc);
+    const saved = await publishDoc(doc, houseId);
     commit(saved);
     setSavedJson(JSON.stringify(saved));
     setPublished(saved);
     setBusy(null);
     setLastAction('Alterações publicadas');
-  }, [doc]);
+  }, [doc, houseId]);
 
   /** Volta só a APARÊNCIA ao padrão. Conteúdos (fotos, cartas...) ficam intactos. */
   const resetAppearance = useCallback(() => {
@@ -106,6 +111,7 @@ export function useHouseDraft() {
   const pending = useMemo(() => (doc && published ? countDifferences(doc, published) : 0), [doc, published]);
 
   return {
+    houseId,
     doc,
     published,
     update,

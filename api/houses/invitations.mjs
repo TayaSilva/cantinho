@@ -1,12 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import { cors, fail, json, options, readJson } from '../_lib/http.mjs';
-import { dbFetch, requireDefaultHouse, tokenHash } from '../_lib/supabase.mjs';
+import { dbFetch, requireRequestedHouse, tokenHash } from '../_lib/supabase.mjs';
 
 export default async function handler(req, res) {
   cors(res);
   if (options(req, res)) return;
   if (req.method !== 'POST') return fail(res, 405, 'Método não permitido.');
-  const context = await requireDefaultHouse(req, 'owner');
+  const context = await requireRequestedHouse(req, 'owner');
   if (!context) return fail(res, 401, 'Apenas o dono pode convidar pessoas.');
   try {
     const body = await readJson(req, 20_000);

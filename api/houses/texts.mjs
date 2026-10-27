@@ -1,5 +1,5 @@
 import { cors, fail, json, options, readJson } from '../_lib/http.mjs';
-import { dbFetch, requireDefaultHouse, upsertDocuments } from '../_lib/supabase.mjs';
+import { dbFetch, requireRequestedHouse, upsertDocuments } from '../_lib/supabase.mjs';
 
 const allowed = new Set(['letters', 'specialDates', 'chestMessages']);
 
@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   cors(res);
   if (options(req, res)) return;
   if (req.method !== 'POST') return fail(res, 405, 'Método não permitido.');
-  const context = await requireDefaultHouse(req, 'text');
+  const context = await requireRequestedHouse(req, 'text');
   if (!context) return fail(res, 401, 'Permissão de texto não autorizada.');
   try {
     const body = await readJson(req, 50_000);

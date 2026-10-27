@@ -15,8 +15,7 @@ import { defaultContent } from '../data/mockContent';
 import { authFetch } from './auth';
 import type { HouseAppearance, HouseContent, HouseDocument } from '../types/house';
 
-const DRAFT_KEY = 'casinha:draft:v1';
-const PUBLISHED_KEY = 'casinha:published:v1';
+const LEGACY_HOUSE_ID = '00000000-0000-0000-0000-000000000001';
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
 export const STORE_EVENT = 'casinha:store-changed';
@@ -70,6 +69,15 @@ function migrate(raw: unknown): HouseDocument {
   };
 }
 
+function storageKey(kind: 'draft' | 'published', houseId: string) {
+  return `casinha:${kind}:${houseId}`;
+}
+
+function endpoint(path: string, houseId: string) {
+  const separator = path.includes('?') ? '&' : '?';
+  return `${path}${separator}house_id=${encodeURIComponent(houseId)}`;
+}
+
 function read(key: string): HouseDocument | null {
   try {
     const raw = localStorage.getItem(key);
@@ -108,76 +116,76 @@ function notifyServerChange(key: string, doc: HouseDocument) {
   localStorage.setItem('casinha:server-sync', String(Date.now()));
 }
 
-async function bootstrap(): Promise<HouseDocument | null> {
+async function bootstrap(houseId: string): Promise<HouseDocument | null> {
   const doc = defaultDocument();
-  const response = await request('/api/house/bootstrap', {
+  const response = await request(endpoint('/api/house/bootstrap', houseId), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ document: doc }),
   });
   const saved = response ? await readApiDocument(response) : null;
-  if (saved) notifyServerChange(PUBLISHED_KEY, saved);
+  if (saved) notifyServerChange(storageKey('published', houseId), saved);
   return saved;
 }
 
 /** Versão que os visitantes veem. */
-export async function loadPublished(): Promise<HouseDocument> {
-  const response = await request('/api/house/published');
+export async function loadPublished(houseId = LEGACY_HOUSE_ID): Promise<HouseDocument> {
+  const response = await request(endpoint('/api/house/bootstrap', houseId));
   const saved = response ? await readApiDocument(response) : null;
   if (saved) {
-    notifyServerChange(PUBLISHED_KEY, saved);
+    notifyServerChange(storageKey('published', houseId), saved);
     return saved;
   }
   if (response?.status === 404) {
-    const initialized = await bootstrap();
+    const initialized = await bootstrap(houseId);
     if (initialized) return initialized;
   }
-  return read(PUBLISHED_KEY) ?? defaultDocument();
+  return read(storageKey('published', houseId)) ?? defaultDocument();
 }
 
 /** Rascunho do Backoffice (se não houver, parte do publicado). */
-export async function loadDraft(): Promise<HouseDocument> {
-  const response = await request('/api/house/draft');
+export async function loadDraft(houseId = LEGACY_HOUSE_ID): Promise<HouseDocument> {
+  const response = await request(endpoint('/api/house/draft', houseId));
   const saved = response ? await readApiDocument(response) : null;
   if (saved) {
-    notifyServerChange(DRAFT_KEY, saved);
+    notifyServerChange(storageKey('draft', houseId), saved);
     return saved;
   }
-  return read(DRAFT_KEY) ?? (await loadPublished());
+  return read(storageKey('draft', houseId)) ?? (await loadPublished(houseId));
 }
 
-export async function saveDraft(doc: HouseDocument): Promise<HouseDocument> {
+export async function saveDraft(doc: HouseDocument, houseId = LEGACY_HOUSE_ID): Promise<HouseDocument> {
   const saved = { ...doc, updatedAt: new Date().toISOString() };
-  const response = await request('/api/house/draft', {
+  const response = await request(endpoint('/api/house/draft', houseId), {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ document: saved }),
   });
   const serverSaved = response ? await readApiDocument(response) : null;
   if (serverSaved) {
-    notifyServerChange(DRAFT_KEY, serverSaved);
+    notifyServerChange(storageKey('draft', houseId), serverSaved);
     return serverSaved;
   }
-  write(DRAFT_KEY, saved);
+  write(storageKey('draft', houseId), saved);
   return saved;
 }
 
 /** Publica o rascunho: a partir daqui os visitantes veem esta versão. */
-export async function publish(doc: HouseDocument): Promise<HouseDocument> {
+export async function publish(doc: HouseDocument, houseId = LEGACY_HOUSE_ID): Promise<HouseDocument> {
   const saved = { ...doc, updatedAt: new Date().toISOString() };
-  const response = await request('/api/house/publish', {
+  const response = await request(endpoint('/api/house/publish', houseId), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ document: saved }),
   });
   const serverSaved = response ? await readApiDocument(response) : null;
   if (serverSaved) {
-    notifyServerChange(DRAFT_KEY, serverSaved);
-    notifyServerChange(PUBLISHED_KEY, serverSaved);
+    notifyServerChange(storageKey('draft', houseId), serverSaved);
+    notifyServerChange(storageKey('published', houseId), serverSaved);
     return serverSaved;
   }
-  write(DRAFT_KEY, saved);
-  write(PUBLISHED_KEY, saved);
+  write(storageKey('draft', houseId), saved);
+  write(storageKey('published', houseId), saved);
   return saved;
 }
 

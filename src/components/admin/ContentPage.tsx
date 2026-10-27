@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { HouseDraft } from '../../hooks/useHouseDraft';
 import { useMediaUrl } from '../../hooks/useMediaUrl';
 import { navigate } from '../../hooks/useRoute';
+import { houseAdminPath } from '../../services/houses';
 import { mediaApiUrl, putMedia } from '../../services/mediaStore';
 import type { HouseContent, HouseDocument } from '../../types/house';
 import { AdminIcon, Button, cx, TextArea, TextField, Toggle } from './controls';
@@ -48,11 +49,11 @@ export function ContentPage({ draft, section }: { draft: HouseDraft; section: Co
             return (
               <a
                 key={s.id}
-                href={`/admin/conteudos/${s.id}`}
+                href={houseAdminPath(draft.houseId, `/conteudos/${s.id}`)}
                 aria-current={active ? 'page' : undefined}
                 onClick={(e) => {
                   e.preventDefault();
-                  navigate(`/admin/conteudos/${s.id}`);
+                  navigate(houseAdminPath(draft.houseId, `/conteudos/${s.id}`));
                 }}
                 className={cx('flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm no-underline focus-visible:outline-2 focus-visible:outline-rose-500', active ? 'bg-rose-50 font-semibold text-rose-900' : 'text-stone-700 hover:bg-stone-50')}
               >
@@ -68,9 +69,9 @@ export function ContentPage({ draft, section }: { draft: HouseDraft; section: Co
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 lg:py-7">
         <div className="mx-auto flex max-w-5xl flex-col gap-6">
           {section === 'textos' && <TextsSection doc={doc} edit={edit} />}
-          {section === 'fotos' && <PhotosSection content={content} edit={edit} />}
-          {section === 'videos' && <VideosSection content={content} edit={edit} />}
-          {section === 'musicas' && <TracksSection content={content} edit={edit} />}
+          {section === 'fotos' && <PhotosSection content={content} edit={edit} houseId={draft.houseId} />}
+          {section === 'videos' && <VideosSection content={content} edit={edit} houseId={draft.houseId} />}
+          {section === 'musicas' && <TracksSection content={content} edit={edit} houseId={draft.houseId} />}
           {section === 'cartas' && <LettersSection content={content} edit={edit} />}
           {section === 'datas' && <DatesSection content={content} edit={edit} />}
           {section === 'mensagens' && <MessagesSection content={content} edit={edit} />}
@@ -240,9 +241,9 @@ function TextsSection({ doc, edit }: { doc: HouseDocument; edit: Edit }) {
 
 /* ---------------- Fotos ---------------- */
 
-function PhotosSection({ content, edit }: { content: HouseContent; edit: Edit }) {
+function PhotosSection({ content, edit, houseId }: { content: HouseContent; edit: Edit; houseId?: string }) {
   const add = async (files: File[]) => {
-    const items = await Promise.all(files.map(async (f) => ({ id: newId('p'), src: await putMedia(f), caption: fileTitle(f), alt: '' })));
+    const items = await Promise.all(files.map(async (f) => ({ id: newId('p'), src: await putMedia(f, houseId), caption: fileTitle(f), alt: '' })));
     edit((c) => void c.photos.push(...items));
   };
   return (
@@ -274,9 +275,9 @@ function PhotosSection({ content, edit }: { content: HouseContent; edit: Edit })
 
 /* ---------------- Vídeos ---------------- */
 
-function VideosSection({ content, edit }: { content: HouseContent; edit: Edit }) {
+function VideosSection({ content, edit, houseId }: { content: HouseContent; edit: Edit; houseId?: string }) {
   const add = async (files: File[]) => {
-    const items = await Promise.all(files.map(async (f) => ({ id: newId('v'), src: await putMedia(f), title: fileTitle(f), description: '' })));
+    const items = await Promise.all(files.map(async (f) => ({ id: newId('v'), src: await putMedia(f, houseId), title: fileTitle(f), description: '' })));
     edit((c) => void c.videos.push(...items));
   };
   return (
@@ -297,7 +298,7 @@ function VideosSection({ content, edit }: { content: HouseContent; edit: Edit })
                     accept="image/*"
                     label={v.poster ? 'Trocar capa' : 'Enviar capa'}
                     onFiles={async ([f]) => {
-                      const ref = await putMedia(f);
+                      const ref = await putMedia(f, houseId);
                       edit((c) => void (c.videos[i].poster = ref));
                     }}
                   />
@@ -326,10 +327,10 @@ function TrackPreview({ src }: { src: string }) {
   return url ? <audio controls preload="none" src={url} className="h-9 w-full max-w-xs" /> : null;
 }
 
-function TracksSection({ content, edit }: { content: HouseContent; edit: Edit }) {
+function TracksSection({ content, edit, houseId }: { content: HouseContent; edit: Edit; houseId?: string }) {
   const tracks = content.playlist.tracks;
   const add = async (files: File[]) => {
-    const items = await Promise.all(files.map(async (f) => ({ id: newId('t'), src: await putMedia(f), title: fileTitle(f), artist: '', license: '' })));
+    const items = await Promise.all(files.map(async (f) => ({ id: newId('t'), src: await putMedia(f, houseId), title: fileTitle(f), artist: '', license: '' })));
     edit((c) => void c.playlist.tracks.push(...items));
   };
   return (

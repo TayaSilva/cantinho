@@ -7,21 +7,26 @@ import type { ContentSection } from './ContentPage';
 import { AdminIcon, Button, ConfirmDialog, cx, Toast } from './controls';
 import { EditorPage } from './EditorPage';
 import { sharePublicHouse } from '../../services/share';
+import { houseAdminPath, type HouseSummary } from '../../services/houses';
 
 const CONTENT_SECTIONS: ContentSection[] = ['textos', 'fotos', 'videos', 'musicas', 'cartas', 'datas', 'mensagens'];
 
 /**
- * Backoffice: /admin/editor (Personalizar casinha) e /admin/conteudos/*.
- * Rascunho, desfazer, restaurar padrão, pré-visualizar e publicar ficam no topo,
- * valendo para as duas áreas (é o mesmo sistema de publicação).
+ * Backoffice de uma casinha: /admin/casinha/:id (Personalizar casinha) e
+ * /admin/casinha/:id/conteudos/*. `path` chega relativo à casinha ("/editor",
+ * "/conteudos/fotos"). Rascunho, desfazer, restaurar padrão, pré-visualizar e
+ * publicar ficam no topo, valendo para as duas áreas.
  */
-export function AdminApp({ path, onLogout }: { path: string; onLogout?: () => void }) {
-  const draft = useHouseDraft();
-  const [confirm, setConfirm] = useState<null | 'reset' | 'publish'>(null);
+export function AdminApp({ path, house, houses, onHouseChange, onLogout }: { path: string; house: HouseSummary; houses: HouseSummary[]; onHouseChange: (id: string) => void; onLogout?: () => void }) {
+  const draft = useHouseDraft(house.house_id);
+  const [confirm, setConfirm] = useState<null | 'reset' | 'publish' | 'switch'>(null);
+  const [pendingHouse, setPendingHouse] = useState<string | null>(null);
   const [shareNotice, setShareNotice] = useState<string | null>(null);
 
-  const isContent = path.startsWith('/admin/conteudos');
-  const section = (CONTENT_SECTIONS.find((s) => path === `/admin/conteudos/${s}`) ?? 'fotos') as ContentSection;
+  const isContent = path.startsWith('/conteudos');
+  const section = (CONTENT_SECTIONS.find((s) => path === `/conteudos/${s}`) ?? 'fotos') as ContentSection;
+  const contentPath = houseAdminPath(house.house_id, '/conteudos/fotos');
+  const editorPath = houseAdminPath(house.house_id);
 
   // Avisa antes de sair com alterações não salvas.
   useEffect(() => {
@@ -56,11 +61,11 @@ export function AdminApp({ path, onLogout }: { path: string; onLogout?: () => vo
   const preview = async () => {
     const win = window.open('about:blank', '_blank');
     if (draft.dirty) await draft.saveDraft();
-    if (win) win.location.href = '/?preview=draft';
+    if (win) win.location.href = `/?preview=draft&house=${encodeURIComponent(house.house_id)}`;
   };
 
   const share = async () => {
-    const result = await sharePublicHouse();
+    const result = await sharePublicHouse(house.house_id);
     if (!result) return;
     setShareNotice(result === 'shared' ? 'Compartilhado!' : 'Link copiado!');
     window.setTimeout(() => setShareNotice(null), 2200);
@@ -69,6 +74,16 @@ export function AdminApp({ path, onLogout }: { path: string; onLogout?: () => vo
   const link = (to: string) => (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     navigate(to);
+  };
+
+  const chooseHouse = (id: string) => {
+    if (id === house.house_id) return;
+    if (draft.dirty) {
+      setPendingHouse(id);
+      setConfirm('switch');
+      return;
+    }
+    onHouseChange(id);
   };
 
   const status = draft.busy === 'publishing'
@@ -94,19 +109,25 @@ export function AdminApp({ path, onLogout }: { path: string; onLogout?: () => vo
           <span className="rounded-full border border-stone-200 px-2 py-0.5 text-xs text-stone-500">Admin</span>
         </div>
         <nav aria-label="Principal" className="flex flex-wrap gap-1">
-          <a href="/admin/conteudos/fotos" onClick={link('/admin/conteudos/fotos')} aria-current={isContent ? 'page' : undefined} className={cx('rounded-lg px-3 py-2 font-medium no-underline', isContent ? 'bg-stone-100 text-stone-900' : 'text-stone-600 hover:bg-stone-50')}>
+          <a href="/minhas-casinhas" onClick={link('/minhas-casinhas')} className="rounded-lg px-3 py-2 font-medium text-stone-600 no-underline hover:bg-stone-50">
+            Minhas casinhas
+          </a>
+          <a href={contentPath} onClick={link(contentPath)} aria-current={isContent ? 'page' : undefined} className={cx('rounded-lg px-3 py-2 font-medium no-underline', isContent ? 'bg-stone-100 text-stone-900' : 'text-stone-600 hover:bg-stone-50')}>
             Conteúdos
           </a>
-          <a href="/admin/editor" onClick={link('/admin/editor')} aria-current={!isContent ? 'page' : undefined} className={cx('rounded-lg px-3 py-2 font-medium no-underline', !isContent ? 'bg-stone-100 text-stone-900' : 'text-stone-600 hover:bg-stone-50')}>
+          <a href={editorPath} onClick={link(editorPath)} aria-current={!isContent ? 'page' : undefined} className={cx('rounded-lg px-3 py-2 font-medium no-underline', !isContent ? 'bg-stone-100 text-stone-900' : 'text-stone-600 hover:bg-stone-50')}>
             Personalizar casinha
           </a>
-          <a href="/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 font-medium text-stone-600 no-underline hover:bg-stone-50">
+          <a href={`/?house=${encodeURIComponent(house.house_id)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 font-medium text-stone-600 no-underline hover:bg-stone-50">
             Ver casinha publicada
             <AdminIcon name="external" className="size-3.5" />
           </a>
         </nav>
         <div className="flex-1" />
         <div className="flex flex-wrap items-center gap-2">
+          <select aria-label="Casinha ativa" value={house.house_id} onChange={(event) => chooseHouse(event.target.value)} className="h-9 max-w-48 rounded-lg border border-stone-200 bg-white px-2 text-sm font-medium outline-none focus:border-rose-500">
+            {houses.map((item) => <option key={item.house_id} value={item.house_id}>{item.house.name}</option>)}
+          </select>
           <span
             role="status"
             className={cx(
@@ -169,6 +190,20 @@ export function AdminApp({ path, onLogout }: { path: string; onLogout?: () => vo
         onConfirm={() => {
           draft.resetAppearance();
           setConfirm(null);
+        }}
+      />
+      <ConfirmDialog
+        open={confirm === 'switch'}
+        title="Trocar de casinha?"
+        body="Existem alterações não salvas nesta casinha. Se você trocar agora, elas serão descartadas."
+        confirmLabel="Trocar de casinha"
+        danger
+        onCancel={() => { setConfirm(null); setPendingHouse(null); }}
+        onConfirm={() => {
+          const next = pendingHouse;
+          setConfirm(null);
+          setPendingHouse(null);
+          if (next) onHouseChange(next);
         }}
       />
       <ConfirmDialog

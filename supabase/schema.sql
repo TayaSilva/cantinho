@@ -17,6 +17,11 @@ create table if not exists public.houses (
   updated_at timestamptz not null default now()
 );
 
+-- SPEC 2.0: data da última publicação (null = ainda é rascunho).
+alter table public.houses add column if not exists published_at timestamptz;
+update public.houses set published_at = updated_at where id = '00000000-0000-0000-0000-000000000001' and published_at is null;
+create index if not exists houses_owner_idx on public.houses(owner_id);
+
 create table if not exists public.house_members (
   house_id uuid not null references public.houses(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -127,6 +132,15 @@ drop policy if exists "published house is public" on public.house_documents;
 drop policy if exists "admins manage house documents" on public.house_documents;
 drop policy if exists "admins manage media metadata" on public.media;
 drop policy if exists "users can verify own admin access" on public.admin_users;
+-- Recria as políticas abaixo para o script poder rodar várias vezes.
+drop policy if exists "members read their house documents" on public.house_documents;
+drop policy if exists "owners manage house documents" on public.house_documents;
+drop policy if exists "members read their media" on public.media;
+drop policy if exists "owners manage media" on public.media;
+drop policy if exists "members read their house" on public.houses;
+drop policy if exists "owners manage share links" on public.house_share_links;
+drop policy if exists "owners manage invitations" on public.house_invitations;
+drop policy if exists "members read audit" on public.audit_events;
 create policy "members read their house documents" on public.house_documents for select to authenticated using (public.is_house_member(house_id));
 create policy "owners manage house documents" on public.house_documents for all to authenticated using (public.is_house_owner(house_id)) with check (public.is_house_owner(house_id));
 -- Convidados não recebem UPDATE direto no documento. A API /api/houses/texts
@@ -144,6 +158,8 @@ drop policy if exists "admins delete casinha media" on storage.objects;
 drop policy if exists "authenticated can upload casinha media" on storage.objects;
 drop policy if exists "authenticated can delete casinha media" on storage.objects;
 drop policy if exists "members read casinha media" on storage.objects;
+drop policy if exists "members upload casinha media" on storage.objects;
+drop policy if exists "owners delete casinha media" on storage.objects;
 create policy "members read casinha media" on storage.objects for select to authenticated using (bucket_id = 'casinha-media' and public.is_house_member((storage.foldername(name))[1]::uuid));
 create policy "members upload casinha media" on storage.objects for insert to authenticated with check (bucket_id = 'casinha-media' and public.is_house_member((storage.foldername(name))[1]::uuid));
 create policy "owners delete casinha media" on storage.objects for delete to authenticated using (bucket_id = 'casinha-media' and public.is_house_owner((storage.foldername(name))[1]::uuid));

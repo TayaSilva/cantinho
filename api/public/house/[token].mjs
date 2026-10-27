@@ -8,6 +8,9 @@ export default async function handler(req, res) {
   try {
     const share = await resolveShareToken(req.query?.token);
     if (!share) return fail(res, 404, 'Link da casinha inválido ou revogado.');
+    const lookup = await dbFetch(`houses?id=eq.${encodeURIComponent(share.house_id)}&status=eq.active&published_at=not.is.null&select=id&limit=1`);
+    const houses = await lookup.json();
+    if (!lookup.ok || !houses[0]) return fail(res, 404, 'A casinha ainda não foi publicada.');
     const response = await dbFetch(`house_documents?house_id=eq.${encodeURIComponent(share.house_id)}&status=eq.published&select=document&limit=1`);
     const rows = await response.json();
     if (!response.ok || !rows[0]) return fail(res, 404, 'A casinha ainda não foi publicada.');

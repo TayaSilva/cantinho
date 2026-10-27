@@ -1,5 +1,5 @@
 import { cors, fail, json, options, readJson } from '../_lib/http.mjs';
-import { dbFetch, requireDefaultHouse } from '../_lib/supabase.mjs';
+import { dbFetch, requireRequestedHouse } from '../_lib/supabase.mjs';
 
 const UUID = /^[0-9a-f-]{36}$/i;
 const MAX_BYTES = 500 * 1024 * 1024;
@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   if (options(req, res)) return;
   if (req.method !== 'POST') return fail(res, 405, 'Método não permitido.');
   try {
-    const context = await requireDefaultHouse(req, 'owner');
+    const context = await requireRequestedHouse(req, 'owner');
     if (!context) return fail(res, 401, 'Apenas o dono pode enviar mídias.');
     const body = await readJson(req, 1_000_000);
     if (!UUID.test(body.id) || typeof body.storagePath !== 'string' || !body.storagePath.startsWith(`${context.house.id}/`) || Number(body.size) > MAX_BYTES) return fail(res, 400, 'Metadados de mídia inválidos.');

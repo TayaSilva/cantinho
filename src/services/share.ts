@@ -2,10 +2,11 @@ import { authFetch } from './auth';
 
 export type ShareResult = 'shared' | 'copied' | null;
 
-export async function sharePublicHouse(): Promise<ShareResult> {
+export async function sharePublicHouse(houseId?: string): Promise<ShareResult> {
   let token = '';
   try {
-    const response = await authFetch('/api/houses/share-links', { method: 'POST' });
+    const query = houseId ? `?house_id=${encodeURIComponent(houseId)}` : '';
+    const response = await authFetch(`/api/houses/share-links${query}`, { method: 'POST' });
     const data = (await response.json().catch(() => ({}))) as { token?: string; error?: string };
     if (!response.ok || !data.token) throw new Error(data.error || 'Não foi possível criar o link.');
     token = data.token;

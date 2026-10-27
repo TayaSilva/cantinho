@@ -1,5 +1,5 @@
 import { cors, fail, options } from '../_lib/http.mjs';
-import { BUCKET, dbFetch, requireDefaultHouse, signedUrl, storageFetch } from '../_lib/supabase.mjs';
+import { BUCKET, dbFetch, requireRequestedHouse, signedUrl, storageFetch } from '../_lib/supabase.mjs';
 
 function idFromRequest(req) {
   const value = req.query?.id;
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   const id = idFromRequest(req);
   if (!/^[0-9a-f-]{36}$/i.test(id)) return fail(res, 400, 'Mídia inválida.');
   try {
-    const context = await requireDefaultHouse(req, req.method === 'DELETE' ? 'owner' : 'read');
+    const context = await requireRequestedHouse(req, req.method === 'DELETE' ? 'owner' : 'read');
     if (!context) return fail(res, 401, 'Acesso à mídia não autorizado.');
     const lookup = await dbFetch(`media?id=eq.${encodeURIComponent(id)}&house_id=eq.${context.house.id}&select=storage_path&limit=1`);
     const rows = await lookup.json();

@@ -49,11 +49,22 @@ export async function getHouseForUser(userId, houseId) {
 
 export async function requireHouse(req, houseId, permission = 'read') {
   const user = await getUser(req);
-  if (!user) return null;
+  if (!user || !(user.email_confirmed_at || user.confirmed_at)) return null;
   const context = await getHouseForUser(user.id, houseId);
   if (!context) return null;
   const allowed = permission === 'owner' ? context.membership.role === 'owner' : permission === 'text' ? context.membership.role === 'owner' || context.membership.can_add_text : true;
   return allowed ? { user, ...context } : null;
+}
+
+export function requestedHouseId(req) {
+  const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+  return url.searchParams.get('house_id') || '';
+}
+
+export async function requireRequestedHouse(req, permission = 'read') {
+  const houseId = requestedHouseId(req);
+  if (!houseId) return null;
+  return requireHouse(req, houseId, permission);
 }
 
 export async function requireDefaultHouse(req, permission = 'read') {
@@ -66,6 +77,14 @@ export async function requireDefaultHouse(req, permission = 'read') {
   if (!context) return null;
   const allowed = permission === 'owner' ? rows[0].role === 'owner' : permission === 'text' ? rows[0].role === 'owner' || rows[0].can_add_text : true;
   return allowed ? { user, ...context } : null;
+}
+
+export const MAX_HOUSES_PER_USER = Number(process.env.MAX_HOUSES_PER_USER || 5);
+
+/** Atualiza os carimbos da casa: updated_at = último rascunho, published_at = última publicação. */
+export async function touchHouse(houseId, fields) {
+  const response = await dbFetch(`houses?id=eq.${encodeURIComponent(houseId)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(fields) });
+  if (!response.ok) throw new Error(await response.text());
 }
 
 export function tokenHash(token) {

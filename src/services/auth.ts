@@ -27,15 +27,25 @@ export async function updatePassword(password: string): Promise<void> {
     body: JSON.stringify({ password }),
   });
   const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!response.ok) throw new Error(typeof data.msg === 'string' ? data.msg : 'Não foi possível trocar a senha.');
+  if (response.status === 401 || response.status === 403) throw new Error('O link de recuperação expirou ou é inválido.');
+  if (!response.ok) throw authError(response.status, data);
   window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+  // Encerra a sessão temporária de recuperação; o usuário volta ao login.
+  await fetch(`${SUPABASE_URL}/auth/v1/logout`, { method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${accessToken}` } }).catch(() => undefined);
+  writeSession(null);
 }
 
 export interface AuthSession {
   access_token: string;
   refresh_token: string;
   expires_at: number;
-  user: { id: string; email?: string };
+  user: { id: string; email?: string; user_metadata?: { first_name?: string } };
+}
+
+export interface AuthProfile {
+  id: string;
+  firstName: string;
+  email?: string;
 }
 
 function readSession(): AuthSession | null {
@@ -53,7 +63,30 @@ function writeSession(session: AuthSession | null) {
   window.dispatchEvent(new Event('casinha:auth-changed'));
 }
 
-async function authRequest(path: string, body: Record<string, string>) {
+export type AuthErrorCode = 'invalid_credentials' | 'email_not_confirmed' | 'rate_limited' | 'weak_password' | 'unknown';
+
+export class AuthError extends Error {
+  constructor(public code: AuthErrorCode, message: string) {
+    super(message);
+  }
+}
+
+/** Mensagens neutras: nenhuma delas revela se um e-mail está cadastrado. */
+function authError(status: number, data: Record<string, unknown>): AuthError {
+  const raw = [data.error_code, data.code, data.msg, data.error_description, data.error].filter((v) => typeof v === 'string').join(' ').toLowerCase();
+  if (status === 429 || raw.includes('rate limit') || raw.includes('over_')) return new AuthError('rate_limited', 'Muitas tentativas. Aguarde alguns minutos e tente novamente.');
+  if (raw.includes('not confirmed') || raw.includes('email_not_confirmed')) return new AuthError('email_not_confirmed', 'Confirme seu e-mail antes de entrar. Se não recebeu o link, podemos reenviar.');
+  if (raw.includes('invalid') && (raw.includes('credentials') || raw.includes('grant'))) return new AuthError('invalid_credentials', 'E-mail ou senha incorretos.');
+  if (raw.includes('weak') || raw.includes('password should')) return new AuthError('weak_password', 'Escolha uma senha mais forte, com pelo menos 8 caracteres.');
+  return new AuthError('unknown', 'Não foi possível concluir a operação. Tente novamente.');
+}
+
+/** Para onde o Supabase manda o usuário depois do e-mail (precisa estar na lista de Redirect URLs do projeto). */
+function redirectTo(path: string) {
+  return `redirect_to=${encodeURIComponent(`${window.location.origin}${path}`)}`;
+}
+
+async function authRequest(path: string, body: Record<string, unknown>) {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error('Autenticação cloud não configurada.');
   const response = await fetch(`${SUPABASE_URL}/auth/v1/${path}`, {
     method: 'POST',
@@ -61,12 +94,44 @@ async function authRequest(path: string, body: Record<string, string>) {
     body: JSON.stringify(body),
   });
   const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!response.ok) throw new Error(typeof data.msg === 'string' ? data.msg : typeof data.error_description === 'string' ? data.error_description : 'Não foi possível entrar.');
+  if (!response.ok) throw authError(response.status, data);
   return data;
 }
 
+function clearHash() {
+  window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+}
+
+/**
+ * Trata o retorno do link de confirmação de e-mail (#access_token=...&type=signup).
+ * Links de recuperação ficam para a tela de nova senha. Devolve uma mensagem de erro
+ * quando o link veio vencido ou inválido.
+ */
+export async function consumeAuthRedirect(): Promise<{ error?: string; confirmed?: boolean }> {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  if (params.get('error') || params.get('error_code')) {
+    clearHash();
+    const expired = (params.get('error_code') || '').includes('expired') || (params.get('error_description') || '').toLowerCase().includes('expired');
+    return { error: expired ? 'Este link expirou. Solicite um novo e-mail.' : 'Este link é inválido ou já foi utilizado.' };
+  }
+  const type = params.get('type');
+  const accessToken = params.get('access_token');
+  if (!accessToken || type === 'recovery' || !SUPABASE_URL || !SUPABASE_ANON_KEY) return {};
+  clearHash();
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${accessToken}` } });
+  if (!response.ok) return { error: 'Este link é inválido ou já foi utilizado.' };
+  const user = (await response.json()) as Record<string, unknown>;
+  writeSession(sessionFromResponse({
+    user,
+    access_token: accessToken,
+    refresh_token: params.get('refresh_token') || '',
+    expires_in: Number(params.get('expires_in')) || 3600,
+  }));
+  return { confirmed: type === 'signup' || type === 'email' };
+}
+
 function sessionFromResponse(data: Record<string, unknown>): AuthSession {
-  const user = data.user as { id?: string; email?: string } | undefined;
+  const user = data.user as { id?: string; email?: string; user_metadata?: { first_name?: string } } | undefined;
   const accessToken = typeof data.access_token === 'string' ? data.access_token : '';
   const refreshToken = typeof data.refresh_token === 'string' ? data.refresh_token : '';
   const expiresIn = typeof data.expires_in === 'number' ? data.expires_in : 3600;
@@ -75,7 +140,7 @@ function sessionFromResponse(data: Record<string, unknown>): AuthSession {
     access_token: accessToken,
     refresh_token: refreshToken,
     expires_at: Math.floor(Date.now() / 1000) + expiresIn,
-    user: { id: user.id, email: user.email },
+    user: { id: user.id, email: user.email, user_metadata: user.user_metadata },
   };
 }
 
@@ -83,6 +148,31 @@ export async function signIn(email: string, password: string): Promise<AuthSessi
   const session = sessionFromResponse(await authRequest('token?grant_type=password', { email, password }));
   writeSession(session);
   return session;
+}
+
+export async function signUp(firstName: string, email: string, password: string): Promise<{ session: AuthSession | null; needsEmailConfirmation: boolean }> {
+  const data = await authRequest(`signup?${redirectTo('/minhas-casinhas')}`, {
+    email,
+    password,
+    data: { first_name: firstName },
+  });
+  const session = data.access_token ? sessionFromResponse(data) : null;
+  if (session) writeSession(session);
+  return { session, needsEmailConfirmation: !session };
+}
+
+export async function resendConfirmation(email: string): Promise<void> {
+  await authRequest(`resend?${redirectTo('/minhas-casinhas')}`, { type: 'signup', email });
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  await authRequest(`recover?${redirectTo('/redefinir-senha')}`, { email });
+}
+
+export async function getProfile(): Promise<AuthProfile | null> {
+  const session = await getSession();
+  if (!session) return null;
+  return { id: session.user.id, firstName: session.user.user_metadata?.first_name || 'amigo', email: session.user.email };
 }
 
 export async function signOut() {

@@ -27,16 +27,18 @@ function periodFromUrl(search: URLSearchParams): Period | null {
 
 export default function App() {
   const { path, search } = useRoute();
-  if (path === '/admin' || path.startsWith('/admin/')) return <AdminGate path={path === '/admin' ? '/admin/editor' : path} />;
+  if (path === '/admin' || path.startsWith('/admin/') || path === '/login' || path === '/cadastro' || path === '/recuperar-senha' || path === '/redefinir-senha' || path === '/minhas-casinhas') {
+    return <AdminGate path={path === '/admin' ? '/admin/editor' : path} />;
+  }
   const publicToken = path.startsWith('/c/') ? decodeURIComponent(path.slice(3)) : null;
-  return <PublicHouse preview={search.get('preview') === 'draft'} period={periodFromUrl(search)} publicToken={publicToken} />;
+  return <PublicHouse preview={search.get('preview') === 'draft'} period={periodFromUrl(search)} publicToken={publicToken} houseId={search.get('house') || undefined} />;
 }
 
 /**
  * Casinha pública. Lê apenas a versão PUBLICADA — ou o rascunho, quando aberta
  * pelo botão "Pré-visualizar" do Backoffice (?preview=draft).
  */
-function PublicHouse({ preview, period, publicToken }: { preview: boolean; period: Period | null; publicToken: string | null }) {
+function PublicHouse({ preview, period, publicToken, houseId }: { preview: boolean; period: Period | null; publicToken: string | null; houseId?: string }) {
   const [doc, setDoc] = useState<HouseDocument | null>(null);
 
   useEffect(() => {
@@ -46,7 +48,7 @@ function PublicHouse({ preview, period, publicToken }: { preview: boolean; perio
         if (!response.ok) throw new Error('Link inválido.');
         return response.json() as Promise<HouseDocument>;
       }).then((d) => alive && setDoc(d));
-      return (preview ? loadDraft() : loadPublished()).then((d) => alive && setDoc(d));
+      return (preview ? loadDraft(houseId) : loadPublished(houseId)).then((d) => alive && setDoc(d));
     };
     void load();
     // Atualiza se o Backoffice salvar/publicar (nesta ou em outra aba).
@@ -57,7 +59,7 @@ function PublicHouse({ preview, period, publicToken }: { preview: boolean; perio
       window.removeEventListener(STORE_EVENT, load);
       window.removeEventListener('storage', load);
     };
-  }, [preview, publicToken]);
+  }, [preview, publicToken, houseId]);
 
   if (!doc) return <main className="min-h-dvh bg-night" aria-busy="true" />;
 
