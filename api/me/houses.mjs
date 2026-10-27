@@ -23,9 +23,8 @@ async function removeHouse(houseId) {
 async function createHouse(req, res, user) {
   const owned = await dbFetch(`houses?owner_id=eq.${encodeURIComponent(user.id)}&status=neq.deleted&select=id`, { headers: { Prefer: 'count=exact', Range: '0-0' } });
   const total = Number(owned.headers.get('content-range')?.split('/')[1] || 0);
-  if (total >= 1) return fail(res, 409, 'Cada conta pode ter apenas um cantinho ativo nesta primeira versão.');
   if (!owned.ok) return fail(res, 500, 'Não foi possível verificar seus limites.');
-  if (total >= MAX_HOUSES_PER_USER) return fail(res, 403, `Você atingiu o limite de ${MAX_HOUSES_PER_USER} cantinhos.`);
+  if (total >= 1) return fail(res, 409, 'Cada conta pode ter apenas um cantinho ativo nesta primeira versão.');
 
   const body = await readJson(req, 10_000_000);
   const name = String(body.name || 'Meu cantinho').trim().slice(0, 80) || 'Meu cantinho';
