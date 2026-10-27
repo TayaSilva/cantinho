@@ -7,16 +7,60 @@ export const cloudConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 const SESSION_KEY = 'casinha:supabase-session';
 
-export function hasRecoveryToken(): boolean {
+/**
+ * Token do link de recuperação. Fica só em memória: digitar /redefinir-senha,
+ * recarregar ou abrir outra aba recomeça o app sem ele, e a troca fica bloqueada.
+ */
+let recoveryToken: string | null = null;
+let recoveryError: string | undefined;
+
+export class RecoveryLinkError extends Error {}
+
+const RECOVERY_INVALID = 'Este link é inválido ou já foi utilizado.';
+
+function linkErrorMessage(params: URLSearchParams): string {
+  const expired = (params.get('error_code') || '').includes('expired') || (params.get('error_description') || '').toLowerCase().includes('expired');
+  return expired ? 'Este link expirou. Solicite um novo e-mail.' : RECOVERY_INVALID;
+}
+
+/** Tira o token de recuperação da URL (some do histórico) e guarda em memória. */
+export function takeRecoveryLink(): { token: boolean; error?: string } {
   const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-  return params.get('type') === 'recovery' && Boolean(params.get('access_token'));
+  if (params.get('type') === 'recovery' && params.get('access_token')) {
+    recoveryToken = params.get('access_token');
+    recoveryError = undefined;
+    clearHash();
+  } else if (window.location.pathname === '/redefinir-senha' && (params.get('error') || params.get('error_code'))) {
+    recoveryError = linkErrorMessage(params);
+    clearHash();
+  }
+  return { token: recoveryToken !== null, error: recoveryError };
+}
+
+export function hasRecoveryToken(): boolean {
+  return recoveryToken !== null;
+}
+
+export function clearRecoveryToken() {
+  recoveryToken = null;
+  recoveryError = undefined;
+}
+
+/** Confere com o Supabase se o token do link ainda vale, antes de mostrar o formulário. */
+export async function verifyRecoveryLink(): Promise<boolean> {
+  if (!recoveryToken || !SUPABASE_URL || !SUPABASE_ANON_KEY) return false;
+  const token = recoveryToken;
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` } }).catch(() => null);
+  const user = response?.ok ? ((await response.json().catch(() => ({}))) as Record<string, unknown>) : null;
+  if (user?.id) return true;
+  if (recoveryToken === token) recoveryToken = null;
+  return false;
 }
 
 export async function updatePassword(password: string): Promise<void> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error('Autenticação cloud não configurada.');
-  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-  const accessToken = params.get('access_token');
-  if (!accessToken) throw new Error('O link de recuperação expirou ou é inválido.');
+  const accessToken = recoveryToken;
+  if (!accessToken) throw new RecoveryLinkError(RECOVERY_INVALID);
   const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     method: 'PUT',
     headers: {
@@ -27,9 +71,12 @@ export async function updatePassword(password: string): Promise<void> {
     body: JSON.stringify({ password }),
   });
   const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
-  if (response.status === 401 || response.status === 403) throw new Error('O link de recuperação expirou ou é inválido.');
+  if (response.status === 401 || response.status === 403) {
+    recoveryToken = null;
+    throw new RecoveryLinkError('Este link expirou. Solicite um novo e-mail.');
+  }
   if (!response.ok) throw authError(response.status, data);
-  window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+  recoveryToken = null;
   // Encerra a sessão temporária de recuperação; o usuário volta ao login.
   await fetch(`${SUPABASE_URL}/auth/v1/logout`, { method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${accessToken}` } }).catch(() => undefined);
   writeSession(null);
@@ -127,8 +174,7 @@ export async function consumeAuthRedirect(): Promise<{ error?: string; confirmed
   const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
   if (params.get('error') || params.get('error_code')) {
     clearHash();
-    const expired = (params.get('error_code') || '').includes('expired') || (params.get('error_description') || '').toLowerCase().includes('expired');
-    return { error: expired ? 'Este link expirou. Solicite um novo e-mail.' : 'Este link é inválido ou já foi utilizado.' };
+    return { error: linkErrorMessage(params) };
   }
   const type = params.get('type');
   const accessToken = params.get('access_token');

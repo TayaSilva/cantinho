@@ -4,7 +4,7 @@ import { MyHousesPage } from '../account/MyHousesPage';
 import { AdminApp } from './AdminApp';
 import { AuthBackdrop, GlassAlert, GlassButton, GlassCard, GlassField, GlassHeader, GlassInput, GlassLink, GlassPasswordInput, PixelHeart } from './AuthBackdrop';
 import { cx } from './controls';
-import { AuthError, cloudConfigured, consumeAuthRedirect, deleteAccount, getSession, hasRecoveryToken, requestPasswordReset, resendConfirmation, signIn, signOut, signUp, updatePassword, verifySignupCode, type AuthSession } from '../../services/auth';
+import { AuthError, clearRecoveryToken, cloudConfigured, consumeAuthRedirect, deleteAccount, getSession, RecoveryLinkError, requestPasswordReset, resendConfirmation, signIn, signOut, signUp, takeRecoveryLink, updatePassword, verifyRecoveryLink, verifySignupCode, type AuthSession } from '../../services/auth';
 import { createHouse, deleteHouse, getActiveHouseId, houseAdminPath, listHouses, setActiveHouseId, type HouseSummary } from '../../services/houses';
 import { navigate } from '../../hooks/useRoute';
 
@@ -45,7 +45,8 @@ export function AdminGate({ path }: { path: string }) {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
-  const [recovery, setRecovery] = useState(hasRecoveryToken);
+  // Lido uma vez: o token do link sai da URL e fica só em memória (ver takeRecoveryLink).
+  const [recovery, setRecovery] = useState(takeRecoveryLink);
   // Segura o login na tela por um instante para mostrar "Que bom ter você de volta!".
   const [welcome, setWelcome] = useState(false);
 
@@ -112,8 +113,16 @@ export function AdminGate({ path }: { path: string }) {
       }
     : undefined;
 
-  if (path === '/redefinir-senha' || recovery) {
-    return <RecoveryPage onDone={() => { setRecovery(false); setNotice('Senha alterada. Entre com sua nova senha.'); navigate('/login'); }} />;
+  if (path === '/redefinir-senha' || recovery.token) {
+    // Link de recuperação que caiu em outra rota (Site URL): mostra o endereço certo.
+    if (path !== '/redefinir-senha') return <Redirect to="/redefinir-senha" />;
+    return (
+      <RecoveryPage
+        linkError={recovery.error}
+        onLeave={() => setRecovery({ token: false })}
+        onDone={() => { setRecovery({ token: false }); setNotice('Senha alterada. Entre com sua nova senha.'); navigate('/login'); }}
+      />
+    );
   }
   if (loading) return <Loading />;
   if (cloudConfigured && (!session || welcome)) {
@@ -411,33 +420,112 @@ function ConfirmCodePage({ email, onConfirmed, onBack }: { email: string; onConf
   );
 }
 
-function RecoveryPage({ onDone }: { onDone: () => void }) {
+function validateNewPassword(password: string, confirm: string): { password?: string; confirm?: string } {
+  const errors: { password?: string; confirm?: string } = {};
+  if (password.length < 8) errors.password = 'A senha precisa ter pelo menos 8 caracteres.';
+  if (!confirm) errors.confirm = 'Confirme a nova senha.';
+  else if (confirm !== password) errors.confirm = 'As senhas não coincidem.';
+  return errors;
+}
+
+/**
+ * Nova senha. O formulário só aparece depois que o Supabase confirma o token do link;
+ * sem link (URL digitada, F5, outra aba), vencido ou falso, nenhum campo de senha é mostrado.
+ */
+function RecoveryPage({ linkError, onLeave, onDone }: { linkError?: string; onLeave: () => void; onDone: () => void }) {
+  const [state, setState] = useState<'checking' | 'invalid' | 'form'>('checking');
+  const [invalidReason, setInvalidReason] = useState<string | undefined>(linkError);
   const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(hasRecoveryToken() ? null : 'O link de recuperação expirou ou é inválido. Solicite um novo.');
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void verifyRecoveryLink().then((valid) => {
+      if (alive) setState(valid ? 'form' : 'invalid');
+    });
+    return () => { alive = false; };
+  }, []);
+
+  const leave = (to: string) => {
+    clearRecoveryToken();
+    onLeave();
+    navigate(to);
+  };
+
+  const errors = tried ? validateNewPassword(password, confirm) : {};
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (password.length < 8) return setError('A senha precisa ter pelo menos 8 caracteres.');
-    setBusy(true);
+    if (busy) return;
+    setTried(true);
     setError(null);
+    if (Object.keys(validateNewPassword(password, confirm)).length) return;
+    setBusy(true);
     try {
       await updatePassword(password);
       onDone();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Não foi possível trocar a senha.');
+      if (cause instanceof RecoveryLinkError) {
+        setInvalidReason(cause.message);
+        setState('invalid');
+      } else {
+        setError(cause instanceof Error ? cause.message : 'Não foi possível trocar a senha.');
+      }
     } finally {
       setBusy(false);
     }
   };
+
+  if (state === 'checking') {
+    return (
+      <AuthBackdrop>
+        <GlassCard>
+          <div role="status" className="flex flex-col items-center gap-4 py-6 text-center">
+            <span className="login-spinner" aria-hidden="true" />
+            <p className="text-[15px] text-login-muted">Verificando seu link…</p>
+          </div>
+        </GlassCard>
+      </AuthBackdrop>
+    );
+  }
+
+  if (state === 'invalid') {
+    return (
+      <AuthBackdrop>
+        <GlassCard>
+          <GlassHeader title="Link inválido ou expirado">
+            Por segurança, a senha só pode ser trocada pelo link enviado ao seu e-mail. Peça um novo link para continuar.
+          </GlassHeader>
+          {invalidReason && <GlassAlert>{invalidReason}</GlassAlert>}
+          <GlassButton type="button" onClick={() => leave('/recuperar-senha')}>Solicitar novo link</GlassButton>
+          <p className="text-center text-sm text-login-muted">
+            Lembrou a senha? <GlassLink onClick={() => leave('/login')}>Voltar para o login</GlassLink>
+          </p>
+        </GlassCard>
+      </AuthBackdrop>
+    );
+  }
+
   return (
     <AuthBackdrop>
       <GlassCard onSubmit={submit}>
         <GlassHeader title="Criar nova senha">Escolha uma senha nova para entrar no seu cantinho.</GlassHeader>
-        <GlassField id="nova-senha" label="Nova senha" error={error ?? undefined} hint="Mínimo de 8 caracteres.">
-          <GlassPasswordInput id="nova-senha" autoComplete="new-password" placeholder="Crie uma senha" value={password} onValue={setPassword} error={error ?? undefined} />
-        </GlassField>
-        <GlassButton disabled={busy || !hasRecoveryToken()} loading={busy}>{busy ? 'Salvando…' : 'Salvar nova senha'}</GlassButton>
-        <GlassLink className="self-start text-sm" onClick={() => navigate('/recuperar-senha')}>Solicitar novo link</GlassLink>
+        <div className="flex flex-col gap-[18px]">
+          <GlassField id="nova-senha" label="Nova senha" error={errors.password} hint="Mínimo de 8 caracteres.">
+            <GlassPasswordInput id="nova-senha" autoComplete="new-password" placeholder="Crie uma senha" value={password} onValue={setPassword} error={errors.password} />
+          </GlassField>
+          <GlassField id="confirmar-senha" label="Confirmar nova senha" error={errors.confirm}>
+            <GlassPasswordInput id="confirmar-senha" autoComplete="new-password" placeholder="Repita a senha" value={confirm} onValue={setConfirm} error={errors.confirm} />
+          </GlassField>
+        </div>
+        {error && <GlassAlert>{error}</GlassAlert>}
+        <GlassButton disabled={busy} loading={busy}>{busy ? 'Salvando…' : 'Salvar nova senha'}</GlassButton>
+        <p className="text-center text-sm text-login-muted">
+          Lembrou a senha? <GlassLink onClick={() => leave('/login')}>Voltar para o login</GlassLink>
+        </p>
       </GlassCard>
     </AuthBackdrop>
   );
