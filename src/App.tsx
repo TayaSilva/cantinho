@@ -134,7 +134,6 @@ function House({ doc, preview, period, demo }: { doc: HouseDocument; preview: bo
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-7 bg-night px-6 py-12 text-center motion-safe:animate-fade-in">
         <WelcomeHouse />
-        {demo && <PixelButton size="sm" variant="accent" onClick={() => navigate('/login')} className="text-sm md:hidden">Crie seu cantinho</PixelButton>}
         <div className="flex max-w-2xl flex-col items-center gap-3.5">
           <h1 className="font-pixel text-4xl leading-tight font-semibold text-highlight sm:text-5xl">{content.welcome.title}</h1>
           <p className="text-lg leading-relaxed text-wall-2 sm:text-xl">{content.welcome.description}</p>
@@ -205,6 +204,11 @@ function House({ doc, preview, period, demo }: { doc: HouseDocument; preview: bo
           {content.hint}
           <span className="md:hidden"> · arraste para explorar</span>
         </span>
+        {demo && (
+          <div className="flex w-full justify-center md:hidden">
+            <PixelButton size="sm" variant="accent" onClick={() => navigate('/login')} className="text-sm">Crie seu cantinho</PixelButton>
+          </div>
+        )}
       </footer>
 
       <RadioModal open={modal.isOpen('radio')} onClose={closeModal} playlistName={content.playlist.name} keepPlayingOnClose={content.playlist.keepPlayingOnClose} />
