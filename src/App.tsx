@@ -127,8 +127,8 @@ function House({ doc, preview, period, demo, houseId, shareUrl }: { doc: HouseDo
   }, []);
 
   useEffect(() => {
-    document.title = content.welcome.title || content.houseName;
-  }, [content.welcome.title, content.houseName]);
+    document.title = demo ? 'Cantinho — seu espaço virtual de memórias' : (content.welcome.title || content.houseName);
+  }, [content.welcome.title, content.houseName, demo]);
 
   const pickMessage = useCallback(
     (avoid: number) => {

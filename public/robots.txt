@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /login
+Disallow: /cadastro
+Disallow: /recuperar-senha
+Disallow: /redefinir-senha
+Disallow: /meus-cantinhos
+Disallow: /minhas-casinhas
+Disallow: /meu-cantinho
+Disallow: /configuracoes
+
+Sitemap: https://www.cantinho.dev.br/sitemap.xml
