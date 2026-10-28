@@ -35,7 +35,6 @@ import {
   Table,
   TV,
 } from './Furniture';
-import { rectStyle } from './HouseLayer';
 import { InteractiveObject } from './InteractiveObject';
 import { iso, pts } from './iso';
 import { Pet, petAnchor, petHitbox } from './Pet';
@@ -260,8 +259,6 @@ export function HouseScene({
           {editor && <EditorRegions appearance={appearance} selected={selected} onSelect={onSelect} />}
         </SceneSvg>
 
-        {editor && selected && <SelectionChip appearance={appearance} target={selected} />}
-
         {!editor && (
           <>
             {visitorHotspots
@@ -359,7 +356,7 @@ function EditorRegions({ appearance, selected, onSelect }: { appearance: HouseAp
     tabIndex: 0,
     'aria-label': `Editar ${targetLabels[target].toLowerCase()}`,
     'aria-pressed': selected === target,
-    className: `editor-region ${selected === target ? 'is-selected' : ''}`,
+    className: 'editor-region',
     onClick: () => onSelect?.(target),
     onKeyDown: (e: KeyboardEvent<SVGElement>) => {
       if (e.key === 'Enter' || e.key === ' ') {
@@ -369,8 +366,6 @@ function EditorRegions({ appearance, selected, onSelect }: { appearance: HouseAp
     },
   });
 
-  const selectedRects = selected && selected !== 'walls' && selected !== 'floor' && selected !== 'lighting' ? targetRects(appearance, selected) : [];
-
   return (
     <g shapeRendering="auto">
       <polygon points={LEFT_WALL} {...props('walls')} />
@@ -379,37 +374,6 @@ function EditorRegions({ appearance, selected, onSelect }: { appearance: HouseAp
       {REGION_ORDER.flatMap((t) =>
         targetRects(appearance, t).map((r, i) => <rect key={`${t}-${i}`} x={r.x} y={r.y} width={r.w} height={r.h} rx={2} {...props(t)} />),
       )}
-      {/* destaque discreto do elemento selecionado */}
-      {selected === 'walls' && (
-        <g className="selection-outline">
-          <polygon points={LEFT_WALL} />
-          <polygon points={RIGHT_WALL} />
-        </g>
-      )}
-      {selected === 'floor' && (
-        <g className="selection-outline">
-          <polygon points={FLOOR} />
-        </g>
-      )}
-      {selectedRects.map((r, i) => (
-        <rect key={i} className="selection-outline" x={r.x} y={r.y} width={r.w} height={r.h} rx={2} />
-      ))}
     </g>
-  );
-}
-
-function SelectionChip({ appearance, target }: { appearance: HouseAppearance; target: EditorTarget }) {
-  const rects = target === 'walls' ? [{ x: 40, y: 10, w: 240, h: 10 }] : target === 'floor' ? [{ x: 100, y: 150, w: 120, h: 10 }] : targetRects(appearance, target);
-  if (rects.length === 0) return null;
-  const r = rects[0];
-  const name =
-    target === 'character1' ? `Personagem 1 · ${appearance.characters[0].name}` : target === 'character2' ? `Personagem 2 · ${appearance.characters[1].name}` : target === 'character3' ? `Personagem 3 · ${appearance.characters[2].name}` : target === 'character4' ? `Personagem 4 · ${appearance.characters[3].name}` : target === 'pet' ? `Animalzinho · ${appearance.pet.name}` : targetLabels[target];
-  return (
-    <div
-      className="pointer-events-none absolute -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-full bg-white px-2.5 py-1 font-sans text-xs font-semibold text-stone-900 shadow-md"
-      style={{ ...rectStyle({ x: r.x + r.w / 2, y: r.y - 1.5, w: 0, h: 0 }), zIndex: Z.bubble }}
-    >
-      {name}
-    </div>
   );
 }

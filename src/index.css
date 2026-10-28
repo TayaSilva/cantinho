@@ -346,14 +346,6 @@
 .editor-region { fill: transparent; cursor: pointer; outline: none; }
 .editor-region:hover { fill: rgb(255 255 255 / 0.1); }
 .editor-region:focus-visible { fill: rgb(244 169 192 / 0.18); }
-.selection-outline,
-.selection-outline * {
-  fill: rgb(244 169 192 / 0.12);
-  stroke: #f4a9c0;
-  stroke-width: 1;
-  stroke-dasharray: 3 2;
-  pointer-events: none;
-}
 .tvscreen { animation: flicker 4s steps(2) infinite; }
 @keyframes flicker { 0%, 100% { opacity: 1 } 50% { opacity: 0.92 } }
 .sparkle { animation: twinkle 1.2s steps(2) infinite; }
