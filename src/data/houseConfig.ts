@@ -99,7 +99,6 @@ export const targetLabels: Record<EditorTarget, string> = {
   cushions: 'Almofadas',
   desk: 'Mesa de computador',
   computer: 'Computador',
-  armchair: 'Poltrona',
   character1: 'Personagem 1',
   character2: 'Personagem 2',
   character3: 'Personagem 3',
@@ -108,7 +107,7 @@ export const targetLabels: Record<EditorTarget, string> = {
 };
 
 /** Ordem dos móveis no painel. */
-export const furnitureOrder: FurnitureKey[] = ['sofa', 'sofa2', 'cushions', 'table', 'rug', 'bookshelf', 'desk', 'computer', 'armchair', 'tv', 'radio', 'frame', 'calendar', 'lamp', 'chest', 'plants'];
+export const furnitureOrder: FurnitureKey[] = ['sofa', 'sofa2', 'cushions', 'table', 'rug', 'bookshelf', 'desk', 'computer', 'tv', 'radio', 'frame', 'calendar', 'lamp', 'chest', 'plants'];
 
 /** Objetos interativos: podem ser ocultados, mas o conteúdo continua salvo. */
 export const interactiveFurniture: FurnitureKey[] = ['bookshelf', 'tv', 'radio', 'frame', 'calendar', 'lamp', 'chest', 'computer'];
@@ -186,7 +185,6 @@ export const defaultAppearance: HouseAppearance = {
     cushions: { model: 'cushions.creme-salvia', visible: true },
     desk: { model: 'desk.madeira', visible: true },
     computer: { model: 'computer.rosa', visible: true },
-    armchair: { model: 'armchair.redonda', visible: true },
   },
   books: 'books.classicos',
   characters: [
@@ -257,16 +255,26 @@ export const defaultAppearance: HouseAppearance = {
 };
 
 /** Lugar de cada personagem no sofá (eixo c da grade isométrica), por layout. */
-const SEATS = { free: [52, 68, 52, 68], mansao: [80, 96, 80, 96] } as const;
+const SEATS = { free: [52, 68, 52, 68], mansao: [72, 88, 36, 52] } as const;
 export const seatsFor = (variant: SceneVariant): readonly number[] => SEATS[variant];
 /** Lugares do Cantinho (usados nas miniaturas do editor). */
 export const CHARACTER_SEATS = SEATS.free;
-// Sofá 2 (só na Mini Mansão): mesmo modelo do principal, do outro lado da mesinha e virado para ele.
-// Valor do eixo a onde termina o encosto (as pessoas 3 e 4 aparecem de costas).
-export const OPPOSITE_SOFA_A = 116;
+/*
+ * Sofá 2 (só na Mini Mansão): mesmo modelo do principal, encostado na borda da
+ * frente e formando um L com ele. É desenhado como o sofá 'de costas' (encosto em
+ * a = OPPOSITE_SOFA_A, assento deslocado no eixo c por SOFA2_SHIFT) e depois
+ * espelhado na tela (SOFA2_MIRROR), o que troca os eixos a e c. Quem senta nele
+ * (pessoas 3 e 4) aparece de costas.
+ */
+export const OPPOSITE_SOFA_A = 146;
+export const SOFA2_SHIFT = 'translate(16 -8)';
+export const SOFA2_MIRROR = 'matrix(-1 0 0 1 320 0)';
+/** Leva um retângulo desenhado antes do espelho para a posição na tela. */
+export const mirrorRect = (r: Rect): Rect => ({ ...r, x: 320 - r.x - r.w });
+export const mirrorX = (x: number) => 320 - x;
 
 /** Posição do pet no tapete (o pet só aparece na Mini Mansão). */
-export const PET_POSITION = { a: 66, c: 90 } as const;
+export const PET_POSITION = { a: 66, c: 84 } as const;
 
 /** Contorno da sala (limita escurecimento e brilho). */
 export function roomOutline(variant: SceneVariant): string {
@@ -285,7 +293,7 @@ export const MUSIC_NOTES = { x: 252, y: 104 };
  *
  * Os móveis do Cantinho são desenhados nas posições do Cantinho; na Mini
  * Mansão cada um é deslocado ao longo dos eixos (a, c) para ocupar a sala
- * maior. Mesa de computador, computador e poltrona já são desenhados no
+ * maior. Mesa de computador e computador já são desenhados no
  * lugar da Mini Mansão.
  * ------------------------------------------------------------------ */
 
@@ -296,13 +304,13 @@ const MANSION_SHIFT: Record<LayoutKey, [number, number]> = {
   frame: [0, 54],
   polaroid: [0, 98],
   calendar: [0, 18],
-  rug: [6, 28],
-  table: [6, 28],
-  sofa: [0, 28],
-  lamp: [0, -42],
+  rug: [6, 22],
+  table: [6, 22],
+  sofa: [0, 20],
+  lamp: [0, -50],
   tv: [4, 0],
   radio: [-2, 0],
-  chest: [-30, 20],
+  chest: [36, 4],
 };
 
 /** Deslocamento na tela (x, y) de um objeto no layout. */
@@ -356,10 +364,9 @@ const TARGET_LAYOUT: Partial<Record<EditorTarget, LayoutKey>> = {
 
 const MANSION_HITBOXES: Partial<Record<EditorTarget, Rect[]>> = {
   plants: [{ x: 150, y: 60, w: 20, h: 42 }, { x: 185, y: 82, w: 20, h: 41 }, { x: 148, y: 187, w: 24, h: 49 }],
-  sofa2: [{ x: 138, y: 150, w: 68, h: 59 }],
+  sofa2: [{ x: 40, y: 143, w: 68, h: 59 }],
   desk: [{ x: 218, y: 121, w: 87, h: 72 }],
   computer: [MANSION_COMPUTER],
-  armchair: [{ x: 127, y: 85, w: 56, h: 56 }],
 };
 
 /** Áreas clicáveis de cada móvel no editor, no layout escolhido. */

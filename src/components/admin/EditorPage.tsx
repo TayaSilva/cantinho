@@ -51,7 +51,6 @@ const FURNITURE_TYPE: Record<FurnitureKey, ElementType> = {
   cushions: 'cushions',
   desk: 'desk',
   computer: 'computer',
-  armchair: 'armchair',
 };
 
 /** O que cada objeto interativo guarda (para avisar que ocultar não apaga nada). */
@@ -104,7 +103,7 @@ export function EditorPage({ draft }: { draft: HouseDraft }) {
   const featureForCategory = (value: EditorCategory): PremiumFeature | null =>
     value === 'personagem3' || value === 'personagem4' ? 'characters' : value === 'animal' ? 'pet' : value === 'quiz' ? 'quiz' : null;
   const featureForFurniture = (value: FurnitureKey): PremiumFeature | null =>
-    value === 'radio' ? 'radio' : value === 'tv' ? 'tv' : value === 'desk' || value === 'computer' || value === 'armchair' ? 'customization' : null;
+    value === 'radio' ? 'radio' : value === 'tv' ? 'tv' : value === 'desk' || value === 'computer' ? 'customization' : null;
   const isLocked = (feature: PremiumFeature | null) => Boolean(plan && feature && !canUseFeature(
     plan,
     feature === 'characters' ? 'character3' : feature === 'pet' ? 'pet' : feature === 'radio' ? 'radio' : feature === 'tv' ? 'tv' : feature === 'quiz' ? 'quiz' : 'customization',
@@ -112,7 +111,7 @@ export function EditorPage({ draft }: { draft: HouseDraft }) {
   const notifyLocked = (feature: PremiumFeature | null) => { if (isLocked(feature)) premium.prompt(feature as PremiumFeature); };
 
   const select = (target: EditorTarget) => {
-    const feature = target === 'character3' || target === 'character4' ? 'characters' : target === 'pet' ? 'pet' : target === 'radio' ? 'radio' : target === 'tv' ? 'tv' : target === 'desk' || target === 'computer' || target === 'armchair' ? 'customization' : null;
+    const feature = target === 'character3' || target === 'character4' ? 'characters' : target === 'pet' ? 'pet' : target === 'radio' ? 'radio' : target === 'tv' ? 'tv' : target === 'desk' || target === 'computer' ? 'customization' : null;
     if (isLocked(feature)) {
       premium.prompt(feature as PremiumFeature);
       return;

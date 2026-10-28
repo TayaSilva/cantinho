@@ -59,7 +59,6 @@ export type ElementType =
   | 'cushions'
   | 'desk'
   | 'computer'
-  | 'armchair'
   | 'skinTone'
   | 'hairStyle'
   | 'hairColor'
@@ -107,8 +106,7 @@ export type FurnitureKey =
   | 'plants'
   | 'cushions'
   | 'desk'
-  | 'computer'
-  | 'armchair';
+  | 'computer';
 
 export type DecorationKey = 'stringLights' | 'wallPattern' | 'polaroid' | 'tableItems' | 'backPlant';
 

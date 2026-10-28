@@ -9,7 +9,7 @@ import { getOption, str } from '../../data/catalog';
 import type { CharacterAppearance, ElementType, HouseAppearance, PetAppearance } from '../../types/house';
 import { Character } from '../house/Character';
 import { DynamicWindow } from '../house/DynamicWindow';
-import { Armchair, Bookshelf, Calendar, Chest, Computer, Cushions, Desk, Lamp, PhotoFrame, Plant, Radio, Rug, SofaBack, SofaFront, Table, TV } from '../house/Furniture';
+import { Bookshelf, Calendar, Chest, Computer, Cushions, Desk, Lamp, PhotoFrame, Plant, Radio, Rug, SofaBack, SofaFront, Table, TV } from '../house/Furniture';
 import { boundsOf, boxPoints } from '../house/iso';
 import { Pet, petHitbox } from '../house/Pet';
 import { Room } from '../house/Room';
@@ -153,12 +153,6 @@ export function OptionThumb({ type, optionId, appearance, slot = 0 }: ThumbProps
       return (
         <Crop viewBox="256 106 50 50">
           <Computer opt={opt} />
-        </Crop>
-      );
-    case 'armchair':
-      return (
-        <Crop viewBox="124 82 62 62">
-          <Armchair opt={opt} />
         </Crop>
       );
     case 'hairStyle':

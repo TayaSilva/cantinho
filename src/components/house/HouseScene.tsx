@@ -7,10 +7,14 @@ import {
   layoutOffset,
   layoutTransform,
   MANSION_PLANTS,
+  mirrorRect,
+  mirrorX,
   MUSIC_NOTES,
   roomOutline,
   sceneFor,
   seatsFor,
+  SOFA2_MIRROR,
+  SOFA2_SHIFT,
   targetLabels,
   visitorHotspotsFor,
   Z,
@@ -27,7 +31,6 @@ import {
   Computer,
   Desk,
   DeskChair,
-  Armchair,
   Lamp,
   OppositeSofaBack,
   OppositeSofaSeat,
@@ -49,8 +52,10 @@ import { Room, StringLights } from './Room';
 
 /** Pessoas 3 e 4 sentam no sofá 2, de costas. A 2, 3 e 4 podem ser ocultadas; 3 e 4 também somem sem o sofá 2. */
 const backAOf = (index: number) => (index < 2 ? undefined : OPPOSITE_SOFA_A);
-const characterRect = (appearance: HouseAppearance, index: number, variant: SceneVariant): Rect =>
-  characterHitbox(seatsFor(variant)[index], appearance.characters[index].age ?? 'adult', backAOf(index));
+const characterRect = (appearance: HouseAppearance, index: number, variant: SceneVariant): Rect => {
+  const r = characterHitbox(seatsFor(variant)[index], appearance.characters[index].age ?? 'adult', backAOf(index));
+  return index < 2 ? r : mirrorRect(r);
+};
 const characterSeated = (appearance: HouseAppearance, index: number) =>
   index === 0 || (appearance.characters[index].enabled !== false && (index < 2 || appearance.furniture.sofa2.visible));
 
@@ -111,7 +116,6 @@ export function SceneSvg({ appearance, variant = appearance.environment.layout, 
       {deco.backPlant && <Plant opt={plantOpt} origin={[1, 1]} size={7} />}
       {f.bookshelf.visible && <Bookshelf opt={opt('bookshelf', 'bookshelf')} books={getOption('books', appearance.books)} />}
       {f.plants.visible && mansion && <Plant opt={plantOpt} origin={MANSION_PLANTS.tv} size={9} />}
-      {mansion && f.armchair.visible && <Armchair opt={opt('armchair', 'armchair')} />}
       {f.tv.visible && <g transform={at('tv')}><TV opt={opt('tv', 'tv')} on={runtime.tvOn} /></g>}
       {f.radio.visible && <g transform={at('radio')}><Radio opt={opt('radio', 'radio')} /></g>}
       {f.plants.visible && !mansion && <Plant opt={plantOpt} origin={[108, 3]} size={9} />}
@@ -132,16 +136,16 @@ export function SceneSvg({ appearance, variant = appearance.environment.layout, 
       {/* 6. animal */}
       {showPet && <Pet pet={pet} happy={runtime.petHappy} sleeping={night && !runtime.petHappy} />}
 
-      {/* sofá 2, de frente para o principal: fica mais perto da câmera que a mesa e o pet */}
+      {/* sofá 2, na borda da frente formando um L com o principal: fica mais perto da câmera que a mesa e o pet */}
       {mansion && f.sofa2.visible && (
-        <g>
-          <g transform={at('sofa')}>
+        <g transform={SOFA2_MIRROR}>
+          <g transform={SOFA2_SHIFT}>
             <OppositeSofaSeat opt={opt('sofa2', 'sofa')} backA={OPPOSITE_SOFA_A} />
           </g>
           {[2, 3].map((i) =>
             characterSeated(appearance, i) ? <CharacterFromBehind key={i} look={appearance.characters[i]} seat={seats[i]} backA={OPPOSITE_SOFA_A} /> : null,
           )}
-          <g transform={at('sofa')}>
+          <g transform={SOFA2_SHIFT}>
             <OppositeSofaBack opt={opt('sofa2', 'sofa')} backA={OPPOSITE_SOFA_A} />
           </g>
         </g>
@@ -322,7 +326,7 @@ export function HouseScene({
                   showLabel={showLabels}
                   onActivate={() => {
                     const p = characterAnchor(seatsFor(variant)[i], c.age ?? 'adult', backAOf(i));
-                    say(phrases[i], p.x, p.y);
+                    say(phrases[i], i < 2 ? p.x : mirrorX(p.x), p.y);
                   }}
                 />
               ) : null,
@@ -386,7 +390,7 @@ export function targetRects(appearance: HouseAppearance, target: EditorTarget, v
 }
 
 /** Ordem de empilhamento: o que vem depois fica por cima. */
-const REGION_ORDER: EditorTarget[] = ['rug', 'window', 'frame', 'calendar', 'plants', 'bookshelf', 'tv', 'radio', 'desk', 'computer', 'armchair', 'sofa', 'cushions', 'character1', 'character2', 'lamp', 'table', 'pet', 'sofa2', 'character3', 'character4', 'chest'];
+const REGION_ORDER: EditorTarget[] = ['rug', 'window', 'frame', 'calendar', 'plants', 'bookshelf', 'tv', 'radio', 'desk', 'computer', 'sofa', 'cushions', 'character1', 'character2', 'lamp', 'table', 'pet', 'sofa2', 'character3', 'character4', 'chest'];
 
 function EditorRegions({ appearance, variant, selected, onSelect }: { appearance: HouseAppearance; variant: SceneVariant; selected: EditorTarget | null; onSelect?: (t: EditorTarget) => void }) {
   const points = editorRegionPoints(variant === 'mansao' ? 150 : 120);

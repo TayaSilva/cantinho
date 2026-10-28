@@ -858,7 +858,7 @@ export function Table({ opt, items }: { opt: AssetOption; items: boolean }) {
 }
 
 /* ================================================================
- * Mesa de computador, computador e poltrona da Mini Mansão
+ * Mesa de computador e computador da Mini Mansão
  * ================================================================ */
 
 /** Altura do tampo da mesa de computador. */
@@ -951,26 +951,6 @@ export function DeskChair() {
   );
 }
 
-/** Poltrona no canto do fundo, perto da janela, sobre um tapetinho. */
-export function Armchair({ opt }: { opt: AssetOption }) {
-  const color = str(opt, 'color');
-  const modern = str(opt, 'variant') === 'modern';
-  const side = shade(color, 0.18);
-  return (
-    <g>
-      <OnFloor z={0.2}>
-        <URect u={[14, 52]} v={[16, 60]} fill={shade(color, -0.35)} />
-        <URect u={[16, 50]} v={[18, 58]} fill={shade(color, -0.55)} />
-      </OnFloor>
-      <IsoBox a={[22, 42]} c={[22, 51]} z={[0, 5]} color={side} outline={false} />
-      <IsoBox a={[20, 44]} c={[22, 33]} z={[5, modern ? 24 : 27]} color={color} />
-      <IsoBox a={[20, 27]} c={[31, 52]} z={[5, 21]} color={color} />
-      <IsoBox a={[25, 40]} c={[28, 46]} z={[5, 11]} color={shade(color, -0.08)} />
-      <IsoBox a={[37, 44]} c={[31, 52]} z={[5, 21]} color={color} />
-      {modern && <FaceA a={27.1} c={[30, 44]} z={[12, 16]} fill={shade(color, 0.12)} />}
-    </g>
-  );
-}
 
 function TableItems({ z }: { z: number }) {
   const [fx, fy] = iso(42.5, 73.5, z + 8.5);

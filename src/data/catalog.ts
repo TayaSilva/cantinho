@@ -148,8 +148,6 @@ export const catalog: AssetOption[] = [
   o('computer', 'computer.rosa', 'Rosa', { variant: 'classic', color: '#C98190' }, undefined, true, true),
   o('computer', 'computer.azul', 'Azul', { variant: 'flat', color: '#8FA7C8' }, undefined, true, true),
   o('computer', 'computer.creme', 'Creme', { variant: 'classic', color: '#F4EDE4' }, undefined, true, true),
-  o('armchair', 'armchair.redonda', 'Redonda', { variant: 'round', color: '#C98190' }, undefined, true, true),
-  o('armchair', 'armchair.moderno', 'Moderna', { variant: 'modern', color: '#8FA7C8' }, undefined, true, true),
 
   /* ---------------- Personagens ---------------- */
   o('skinTone', 'skin.1', 'Tom 1', { color: '#F6D7C3' }),
