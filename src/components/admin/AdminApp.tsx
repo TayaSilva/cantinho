@@ -7,11 +7,12 @@ import { ContentPage } from './ContentPage';
 import type { ContentSection } from './ContentPage';
 import { AdminIcon, Button, ConfirmDialog, cx, Toast, useDismiss } from './controls';
 import { PublicationLimitModal } from './PublicationLimitModal';
+import { ShareMessageModal } from './ShareMessageModal';
 import { PublicationLimitError } from '../../services/houseStore';
 import type { PublicationLimitDetails } from '../../services/houseStore';
 import { EditorPage } from './EditorPage';
 import { PlanPage } from '../plans/PlanPage';
-import { sharePublicHouse } from '../../services/share';
+import { getPublicHouseUrl } from '../../services/share';
 import { houseAdminPath, type HouseSummary } from '../../services/houses';
 
 const CONTENT_SECTIONS: ContentSection[] = ['textos', 'fotos', 'videos', 'musicas', 'cartas', 'datas', 'mensagens'];
@@ -27,6 +28,7 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
   const [confirm, setConfirm] = useState<null | 'reset' | 'publish' | 'switch'>(null);
   const [pendingHouse, setPendingHouse] = useState<string | null>(null);
   const [shareNotice, setShareNotice] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [planNotice, setPlanNotice] = useState<string | null>(null);
   const [publishIssue, setPublishIssue] = useState<PublicationLimitDetails | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
@@ -86,9 +88,8 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
       return;
     }
     try {
-      const result = await sharePublicHouse(house.house_id);
-      if (!result) return;
-      setShareNotice(result === 'shared' ? 'Compartilhado!' : 'Link copiado!');
+      const url = await getPublicHouseUrl(house.house_id);
+      setShareUrl(url);
     } catch (cause) {
       setShareNotice(cause instanceof Error ? cause.message : 'Não foi possível criar o link.');
     }
@@ -308,6 +309,7 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
         }}
         onPublish={async (candidate) => publish(candidate)}
       />
+      <ShareMessageModal open={Boolean(shareUrl)} houseUrl={shareUrl} onClose={() => setShareUrl(null)} />
       <Toast message={planNotice ?? shareNotice ?? publishError ?? draft.lastAction} onDone={planNotice ? () => setPlanNotice(null) : shareNotice ? clearShareNotice : publishError ? () => setPublishError(null) : draft.clearLastAction} />
     </div>
   );

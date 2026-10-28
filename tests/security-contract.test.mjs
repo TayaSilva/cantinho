@@ -77,6 +77,22 @@ test('SPEC 02 keeps plans and publication quotas server-side', async () => {
   assert.match(local, /PLAN_LIMITS/);
 });
 
+test('personalized sharing keeps the canonical link and full message together', async () => {
+  const share = await read('src/services/share.ts');
+  assert.match(share, /export function buildShareMessage\(houseUrl: string\)/);
+  assert.match(share, /🏡💕/u);
+  assert.match(share, /🏠💗/u);
+  assert.match(share, /navigator\.clipboard/);
+  assert.match(share, /navigator\.share/);
+  assert.doesNotMatch(share, /window\.location\.href/);
+  const modal = await read('src/components/admin/ShareMessageModal.tsx');
+  assert.match(modal, /Compartilhe seu cantinho/);
+  assert.match(modal, /Copiar mensagem e link/);
+  const admin = await read('src/components/admin/AdminApp.tsx');
+  assert.match(admin, /getPublicHouseUrl/);
+  assert.match(admin, /ShareMessageModal/);
+});
+
 test('private routes redirect to login and next only accepts internal paths', async () => {
   const gate = await read('src/components/admin/AdminGate.tsx');
   const app = await read('src/App.tsx');
