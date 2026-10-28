@@ -14,8 +14,27 @@ type AuthMode = 'login' | 'signup' | 'recovery';
 const AUTH_PATHS = ['/login', '/cadastro', '/recuperar-senha'];
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** Login que, depois de entrar, volta para `target`. */
+export function loginPath(target: string) {
+  return `/login?next=${encodeURIComponent(target)}`;
+}
+
+/** Destino pós-login vindo de ?next=; só aceita caminhos internos (evita open redirect). */
+function safeNext(): string {
+  const next = new URLSearchParams(window.location.search).get('next') || '';
+  if (!next.startsWith('/') || next.startsWith('//') || next.startsWith('/\\')) return '/meus-cantinhos';
+  const nextPath = next.split(/[?#]/)[0];
+  return AUTH_PATHS.includes(nextPath) || nextPath === '/redefinir-senha' ? '/meus-cantinhos' : next;
+}
+
+/** Mantém o ?next= ao trocar entre login e cadastro. */
+function withNext(path: string) {
+  const next = new URLSearchParams(window.location.search).get('next');
+  return next ? `${path}?next=${encodeURIComponent(next)}` : path;
+}
+
 /** Troca a URL sem criar entrada no histórico (redirecionamentos). */
-function Redirect({ to }: { to: string }) {
+export function Redirect({ to }: { to: string }) {
   useEffect(() => {
     window.history.replaceState({}, '', to);
     window.dispatchEvent(new PopStateEvent('popstate'));
@@ -127,10 +146,12 @@ export function AdminGate({ path }: { path: string }) {
   }
   if (loading) return <Loading />;
   if (cloudConfigured && (!session || welcome)) {
+    // Rotas privadas nunca mostram o login no próprio endereço: vão para /login e voltam depois.
+    if (!session && !AUTH_PATHS.includes(path)) return <Redirect to={loginPath(path + window.location.search)} />;
     const mode: AuthMode = path === '/cadastro' ? 'signup' : path === '/recuperar-senha' ? 'recovery' : 'login';
     return <AuthPage mode={mode} notice={notice} linkError={linkError} onNotice={setNotice} onWelcome={setWelcome} />;
   }
-  if (AUTH_PATHS.includes(path)) return <Redirect to="/meus-cantinhos" />;
+  if (AUTH_PATHS.includes(path)) return <Redirect to={safeNext()} />;
   if (!houses) {
     return error ? <ErrorPage message={error} onRetry={() => void refreshHouses()} /> : <Loading label="Carregando seus cantinhos…" />;
   }
@@ -296,7 +317,7 @@ function AuthPage({ mode, notice, linkError, onNotice, onWelcome }: { mode: Auth
     }
   };
 
-  if (confirmEmail) return <ConfirmCodePage email={confirmEmail} onConfirmed={() => onNotice('E-mail confirmado! Sua conta está pronta.')} onBack={() => { setConfirmEmail(null); navigate('/login'); }} />;
+  if (confirmEmail) return <ConfirmCodePage email={confirmEmail} onConfirmed={() => onNotice('E-mail confirmado! Sua conta está pronta.')} onBack={() => { setConfirmEmail(null); navigate(withNext('/login')); }} />;
 
   if (done) {
     return (
@@ -380,8 +401,8 @@ function AuthPage({ mode, notice, linkError, onNotice, onWelcome }: { mode: Auth
           {busy ? busyLabel : mode === 'signup' ? 'Criar conta' : mode === 'recovery' ? 'Enviar instruções' : 'Entrar'}
         </GlassButton>
         <p className="text-center text-sm text-login-muted">
-          {mode === 'login' && <>Ainda não tem um cantinho? <GlassLink onClick={() => navigate('/cadastro')}>Criar conta</GlassLink></>}
-          {mode === 'signup' && <>Já tem um cantinho? <GlassLink onClick={() => navigate('/login')}>Entrar</GlassLink></>}
+          {mode === 'login' && <>Ainda não tem um cantinho? <GlassLink onClick={() => navigate(withNext('/cadastro'))}>Criar conta</GlassLink></>}
+          {mode === 'signup' && <>Já tem um cantinho? <GlassLink onClick={() => navigate(withNext('/login'))}>Entrar</GlassLink></>}
           {mode === 'recovery' && <>Lembrou a senha? <GlassLink onClick={() => navigate('/login')}>Voltar para o login</GlassLink></>}
         </p>
       </GlassCard>

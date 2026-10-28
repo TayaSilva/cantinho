@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AdminGate } from './components/admin/AdminGate';
+import type { ReactNode } from 'react';
+import { AdminGate, loginPath, Redirect } from './components/admin/AdminGate';
 import { HouseScene } from './components/house/HouseScene';
 import { BookModal } from './components/modals/BookModal';
 import { CalendarModal } from './components/modals/CalendarModal';
@@ -15,7 +16,7 @@ import { useHouseModal } from './hooks/useHouseModal';
 import { useHouseTime } from './hooks/useHouseTime';
 import { navigate, useRoute } from './hooks/useRoute';
 import { defaultDocument, loadDraft, loadPublished, STORE_EVENT } from './services/houseStore';
-import { authFetch } from './services/auth';
+import { authFetch, cloudConfigured, getSession } from './services/auth';
 import type { HouseDocument, Period } from './types/house';
 
 const ZOOM_STEPS = [1, 1.4, 1.8, 2.3];
@@ -26,16 +27,41 @@ function periodFromUrl(search: URLSearchParams): Period | null {
   return p === 'manha' || p === 'tarde' || p === 'noite' || p === 'madrugada' ? p : null;
 }
 
+/** Rotas tratadas pelo AdminGate (login/cadastro públicos; o resto exige sessão lá dentro). */
+const GATE_PATHS = ['/login', '/cadastro', '/recuperar-senha', '/redefinir-senha', '/meus-cantinhos', '/minhas-casinhas', '/meu-cantinho', '/configuracoes'];
+
 export default function App() {
   const { path, search } = useRoute();
-  if (path === '/admin' || path.startsWith('/admin/') || path === '/login' || path === '/cadastro' || path === '/recuperar-senha' || path === '/redefinir-senha' || path === '/meus-cantinhos' || path === '/minhas-casinhas' || path === '/meu-cantinho' || path === '/configuracoes') {
+  if (path === '/admin' || path.startsWith('/admin/') || GATE_PATHS.includes(path)) {
     return <AdminGate path={path === '/admin' ? '/admin/editor' : path} />;
   }
   // Links de e-mail que caíram no Site URL (#error_code=... ou #access_token=...) vão para o login tratar.
   if (/[#&](error_code|access_token)=/.test(window.location.hash)) return <AdminGate path="/login" />;
   const publicSlug = path.startsWith('/c/') ? decodeURIComponent(path.slice(3)) : null;
+  // Endereço desconhecido: volta para a demo em vez de abrir uma casa qualquer.
+  if (path !== '/' && !publicSlug) return <Redirect to="/" />;
   const demo = path === '/' && !search.get('house') && search.get('preview') !== 'draft';
-  return <PublicHouse preview={search.get('preview') === 'draft'} period={periodFromUrl(search)} publicSlug={publicSlug} houseId={search.get('house') || undefined} demo={demo} />;
+  const house = <PublicHouse preview={search.get('preview') === 'draft'} period={periodFromUrl(search)} publicSlug={publicSlug} houseId={search.get('house') || undefined} demo={demo} />;
+  return demo ? house : <RequireSession>{house}</RequireSession>;
+}
+
+/**
+ * Casas de verdade (/c/:slug, ?house=, ?preview=draft) só abrem com sessão. Sem ela,
+ * vai para o login antes de carregar qualquer documento (nem o cache local aparece).
+ */
+function RequireSession({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<'checking' | 'in' | 'out'>(cloudConfigured ? 'checking' : 'in');
+  useEffect(() => {
+    if (!cloudConfigured) return;
+    let alive = true;
+    void getSession()
+      .then((session) => alive && setState(session ? 'in' : 'out'))
+      .catch(() => alive && setState('out'));
+    return () => { alive = false; };
+  }, []);
+  if (state === 'out') return <Redirect to={loginPath(window.location.pathname + window.location.search)} />;
+  if (state === 'checking') return <main className="min-h-dvh bg-night" aria-busy="true" />;
+  return children;
 }
 
 /**
@@ -144,7 +170,7 @@ function House({ doc, preview, period, demo }: { doc: HouseDocument; preview: bo
         {demo && (
           <p className="-mt-2 text-sm text-wall-2">
             Já tem um cantinho?{' '}
-            <a href="/login" onClick={(event) => { event.preventDefault(); navigate('/login'); }} className="font-semibold text-highlight underline underline-offset-4 hover:text-rug">
+            <a href="/login" onClick={(event) => { event.preventDefault(); navigate('/login'); }} className="font-semibold text-highlight no-underline transition-colors duration-200 hover:text-rug">
               Entrar na minha conta
             </a>
           </p>

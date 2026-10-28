@@ -47,6 +47,16 @@ test('media authorization is scoped by house and owner, with server-side limits'
   assert.match(media, /house_id=eq\./);
 });
 
+test('private routes redirect to login and next only accepts internal paths', async () => {
+  const gate = await read('src/components/admin/AdminGate.tsx');
+  const app = await read('src/App.tsx');
+  assert.match(gate, /\/login\?next=\$\{encodeURIComponent\(target\)\}/);
+  assert.match(gate, /if \(!session && !AUTH_PATHS\.includes\(path\)\) return <Redirect to=\{loginPath\(/);
+  assert.match(gate, /next\.startsWith\('\/\/'\)/);
+  assert.match(app, /<RequireSession>\{house\}<\/RequireSession>/);
+  assert.match(app, /if \(path !== '\/' && !publicSlug\) return <Redirect to="\/" \/>/);
+});
+
 test('service role key is not referenced by browser source', async () => {
   const source = await read('src/services/auth.ts');
   assert.doesNotMatch(source, /SERVICE_ROLE/i);
