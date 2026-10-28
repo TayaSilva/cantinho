@@ -1,15 +1,18 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { getOption, str } from '../../data/catalog';
 import {
-  CHARACTER_SEATS,
   OPPOSITE_SOFA_A,
-  editorHitboxes,
+  editorHitboxesFor,
+  layoutOffset,
+  layoutTransform,
+  MANSION_PLANTS,
   MUSIC_NOTES,
-  ROOM_OUTLINE,
+  roomOutline,
   sceneFor,
+  seatsFor,
   targetLabels,
-  visitorHotspots,
+  visitorHotspotsFor,
   Z,
 } from '../../data/houseConfig';
 import type { EditorTarget, SceneVariant, VisitorAction } from '../../data/houseConfig';
@@ -23,6 +26,7 @@ import {
   Cushions,
   Computer,
   Desk,
+  DeskChair,
   Armchair,
   Lamp,
   OppositeSofaBack,
@@ -45,8 +49,8 @@ import { Room, StringLights } from './Room';
 
 /** Pessoas 3 e 4 sentam no sofá 2, de costas. A 2, 3 e 4 podem ser ocultadas; 3 e 4 também somem sem o sofá 2. */
 const backAOf = (index: number) => (index < 2 ? undefined : OPPOSITE_SOFA_A);
-const characterRect = (appearance: HouseAppearance, index: number): Rect =>
-  characterHitbox(CHARACTER_SEATS[index], appearance.characters[index].age ?? 'adult', backAOf(index));
+const characterRect = (appearance: HouseAppearance, index: number, variant: SceneVariant): Rect =>
+  characterHitbox(seatsFor(variant)[index], appearance.characters[index].age ?? 'adult', backAOf(index));
 const characterSeated = (appearance: HouseAppearance, index: number) =>
   index === 0 || (appearance.characters[index].enabled !== false && (index < 2 || appearance.furniture.sofa2.visible));
 
@@ -76,83 +80,99 @@ export function SceneSvg({ appearance, variant = appearance.environment.layout, 
   const plantOpt = opt('plants', 'plants');
   const lighting = getOption('lighting', appearance.environment.lighting);
   const lampLit = f.lamp.visible && runtime.lampOn;
-  const glow = lampGlowCenter(lampOpt);
+  const lampShift = layoutOffset(variant, 'lamp');
+  const glowBase = lampGlowCenter(lampOpt);
+  const glow = { x: glowBase.x + lampShift.x, y: glowBase.y + lampShift.y };
+  const notes = layoutOffset(variant, 'radio');
   const dim = theme.dim * (lampLit ? 0.55 : 1);
   const night = theme.stars;
   const pet = appearance.pet;
-  const showPet = variant === 'mansao' && pet.enabled;
+  const mansion = variant === 'mansao';
+  const showPet = mansion && pet.enabled;
+  const seats = seatsFor(variant);
+  const at = (key: Parameters<typeof layoutTransform>[1]) => layoutTransform(variant, key);
 
   return (
     <svg viewBox={`0 0 ${scene.width} ${scene.height}`} className="absolute inset-0 size-full" shapeRendering="crispEdges" role="img" aria-label="Sala do cantinho em pixel art">
       {/* 1–2. piso e paredes */}
       <Room appearance={appearance} variant={variant} />
-      {deco.stringLights && <StringLights />}
+      {deco.stringLights && <StringLights variant={variant} />}
 
       {/* 3. janela e objetos de parede */}
-      <DynamicWindow appearance={appearance} theme={theme} />
-      {f.frame.visible && <PhotoFrame opt={opt('frame', 'frame')} />}
-      {deco.polaroid && <Polaroid />}
-      {f.calendar.visible && <Calendar opt={opt('calendar', 'calendar')} />}
+      <g transform={at('window')}>
+        <DynamicWindow appearance={appearance} theme={theme} />
+      </g>
+      {f.frame.visible && <g transform={at('frame')}><PhotoFrame opt={opt('frame', 'frame')} /></g>}
+      {deco.polaroid && <g transform={at('polaroid')}><Polaroid /></g>}
+      {f.calendar.visible && <g transform={at('calendar')}><Calendar opt={opt('calendar', 'calendar')} /></g>}
 
       {/* 4. móveis do fundo para a frente */}
-      {f.rug.visible && <Rug opt={opt('rug', 'rug')} />}
+      {f.rug.visible && <g transform={at('rug')}><Rug opt={opt('rug', 'rug')} /></g>}
       {deco.backPlant && <Plant opt={plantOpt} origin={[1, 1]} size={7} />}
       {f.bookshelf.visible && <Bookshelf opt={opt('bookshelf', 'bookshelf')} books={getOption('books', appearance.books)} />}
-      {f.tv.visible && <TV opt={opt('tv', 'tv')} on={runtime.tvOn} />}
-      {f.radio.visible && <Radio opt={opt('radio', 'radio')} />}
-      {f.plants.visible && <Plant opt={plantOpt} origin={[108, 3]} size={9} />}
-      {f.sofa.visible && <SofaBack opt={opt('sofa', 'sofa')} />}
-      {f.cushions.visible && <Cushions opt={opt('cushions', 'cushions')} />}
-      {variant === 'mansao' && f.desk.visible && <Desk opt={opt('desk', 'desk')} />}
-      {variant === 'mansao' && f.computer.visible && <Computer opt={opt('computer', 'computer')} />}
-      {variant === 'mansao' && f.armchair.visible && <Armchair opt={opt('armchair', 'armchair')} />}
+      {f.plants.visible && mansion && <Plant opt={plantOpt} origin={MANSION_PLANTS.tv} size={9} />}
+      {mansion && f.armchair.visible && <Armchair opt={opt('armchair', 'armchair')} />}
+      {f.tv.visible && <g transform={at('tv')}><TV opt={opt('tv', 'tv')} on={runtime.tvOn} /></g>}
+      {f.radio.visible && <g transform={at('radio')}><Radio opt={opt('radio', 'radio')} /></g>}
+      {f.plants.visible && !mansion && <Plant opt={plantOpt} origin={[108, 3]} size={9} />}
+      {mansion && f.desk.visible && <Desk opt={opt('desk', 'desk')} />}
+      {mansion && f.computer.visible && <Computer opt={opt('computer', 'computer')} />}
+      {mansion && f.desk.visible && <DeskChair />}
+      {f.sofa.visible && <SofaBack opt={opt('sofa', 'sofa')} transform={at('sofa')} />}
+      {f.cushions.visible && <g transform={at('sofa')}><Cushions opt={opt('cushions', 'cushions')} /></g>}
 
       {/* 5. personagens */}
       {appearance.characters.slice(0, 2).map((look, i) =>
-        characterSeated(appearance, i) ? <Character key={i} look={look} seat={CHARACTER_SEATS[i]} index={i} /> : null,
+        characterSeated(appearance, i) ? <Character key={i} look={look} seat={seats[i]} index={i} /> : null,
       )}
-      {f.sofa.visible && <SofaFront opt={opt('sofa', 'sofa')} />}
-      {f.lamp.visible && <Lamp opt={lampOpt} on={runtime.lampOn} />}
-      {f.table.visible && <Table opt={opt('table', 'table')} items={deco.tableItems} />}
+      {f.sofa.visible && <SofaFront opt={opt('sofa', 'sofa')} transform={at('sofa')} />}
+      {f.lamp.visible && <g transform={at('lamp')}><Lamp opt={lampOpt} on={runtime.lampOn} /></g>}
+      {f.table.visible && <g transform={at('table')}><Table opt={opt('table', 'table')} items={deco.tableItems} /></g>}
 
       {/* 6. animal */}
       {showPet && <Pet pet={pet} happy={runtime.petHappy} sleeping={night && !runtime.petHappy} />}
 
       {/* sofá 2, de frente para o principal: fica mais perto da câmera que a mesa e o pet */}
-      {variant === 'mansao' && f.sofa2.visible && (
+      {mansion && f.sofa2.visible && (
         <g>
-          <OppositeSofaSeat opt={opt('sofa2', 'sofa')} backA={OPPOSITE_SOFA_A} />
+          <g transform={at('sofa')}>
+            <OppositeSofaSeat opt={opt('sofa2', 'sofa')} backA={OPPOSITE_SOFA_A} />
+          </g>
           {[2, 3].map((i) =>
-            characterSeated(appearance, i) ? <CharacterFromBehind key={i} look={appearance.characters[i]} seat={CHARACTER_SEATS[i]} backA={OPPOSITE_SOFA_A} /> : null,
+            characterSeated(appearance, i) ? <CharacterFromBehind key={i} look={appearance.characters[i]} seat={seats[i]} backA={OPPOSITE_SOFA_A} /> : null,
           )}
-          <OppositeSofaBack opt={opt('sofa2', 'sofa')} backA={OPPOSITE_SOFA_A} />
+          <g transform={at('sofa')}>
+            <OppositeSofaBack opt={opt('sofa2', 'sofa')} backA={OPPOSITE_SOFA_A} />
+          </g>
         </g>
       )}
 
-      {f.chest.visible && <Chest opt={opt('chest', 'chest')} open={runtime.chestOpen} />}
+      {f.chest.visible && <g transform={at('chest')}><Chest opt={opt('chest', 'chest')} open={runtime.chestOpen} /></g>}
+      {f.plants.visible && mansion && <Plant opt={plantOpt} origin={MANSION_PLANTS.front} size={11} />}
 
       {/* 7. efeitos */}
       {runtime.musicPlaying && f.radio.visible && (
-        <g>
+        <g transform={`translate(${notes.x} ${notes.y})`}>
           <path className="music-note" d={`M${MUSIC_NOTES.x} ${MUSIC_NOTES.y}h1v-5h3v1h-2v5h-2z`} fill="#46353F" />
           <path className="music-note music-note-late" d={`M${MUSIC_NOTES.x + 7} ${MUSIC_NOTES.y - 4}h1v-4h3v1h-2v4h-2z`} fill="#C98190" />
         </g>
       )}
-      <Lighting dim={dim} lit={lampLit} tint={str(lighting, 'tint')} glowColor={str(lighting, 'glow')} glow={glow} scene={scene} />
+      <Lighting dim={dim} lit={lampLit} tint={str(lighting, 'tint')} glowColor={str(lighting, 'glow')} glow={glow} scene={scene} outline={roomOutline(variant)} />
       {children}
     </svg>
   );
 }
 
-function Lighting({ dim, lit, tint, glowColor, glow, scene }: { dim: number; lit: boolean; tint: string; glowColor: string; glow: { x: number; y: number }; scene: { width: number; height: number } }) {
+function Lighting({ dim, lit, tint, glowColor, glow, scene, outline }: { dim: number; lit: boolean; tint: string; glowColor: string; glow: { x: number; y: number }; scene: { width: number; height: number }; outline: string }) {
+  const clipId = `room-clip-${useId().replace(/[^a-zA-Z0-9-]/g, '')}`;
   return (
     <g pointerEvents="none" shapeRendering="auto">
       <defs>
-        <clipPath id="room-clip">
-          <polygon points={ROOM_OUTLINE} />
+        <clipPath id={clipId}>
+          <polygon points={outline} />
         </clipPath>
       </defs>
-      <g clipPath="url(#room-clip)">
+      <g clipPath={`url(#${clipId})`}>
         <rect width={scene.width} height={scene.height} fill="#1B1430" opacity={dim} className="transition-opacity duration-700" />
         <g opacity={lit ? 1 : 0} className="transition-opacity duration-500">
           <rect width={scene.width} height={scene.height} fill={tint} opacity={0.08} />
@@ -274,8 +294,8 @@ export function HouseScene({
 
         {!editor && (
           <>
-            {visitorHotspots
-              .filter((h) => (!h.requires || f[h.requires].visible) && (h.id !== 'computer' || (variant === 'mansao' && quizReady)))
+            {visitorHotspotsFor(variant)
+              .filter((h) => (!h.requires || f[h.requires].visible) && (h.id !== 'computer' || quizReady))
               .map((h) => (
                 <InteractiveObject
                   key={h.id}
@@ -297,11 +317,11 @@ export function HouseScene({
                   id={`character${i + 1}`}
                   label={c.name}
                   ariaLabel={`Falar com ${c.name}`}
-                  hitbox={characterRect(appearance, i)}
+                  hitbox={characterRect(appearance, i, variant)}
                   scene={scene}
                   showLabel={showLabels}
                   onActivate={() => {
-                    const p = characterAnchor(CHARACTER_SEATS[i], c.age ?? 'adult', backAOf(i));
+                    const p = characterAnchor(seatsFor(variant)[i], c.age ?? 'adult', backAOf(i));
                     say(phrases[i], p.x, p.y);
                   }}
                 />
@@ -354,15 +374,15 @@ const editorRegionPoints = (side: number) => ({
 });
 
 /** Retângulos clicáveis de um alvo do editor (considera visibilidade). */
-export function targetRects(appearance: HouseAppearance, target: EditorTarget): Rect[] {
+export function targetRects(appearance: HouseAppearance, target: EditorTarget, variant: SceneVariant): Rect[] {
   const charIndex = ['character1', 'character2', 'character3', 'character4'].indexOf(target);
-  if (charIndex >= 0) return characterSeated(appearance, charIndex) ? [characterRect(appearance, charIndex)] : [];
+  if (charIndex >= 0) return characterSeated(appearance, charIndex) ? [characterRect(appearance, charIndex, variant)] : [];
   if (target === 'pet') return appearance.pet.enabled ? [petHitbox(appearance.pet)] : [];
   if (target in appearance.furniture) {
     const key = target as keyof HouseAppearance['furniture'];
     if (!appearance.furniture[key].visible) return [];
   }
-  return editorHitboxes[target] ?? [];
+  return editorHitboxesFor(variant)[target] ?? [];
 }
 
 /** Ordem de empilhamento: o que vem depois fica por cima. */
@@ -391,7 +411,7 @@ function EditorRegions({ appearance, variant, selected, onSelect }: { appearance
       <polygon points={points.right} {...props('walls')} />
       <polygon points={points.floor} {...props('floor')} />
       {REGION_ORDER.flatMap((t) =>
-        targetRects(appearance, t).map((r, i) => <rect key={`${t}-${i}`} x={r.x} y={r.y} width={r.w} height={r.h} rx={2} {...props(t)} />),
+        targetRects(appearance, t, variant).map((r, i) => <rect key={`${t}-${i}`} x={r.x} y={r.y} width={r.w} height={r.h} rx={2} {...props(t)} />),
       )}
     </g>
   );

@@ -129,9 +129,6 @@ export const editorHitboxes: Partial<Record<EditorTarget, Rect[]>> = {
   lamp: [{ x: 52, y: 92, w: 30, h: 62 }],
   table: [{ x: 108, y: 120, w: 49, h: 37 }],
   chest: [{ x: 140, y: 160, w: 36, h: 45 }],
-  desk: [{ x: 208, y: 150, w: 55, h: 50 }],
-  computer: [{ x: 220, y: 148, w: 42, h: 48 }],
-  armchair: [{ x: 94, y: 176, w: 40, h: 34 }],
 };
 
 /* ------------------------------------------------------------------
@@ -259,17 +256,119 @@ export const defaultAppearance: HouseAppearance = {
   },
 };
 
-/** Lugar de cada personagem no sofá (eixo c da grade isométrica). */
-export const CHARACTER_SEATS = [52, 68, 52, 68] as const;
-// Sofá 2: mesmo modelo do principal, do outro lado da mesinha e virado para ele.
+/** Lugar de cada personagem no sofá (eixo c da grade isométrica), por layout. */
+const SEATS = { free: [52, 68, 52, 68], mansao: [80, 96, 80, 96] } as const;
+export const seatsFor = (variant: SceneVariant): readonly number[] => SEATS[variant];
+/** Lugares do Cantinho (usados nas miniaturas do editor). */
+export const CHARACTER_SEATS = SEATS.free;
+// Sofá 2 (só na Mini Mansão): mesmo modelo do principal, do outro lado da mesinha e virado para ele.
 // Valor do eixo a onde termina o encosto (as pessoas 3 e 4 aparecem de costas).
-export const OPPOSITE_SOFA_A = 110;
+export const OPPOSITE_SOFA_A = 116;
 
-/** Posição do pet no tapete. */
-export const PET_POSITION = { a: 60, c: 74 } as const;
+/** Posição do pet no tapete (o pet só aparece na Mini Mansão). */
+export const PET_POSITION = { a: 66, c: 90 } as const;
 
 /** Contorno da sala (limita escurecimento e brilho). */
-export const ROOM_OUTLINE = '40,152 34,149 34,69 154,9 160,6 166,9 286,69 286,149 280,152 280,160 160,220 40,160';
+export function roomOutline(variant: SceneVariant): string {
+  const s = variant === 'mansao' ? 150 : 120;
+  const l = 160 - s;
+  const r = 160 + s;
+  const y = 92 + s / 2;
+  return `${l},${y} ${l - 6},${y - 3} ${l - 6},${y - 83} 154,9 160,6 166,9 ${r + 6},${y - 83} ${r + 6},${y - 3} ${r},${y} ${r},${y + 8} 160,${92 + s + 8} ${l},${y + 8}`;
+}
 
 /** Onde as notinhas aparecem quando o rádio toca. */
 export const MUSIC_NOTES = { x: 252, y: 104 };
+
+/* ------------------------------------------------------------------
+ * Layout da Mini Mansão
+ *
+ * Os móveis do Cantinho são desenhados nas posições do Cantinho; na Mini
+ * Mansão cada um é deslocado ao longo dos eixos (a, c) para ocupar a sala
+ * maior. Mesa de computador, computador e poltrona já são desenhados no
+ * lugar da Mini Mansão.
+ * ------------------------------------------------------------------ */
+
+export type LayoutKey = 'window' | 'frame' | 'polaroid' | 'calendar' | 'rug' | 'table' | 'sofa' | 'lamp' | 'tv' | 'radio' | 'chest';
+
+const MANSION_SHIFT: Record<LayoutKey, [number, number]> = {
+  window: [0, -34],
+  frame: [0, 54],
+  polaroid: [0, 98],
+  calendar: [0, 18],
+  rug: [6, 28],
+  table: [6, 28],
+  sofa: [0, 28],
+  lamp: [0, -42],
+  tv: [4, 0],
+  radio: [-2, 0],
+  chest: [-30, 20],
+};
+
+/** Deslocamento na tela (x, y) de um objeto no layout. */
+export function layoutOffset(variant: SceneVariant, key: LayoutKey): { x: number; y: number } {
+  if (variant !== 'mansao') return { x: 0, y: 0 };
+  const [da, dc] = MANSION_SHIFT[key];
+  return { x: da - dc, y: (da + dc) / 2 };
+}
+
+/** `transform` SVG que leva o objeto até o lugar dele no layout. */
+export function layoutTransform(variant: SceneVariant, key: LayoutKey): string | undefined {
+  const { x, y } = layoutOffset(variant, key);
+  return x || y ? `translate(${x} ${y})` : undefined;
+}
+
+const shiftRect = (r: Rect, key: LayoutKey): Rect => {
+  const { x, y } = layoutOffset('mansao', key);
+  return { ...r, x: r.x + x, y: r.y + y };
+};
+
+/** Origem (a, c) da planta ao lado da TV e da planta grande do canto da frente. */
+export const MANSION_PLANTS = { tv: [38, 3] as [number, number], front: [132, 132] as [number, number] };
+
+const HOTSPOT_LAYOUT: Partial<Record<string, LayoutKey>> = { window: 'window', photos: 'frame', calendar: 'calendar', lamp: 'lamp', tv: 'tv', radio: 'radio', chest: 'chest' };
+
+const MANSION_COMPUTER: Rect = { x: 258, y: 111, w: 45, h: 42 };
+
+/** Objetos interativos do visitante no layout escolhido (o computador só existe na Mini Mansão). */
+export function visitorHotspotsFor(variant: SceneVariant): VisitorHotspot[] {
+  if (variant !== 'mansao') return visitorHotspots.filter((h) => h.id !== 'computer');
+  return visitorHotspots.map((h) => {
+    if (h.id === 'computer') return { ...h, hitbox: MANSION_COMPUTER };
+    const key = HOTSPOT_LAYOUT[h.id];
+    return key ? { ...h, hitbox: shiftRect(h.hitbox, key) } : h;
+  });
+}
+
+const TARGET_LAYOUT: Partial<Record<EditorTarget, LayoutKey>> = {
+  window: 'window',
+  frame: 'frame',
+  calendar: 'calendar',
+  rug: 'rug',
+  tv: 'tv',
+  radio: 'radio',
+  sofa: 'sofa',
+  cushions: 'sofa',
+  lamp: 'lamp',
+  table: 'table',
+  chest: 'chest',
+};
+
+const MANSION_HITBOXES: Partial<Record<EditorTarget, Rect[]>> = {
+  plants: [{ x: 150, y: 60, w: 20, h: 42 }, { x: 185, y: 82, w: 20, h: 41 }, { x: 148, y: 187, w: 24, h: 49 }],
+  sofa2: [{ x: 138, y: 150, w: 68, h: 59 }],
+  desk: [{ x: 218, y: 121, w: 87, h: 72 }],
+  computer: [MANSION_COMPUTER],
+  armchair: [{ x: 127, y: 85, w: 56, h: 56 }],
+};
+
+/** Áreas clicáveis de cada móvel no editor, no layout escolhido. */
+export function editorHitboxesFor(variant: SceneVariant): Partial<Record<EditorTarget, Rect[]>> {
+  if (variant !== 'mansao') return editorHitboxes;
+  const out: Partial<Record<EditorTarget, Rect[]>> = {};
+  for (const [target, rects] of Object.entries(editorHitboxes) as [EditorTarget, Rect[]][]) {
+    const key = TARGET_LAYOUT[target];
+    out[target] = key ? rects.map((r) => shiftRect(r, key)) : rects;
+  }
+  return { ...out, ...MANSION_HITBOXES };
+}

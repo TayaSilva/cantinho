@@ -145,19 +145,19 @@ export function OptionThumb({ type, optionId, appearance, slot = 0 }: ThumbProps
       );
     case 'desk':
       return (
-        <Crop viewBox="96 8 60 54">
+        <Crop viewBox="216 112 90 90">
           <Desk opt={opt} />
         </Crop>
       );
     case 'computer':
       return (
-        <Crop viewBox="106 4 36 48">
+        <Crop viewBox="256 106 50 50">
           <Computer opt={opt} />
         </Crop>
       );
     case 'armchair':
       return (
-        <Crop viewBox="88 96 58 58">
+        <Crop viewBox="124 82 62 62">
           <Armchair opt={opt} />
         </Crop>
       );

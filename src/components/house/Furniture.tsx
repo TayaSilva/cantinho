@@ -390,11 +390,9 @@ export function Bookshelf({ opt, books }: { opt: AssetOption; books: AssetOption
       {[3, 17, 31, 45].map((z, i) => (
         <g key={z}>
           <FaceC a={[11, 33]} c={12.15} z={[z - 1.2, z]} fill={shelf} />
-          <BookRow a1={11} a2={33} c={12.2} z1={z} z2={z + 13} palette={palette} seed={7 + i * 13} gap={i === 2 ? [20, 27] : undefined} />
+          <BookRow a1={11} a2={33} c={12.2} z1={z} z2={z + 13} palette={palette} seed={7 + i * 13} />
         </g>
       ))}
-      <IsoBox a={[22, 26]} c={[4, 8]} z={[31, 35]} color="#C47A5A" outline={false} />
-      <IsoBox a={[21.5, 26.5]} c={[3.5, 8.5]} z={[35, 39]} color="#7FA37A" outline={false} />
     </g>
   );
 }
@@ -863,50 +861,113 @@ export function Table({ opt, items }: { opt: AssetOption; items: boolean }) {
  * Mesa de computador, computador e poltrona da Mini Mansão
  * ================================================================ */
 
+/** Altura do tampo da mesa de computador. */
+const DESK_TOP = 23;
+
+/** Mesa encostada na parede direita, no fundo da sala, com tapetinho para a cadeira. */
 export function Desk({ opt }: { opt: AssetOption }) {
   const color = str(opt, 'color');
   const modern = str(opt, 'variant') === 'modern';
+  const panel = shade(color, 0.12);
   return (
     <g>
-      <IsoBox a={[108, 138]} c={[24, 48]} z={[0, 8]} color={color} side={shade(color, 0.2)} />
-      <IsoBox a={[111, 114]} c={[27, 30]} z={[8, 43]} color={shade(color, 0.1)} outline={false} />
-      <IsoBox a={[132, 135]} c={[42, 45]} z={[8, 43]} color={shade(color, 0.1)} outline={false} />
-      <IsoBox a={[106, 140]} c={[22, 50]} z={[8, modern ? 10 : 11]} color={color} />
-      {!modern && <FaceC a={[109, 137]} c={48.1} z={[2, 7]} fill={shade(color, 0.15)} />}
-      {modern && <FaceA a={108.1} c={[27, 47]} z={[1, 7]} fill={shade(color, 0.12)} />}
+      <OnFloor z={0.2}>
+        <URect u={[113, 145]} v={[28, 52]} fill="#9CC9B4" />
+        <URect u={[115, 143]} v={[30, 50]} fill="#B9DCCB" />
+      </OnFloor>
+      {modern ? (
+        [
+          [112, 3],
+          [112, 23],
+          [143, 3],
+          [143, 23],
+        ].map(([a, c]) => <IsoBox key={`${a}-${c}`} a={[a, a + 2]} c={[c, c + 2]} z={[0, DESK_TOP - 2]} color={panel} outline={false} />)
+      ) : (
+        <g>
+          <IsoBox a={[112, 115]} c={[3, 25]} z={[0, DESK_TOP - 3]} color={panel} />
+          <IsoBox a={[131, 145]} c={[3, 25]} z={[0, DESK_TOP - 3]} color={color} />
+          {[1.5, 8, 14.5].map((z) => (
+            <g key={z}>
+              <FaceC a={[132.5, 143.5]} c={25.1} z={[z, z + 5]} fill={shade(color, -0.08)} />
+              <FaceC a={[136.5, 139.5]} c={25.2} z={[z + 2, z + 3]} fill="#F8E6B5" />
+            </g>
+          ))}
+        </g>
+      )}
+      <IsoBox a={[111, 146]} c={[2, 26]} z={[DESK_TOP - (modern ? 2 : 3), DESK_TOP]} color={color} />
+      {modern && <FaceC a={[124, 134]} c={26.1} z={[DESK_TOP - 1.6, DESK_TOP - 0.6]} fill={shade(color, 0.2)} />}
     </g>
   );
 }
 
+/** Monitor, teclado e mouse sobre a mesa (o modelo clássico tem gabinete). */
 export function Computer({ opt }: { opt: AssetOption }) {
   const color = str(opt, 'color');
   const flat = str(opt, 'variant') === 'flat';
-  const screen = flat ? '#BFE3F0' : '#8EC7D6';
+  const z = DESK_TOP;
   return (
     <g>
-      <IsoBox a={[114, 128]} c={[29, 43]} z={[10, 12]} color={shade(color, 0.18)} />
-      <IsoBox a={[118, 125]} c={[31, 41]} z={[12, flat ? 27 : 31]} color={color} />
-      <FaceC a={[118.8, 124.2]} c={41.1} z={[15, flat ? 25 : 29]} fill={screen} />
-      <FaceA a={125.1} c={[31, 40]} z={[15, flat ? 25 : 29]} fill={shade(screen, 0.12)} />
-      <FaceC a={[120, 123]} c={41.2} z={[17, 19]} fill="#F4EDE4" />
-      <IsoBox a={[117, 129]} c={[30, 43]} z={[10, 12]} color={shade(color, -0.12)} />
-      <FaceC a={[118, 126]} c={43.1} z={[10.5, 11.5]} fill="#46353F" />
+      {!flat && (
+        <g>
+          <IsoBox a={[137, 144]} c={[4, 14]} z={[z, z + 15]} color={shade(color, 0.1)} />
+          <FaceC a={[138.5, 142.5]} c={14.1} z={[z + 11, z + 12]} fill="#46353F" />
+          <FaceC a={[140, 141]} c={14.1} z={[z + 3, z + 4]} fill="#7FD18B" />
+        </g>
+      )}
+      <IsoBox a={[125, 129]} c={[4, 8]} z={[z, z + 1]} color={shade(color, 0.2)} />
+      <IsoBox a={[126.5, 127.5]} c={[5, 6]} z={[z + 1, z + 4]} color={shade(color, 0.2)} outline={false} />
+      {flat ? (
+        <g>
+          <IsoBox a={[118, 136]} c={[5, 7]} z={[z + 4, z + 16]} color={color} />
+          <FaceC a={[119, 135]} c={7.1} z={[z + 5, z + 15]} fill="#BFE3F0" />
+          <FaceC a={[120.5, 126]} c={7.15} z={[z + 11, z + 13.5]} fill="#FFFFFF" opacity={0.55} />
+        </g>
+      ) : (
+        <g>
+          <IsoBox a={[119, 135]} c={[3, 12]} z={[z + 3, z + 17]} color={color} />
+          <FaceC a={[120.5, 133.5]} c={12.1} z={[z + 4.5, z + 15.5]} fill={shade(color, 0.35)} />
+          <FaceC a={[121.5, 132.5]} c={12.15} z={[z + 5.5, z + 14.5]} fill="#8EC7D6" />
+          <FaceC a={[122.5, 128]} c={12.2} z={[z + 11, z + 13]} fill="#FFFFFF" opacity={0.55} />
+        </g>
+      )}
+      <IsoBox a={[119, 132]} c={[15, 19]} z={[z, z + 1]} color="#F4EDE4" />
+      <FloorQuad a={[120, 131]} c={[16, 18]} z={z + 1.05} fill="#D9CFC4" />
+      <IsoBox a={[134, 136.5]} c={[15.5, 18]} z={[z, z + 1]} color="#F4EDE4" />
     </g>
   );
 }
 
+/** Cadeira giratória de frente para a mesa (aparece junto com a mesa). */
+export function DeskChair() {
+  const dark = '#4F4A5E';
+  return (
+    <g>
+      <IsoBox a={[122, 134]} c={[38, 39]} z={[0, 1.2]} color={dark} outline={false} />
+      <IsoBox a={[127.5, 128.5]} c={[32, 45]} z={[0, 1.2]} color={dark} outline={false} />
+      <IsoBox a={[127.3, 128.7]} c={[37.8, 39.2]} z={[1.2, 10]} color="#3B3646" outline={false} />
+      <IsoBox a={[122, 134]} c={[32, 44]} z={[10, 12.5]} color={dark} />
+      <IsoBox a={[123, 133]} c={[43, 45]} z={[12.5, 27]} color={dark} />
+    </g>
+  );
+}
+
+/** Poltrona no canto do fundo, perto da janela, sobre um tapetinho. */
 export function Armchair({ opt }: { opt: AssetOption }) {
   const color = str(opt, 'color');
   const modern = str(opt, 'variant') === 'modern';
   const side = shade(color, 0.18);
   return (
     <g>
-      <IsoBox a={[96, 116]} c={[108, 137]} z={[0, 5]} color={side} outline={false} />
-      <IsoBox a={[94, 118]} c={[108, 119]} z={[5, modern ? 24 : 27]} color={color} />
-      <IsoBox a={[94, 101]} c={[117, 138]} z={[5, 21]} color={color} />
-      <IsoBox a={[111, 118]} c={[117, 138]} z={[5, 21]} color={color} />
-      <IsoBox a={[99, 114]} c={[114, 132]} z={[5, 11]} color={shade(color, -0.08)} />
-      {modern && <FaceA a={101.1} c={[116, 130]} z={[12, 16]} fill={shade(color, 0.12)} />}
+      <OnFloor z={0.2}>
+        <URect u={[14, 52]} v={[16, 60]} fill={shade(color, -0.35)} />
+        <URect u={[16, 50]} v={[18, 58]} fill={shade(color, -0.55)} />
+      </OnFloor>
+      <IsoBox a={[22, 42]} c={[22, 51]} z={[0, 5]} color={side} outline={false} />
+      <IsoBox a={[20, 44]} c={[22, 33]} z={[5, modern ? 24 : 27]} color={color} />
+      <IsoBox a={[20, 27]} c={[31, 52]} z={[5, 21]} color={color} />
+      <IsoBox a={[25, 40]} c={[28, 46]} z={[5, 11]} color={shade(color, -0.08)} />
+      <IsoBox a={[37, 44]} c={[31, 52]} z={[5, 21]} color={color} />
+      {modern && <FaceA a={27.1} c={[30, 44]} z={[12, 16]} fill={shade(color, 0.12)} />}
     </g>
   );
 }

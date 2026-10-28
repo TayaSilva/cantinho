@@ -131,10 +131,11 @@ function WallPattern({ patternId, side }: { patternId: string; side: number }) {
 }
 
 /** Varal de luzinhas no topo das paredes. */
-export function StringLights() {
+export function StringLights({ variant = 'free' }: { variant?: SceneVariant }) {
   const colors = ['#FFD89A', '#F8E6B5', '#F2A7B5'];
+  const count = variant === 'mansao' ? 15 : 12;
   const walls = (['L', 'R'] as const).map((w) =>
-    Array.from({ length: 12 }, (_, i) => {
+    Array.from({ length: count }, (_, i) => {
       const u = 6 + i * 10;
       const z = 73 - (i % 2 ? 2 : 0);
       return w === 'L' ? iso(0, u, z) : iso(u, 0, z);
