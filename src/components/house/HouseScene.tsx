@@ -48,6 +48,8 @@ import {
 import { InteractiveObject } from './InteractiveObject';
 import { iso, pts } from './iso';
 import { Pet, petAnchor, petHitbox } from './Pet';
+import { petKind } from './Pet';
+import { playPetSound } from '../../services/petSound';
 import { Room, StringLights } from './Room';
 
 /** Pessoas 3 e 4 sentam no sofá 2, de costas. A 2, 3 e 4 podem ser ocultadas; 3 e 4 também somem sem o sofá 2. */
@@ -341,6 +343,7 @@ export function HouseScene({
                 showLabel={showLabels}
                 onActivate={() => {
                   setPetHappy(true);
+                  playPetSound(petKind(pet));
                   const p = petAnchor(pet);
                   say(content.phrases.pet.replace('{nome}', pet.name), p.x, p.y);
                 }}

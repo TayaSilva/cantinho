@@ -15,7 +15,7 @@ export const PREMIUM_FEATURES: Record<PremiumFeature, { label: string; title: st
   audios: { label: 'Áudios', title: 'Mais músicas no rádio', body: `Monte uma playlist com até ${limits.audios} áudios.` },
   letters: { label: 'Cartas', title: 'Mais cartas na estante', body: `Escreva até ${limits.letters} cartas no livro do cantinho.` },
   chestTexts: { label: 'Textos do baú', title: 'Mais mensagens no baú', body: `Guarde até ${limits.chestTexts} mensagens surpresa no baú.` },
-  storage: { label: 'Armazenamento', title: 'O espaço do cantinho acabou', body: `A Mini Mansão tem ${limits.storageMb} MB para todas as memórias.` },
+  storage: { label: 'Armazenamento', title: 'O espaço do cantinho acabou', body: `A Mini Mansão tem ${Math.round(limits.storageMb)} MB para todas as memórias.` },
   customization: { label: 'Personalização', title: 'Personalização completa', body: 'Use todos os modelos, cores e decorações para deixar o cantinho com a cara de vocês.' },
   radio: { label: 'Rádio', title: 'O rádio faz parte da Mini Mansão', body: `Monte uma playlist com até ${limits.audios} áudios e deixe a trilha do cantinho tocando.` },
   tv: { label: 'TV', title: 'A TV faz parte da Mini Mansão', body: `Assista até ${limits.videos} vídeos na TV do cantinho.` },

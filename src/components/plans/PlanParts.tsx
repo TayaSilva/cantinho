@@ -124,7 +124,8 @@ export function StorageMeter({ usedBytes, limitMb }: { usedBytes: number | null;
   const limitBytes = limitMb * 1024 * 1024;
   const ratio = usedBytes === null ? 0 : Math.min(1, usedBytes / limitBytes);
   const usedMb = usedBytes === null ? null : Math.round(usedBytes / (1024 * 1024));
-  const usageLabel = usedMb === null ? `— de ${limitMb} MB` : `${usedMb} MB de ${limitMb} MB`;
+  const displayLimitMb = Math.round(limitMb);
+  const usageLabel = usedMb === null ? `— de ${displayLimitMb} MB` : `${usedMb} MB de ${displayLimitMb} MB`;
   const tone = ratio >= 0.9 ? 'bg-red-500' : ratio >= 0.75 ? 'bg-amber-500' : 'bg-mansao';
   return (
     <div className="flex flex-col gap-2">
@@ -136,7 +137,7 @@ export function StorageMeter({ usedBytes, limitMb }: { usedBytes: number | null;
         role="meter"
         aria-label="Armazenamento utilizado"
         aria-valuemin={0}
-        aria-valuemax={limitMb}
+        aria-valuemax={displayLimitMb}
         aria-valuenow={usedMb ?? undefined}
         aria-valuetext={usedMb === null ? 'Uso ainda não disponível' : usageLabel}
         className="h-2.5 overflow-hidden rounded-full bg-stone-100"
@@ -232,7 +233,7 @@ export function PlanComparison({ currentPlanId, onChoose }: { currentPlanId: Pla
             <span className="text-stone-500">· {free.durationLabel} de acesso</span>
           </p>
           <ul className="flex flex-col gap-2.5 text-stone-700">
-            <Feature>{free.limits.storageMb} MB de armazenamento total</Feature>
+            <Feature>{Math.round(free.limits.storageMb)} MB de armazenamento total</Feature>
             <Feature>{free.limits.photos} fotos, {free.limits.audios} áudio, {free.limits.letters} carta e {free.limits.chestTexts} texto do baú</Feature>
             <Feature>{free.limits.characters} personagens</Feature>
             <Feature>{free.customization}</Feature>
@@ -260,7 +261,7 @@ export function PlanComparison({ currentPlanId, onChoose }: { currentPlanId: Pla
             <span className="text-stone-500">· pagamento único · {mansao.durationLabel} de acesso</span>
           </p>
           <ul className="flex flex-col gap-2.5 text-stone-700">
-            <Feature>{mansao.limits.storageMb} MB de armazenamento total</Feature>
+            <Feature>{Math.round(mansao.limits.storageMb)} MB de armazenamento total</Feature>
             <Feature>{mansao.limits.photos} fotos, {mansao.limits.videos} vídeos, {mansao.limits.audios} áudios, {mansao.limits.letters} cartas e {mansao.limits.chestTexts} textos do baú</Feature>
             <Feature>Até {mansao.limits.characters} personagens e {mansao.limits.pets} pet</Feature>
             <Feature>Rádio e TV incluídos</Feature>

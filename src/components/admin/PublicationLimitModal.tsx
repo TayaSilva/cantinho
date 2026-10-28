@@ -149,5 +149,5 @@ export function PublicationLimitModal({ open, doc, details, onClose, onLearnMore
 }
 
 function formatMb(bytes: number) {
-  return `${(bytes / (1024 * 1024)).toFixed(bytes >= 1024 * 1024 * 10 ? 0 : 1)} MB`;
+  return `${Math.round(bytes / (1024 * 1024))} MB`;
 }

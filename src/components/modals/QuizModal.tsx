@@ -20,6 +20,7 @@ export function QuizModal({ open, onClose, quiz }: { open: boolean; onClose: () 
   if (!open || !quiz.published || !ready) return null;
   const question = questions[step];
   const answer = answers[step];
+  const optionId = (index: number) => question.options[index]?.id?.trim() || `option-${index}`;
   const choose = (id: string) => setAnswers((current) => {
     const next = current.slice();
     next[step] = id;
@@ -50,13 +51,16 @@ export function QuizModal({ open, onClose, quiz }: { open: boolean; onClose: () 
             </div>
             <h3 className="font-pixel text-xl leading-relaxed text-stone-900">{question.prompt}</h3>
             <div className="grid gap-2.5">
-              {question.options.map((option) => (
-                <button key={option.id} type="button" onClick={() => choose(option.id)} className={'rounded-xl border-2 px-4 py-3 text-left text-sm transition-colors ' + (answer === option.id ? 'border-mansao bg-mansao-soft font-semibold text-mansao-deep' : 'border-stone-200 bg-white hover:border-mansao/60')}>
+              {question.options.map((option, optionIndex) => {
+                const id = optionId(optionIndex);
+                return (
+                <button key={id} type="button" onClick={() => choose(id)} className={'rounded-xl border-2 px-4 py-3 text-left text-sm transition-colors ' + (answer === id ? 'border-mansao bg-mansao-soft font-semibold text-mansao-deep' : 'border-stone-200 bg-white hover:border-mansao/60')}>
                   {option.text}
                 </button>
-              ))}
+                );
+              })}
             </div>
-            <button type="button" data-autofocus disabled={!answer} onClick={next} className="h-11 cursor-pointer rounded-xl bg-stone-900 px-4 text-sm font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-40">
+            <button type="button" data-autofocus disabled={answer === undefined} onClick={next} className="h-11 cursor-pointer rounded-xl bg-stone-900 px-4 text-sm font-semibold text-white hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-40">
               {step === questions.length - 1 ? 'Ver resultado' : 'Próxima pergunta'}
             </button>
           </>

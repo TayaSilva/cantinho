@@ -26,7 +26,7 @@ export function limitLabel(kind: MediaKind): string {
 }
 
 export function formatSize(bytes: number): string {
-  return bytes >= MB ? `${(bytes / MB).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return bytes >= MB ? `${Math.max(1, Math.round(bytes / MB))} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
 /** Devolve a mensagem do problema, ou null se o arquivo pode ser enviado. */

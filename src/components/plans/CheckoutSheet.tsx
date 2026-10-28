@@ -10,12 +10,6 @@ import { formatPlanDate, mansaoButton, Sheet } from './PlanParts';
 type Step = { kind: 'summary' } | { kind: 'processing' } | { kind: 'redirecting' } | { kind: 'result'; result: CheckoutResult; simulated: boolean };
 type DevChoice = MockPaymentOutcome | 'api';
 
-const METHODS: { label: string; icon: 'pix' | 'card'; note: string }[] = [
-  { label: 'Pix', icon: 'pix', note: 'Aprovação em instantes' },
-  { label: 'Crédito', icon: 'card', note: 'À vista' },
-  { label: 'Débito', icon: 'card', note: 'Conforme o banco' },
-];
-
 const DEV_CHOICES: { id: DevChoice; label: string }[] = [{ id: 'api', label: 'Mercado Pago (teste)' }, ...MOCK_PAYMENT_OUTCOMES];
 const CONNECTION_ERROR = 'Não conseguimos falar com o serviço de pagamento.';
 
@@ -80,22 +74,6 @@ export function CheckoutSheet({ open, mode, houseId, houseName, onClose, onBackT
           {mode === 'renew' && (
             <p className="-mt-2 text-xs leading-relaxed text-stone-500">Se a Mini Mansão ainda estiver ativa, os 6 meses são somados ao vencimento atual — você não perde nenhum dia.</p>
           )}
-
-          <div className="flex flex-col gap-2.5">
-            <h3 className="text-[13px] font-semibold">Meios de pagamento</h3>
-            <ul className="grid grid-cols-3 gap-2">
-              {METHODS.map((method) => (
-                <li key={method.label} className="flex flex-col items-center gap-1 rounded-xl border border-stone-200 px-2 py-3 text-center text-[13px] text-stone-700">
-                  <AdminIcon name={method.icon} className="size-5 text-stone-500" />
-                  {method.label}
-                  <span className="text-[11px] leading-tight text-stone-500">{method.note}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="text-xs leading-relaxed text-stone-500">
-              Você será levado ao Mercado Pago para escolher o meio de pagamento (os disponíveis podem variar). A Mini Mansão só é liberada depois que o Mercado Pago confirmar o pagamento — o Cantinho não pede dados de cartão, CPF ou banco.
-            </p>
-          </div>
 
           {plansDemoEnabled && (
             <div className="flex flex-col gap-2 rounded-xl border border-dashed border-stone-300 bg-stone-50 p-3">
