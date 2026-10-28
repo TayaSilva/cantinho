@@ -73,11 +73,13 @@ de instalações antigas ficam suspensas para preservar a regra da primeira vers
 Em produção, configure `VITE_LOCAL_MODE=false`, `VITE_SUPABASE_URL` e
 `VITE_SUPABASE_ANON_KEY` no frontend. Configure `SUPABASE_URL`,
 `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_BUCKET`,
-`APP_ORIGIN` e, opcionalmente, `MAX_STORAGE_BYTES` somente no ambiente server-side.
+`APP_ORIGIN`, `SHARE_TOKEN_SECRET` e, opcionalmente, `MAX_STORAGE_BYTES` somente no ambiente server-side.
 Nunca coloque `SUPABASE_SERVICE_ROLE_KEY` em uma variável `VITE_*`.
 
-`/` usa o documento demo embutido e não grava alterações. `/c/:slug` exige
-sessão autenticada e membership; compartilhamento público permanece desativado.
+`/` usa o documento demo embutido e não grava alterações. `/c/:token` é um link
+de compartilhamento não listado: qualquer pessoa com a URL pode abrir sem login,
+mas somente a versão publicada é entregue. O token é validado no servidor e as
+mídias continuam privadas no Storage.
 `/meu-cantinho` abre a casa autenticada e `/configuracoes` mostra as opções de
 privacidade da conta.
 

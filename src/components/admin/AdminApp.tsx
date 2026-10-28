@@ -76,9 +76,17 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
   };
 
   const share = async () => {
-    const result = await sharePublicHouse(house.house_id);
-    if (!result) return;
-    setShareNotice(result === 'shared' ? 'Compartilhado!' : 'Link copiado!');
+    if (!house.house.published_at) {
+      setShareNotice('Publique o cantinho antes de compartilhá-lo.');
+      return;
+    }
+    try {
+      const result = await sharePublicHouse(house.house_id);
+      if (!result) return;
+      setShareNotice(result === 'shared' ? 'Compartilhado!' : 'Link copiado!');
+    } catch (cause) {
+      setShareNotice(cause instanceof Error ? cause.message : 'Não foi possível criar o link.');
+    }
   };
   const clearShareNotice = useCallback(() => setShareNotice(null), []);
 
@@ -316,7 +324,7 @@ function MoreMenu({ canUndo, onUndo, onReset, onShare, canSave, onSave, publishe
               Restaurar padrão
             </button>
           )}
-          <button role="menuitem" type="button" className={item} disabled title="Compartilhamento estará disponível em breve." onClick={run(onShare)}>
+          <button role="menuitem" type="button" className={item} onClick={run(onShare)}>
             <AdminIcon name="link" className="size-[18px]" />
             Compartilhar link
           </button>

@@ -28,12 +28,23 @@ test('server ownership checks bind requested houses to authenticated membership'
   assert.match(source, /requireSlugHouse/);
 });
 
-test('slug route is authenticated and never public by slug alone', async () => {
+test('slug route stays private while bearer links expose published content', async () => {
   const source = await read('api/house/by-slug/[slug].mjs');
   assert.match(source, /requireSlugHouse\(req/);
   assert.match(source, /if \(!context\) return fail\(res, 404/);
   const publicSource = await read('api/public/house/[token].mjs');
-  assert.match(publicSource, /return fail\(res, 410/);
+  assert.doesNotMatch(publicSource, /return fail\(res, 410/);
+  assert.match(publicSource, /req\.method !== 'GET'/);
+  assert.match(publicSource, /resolveShareToken/);
+  assert.match(publicSource, /published_at=not\.is\.null/);
+  assert.match(publicSource, /status=eq\.published/);
+  assert.match(publicSource, /hydrateMedia/);
+  const shareApi = await read('api/houses/share-links.mjs');
+  assert.match(shareApi, /published_at/);
+  const supabase = await read('api/_lib/supabase.mjs');
+  assert.match(supabase, /createHmac/);
+  assert.match(supabase, /SHARE_TOKEN_SECRET/);
+  assert.match(supabase, /resolution=merge-duplicates/);
 });
 
 test('media authorization is scoped by house and owner, with server-side limits', async () => {
@@ -54,7 +65,14 @@ test('private routes redirect to login and next only accepts internal paths', as
   assert.match(gate, /if \(!session && !AUTH_PATHS\.includes\(path\)\) return <Redirect to=\{loginPath\(/);
   assert.match(gate, /next\.startsWith\('\/\/'\)/);
   assert.match(app, /<RequireSession>\{house\}<\/RequireSession>/);
-  assert.match(app, /if \(path !== '\/' && !publicSlug\) return <Redirect to="\/" \/>/);
+  assert.match(app, /if \(path !== '\/' && !shareToken\) return <Redirect to="\/" \/>/);
+  assert.match(app, /return demo \|\| shareToken \? house : <RequireSession>/);
+  assert.match(app, /\/api\/public\/house/);
+  assert.doesNotMatch(app, /<ShareButton disabled/);
+  const admin = await read('src/components/admin/AdminApp.tsx');
+  const houses = await read('src/components/account/MyHousesPage.tsx');
+  assert.doesNotMatch(admin, /disabled title=.*Compartilhamento/);
+  assert.doesNotMatch(houses, /disabled=\{houseStatus\(item\) === 'draft'\}/);
 });
 
 test('service role key is not referenced by browser source', async () => {

@@ -93,8 +93,17 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
   const preview = (id: string) => window.open(`/?preview=draft&house=${encodeURIComponent(id)}`, '_blank', 'noopener');
 
   const share = async (id: string) => {
-    const result = await sharePublicHouse(id);
-    setToast(result === 'shared' ? 'Compartilhado!' : result === 'copied' ? 'Link copiado!' : 'Não foi possível criar o link.');
+    const item = houses.find((house) => house.house_id === id);
+    if (item && houseStatus(item) === 'draft') {
+      setToast('Publique o cantinho antes de compartilhá-lo.');
+      return;
+    }
+    try {
+      const result = await sharePublicHouse(id);
+      setToast(result === 'shared' ? 'Compartilhado!' : result === 'copied' ? 'Link copiado!' : 'Não foi possível criar o link.');
+    } catch (cause) {
+      setToast(cause instanceof Error ? cause.message : 'Não foi possível criar o link.');
+    }
   };
 
   const confirmDelete = async () => {
@@ -179,7 +188,7 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
                       <span className="sr-only sm:not-sr-only">Ver</span>
                     </Button>
                     {owner && (
-                      <Button onClick={() => void share(item.house_id)} disabled={houseStatus(item) === 'draft'} title={houseStatus(item) === 'draft' ? 'Publique o cantinho para poder compartilhá-lo' : 'Compartilhar link'}>
+                      <Button onClick={() => void share(item.house_id)} title="Compartilhar link">
                         <AdminIcon name="external" className="size-4" />
                         <span className="sr-only sm:not-sr-only">Compartilhar</span>
                       </Button>

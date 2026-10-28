@@ -4,10 +4,12 @@ import { dbFetch, hydrateMedia, resolveShareToken } from '../../_lib/supabase.mj
 export default async function handler(req, res) {
   cors(res);
   if (options(req, res)) return;
-  return fail(res, 410, 'Compartilhamento público ainda não está disponível.');
   if (req.method !== 'GET') return fail(res, 405, 'Método não permitido.');
   try {
-    const share = await resolveShareToken(req.query?.token);
+    const token = typeof req.query?.token === 'string'
+      ? req.query.token
+      : decodeURIComponent(new URL(req.url || '/', 'http://localhost').pathname.split('/').pop() || '');
+    const share = await resolveShareToken(token);
     if (!share) return fail(res, 404, 'Link do cantinho inválido ou revogado.');
     const lookup = await dbFetch(`houses?id=eq.${encodeURIComponent(share.house_id)}&status=eq.active&published_at=not.is.null&select=id&limit=1`);
     const houses = await lookup.json();
@@ -16,7 +18,6 @@ export default async function handler(req, res) {
     const rows = await response.json();
     if (!response.ok || !rows[0]) return fail(res, 404, 'O cantinho ainda não foi publicado.');
     const document = await hydrateMedia(rows[0].document, share.house_id);
-    res.setHeader('Set-Cookie', `casinha_share=${encodeURIComponent(share.house_id)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=3600`);
     return json(res, 200, document, { 'cache-control': 'private, no-store', 'x-robots-tag': 'noindex, nofollow' });
   } catch (error) {
     return fail(res, 500, error instanceof Error ? error.message : 'Erro interno.');

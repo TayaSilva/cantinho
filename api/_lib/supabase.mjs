@@ -1,10 +1,11 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 export const BUCKET = process.env.SUPABASE_BUCKET || 'casinha-media';
+const SHARE_TOKEN_SECRET = process.env.SHARE_TOKEN_SECRET || SUPABASE_SERVICE_ROLE_KEY;
 
 export function assertConfig() {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) throw new Error('Supabase não está configurado nas variáveis da Vercel.');
@@ -130,11 +131,15 @@ export function tokenHash(token) {
 }
 
 export async function createShareToken(houseId, userId) {
-  const token = randomBytes(32).toString('base64url');
-  const response = await dbFetch('house_share_links', {
+  // O token é estável por cantinho, mas continua sendo um segredo derivado
+  // apenas no servidor. O banco guarda somente o hash.
+  const token = createHmac('sha256', SHARE_TOKEN_SECRET)
+    .update(`casinha:house-share:v1:${houseId}`)
+    .digest('base64url');
+  const response = await dbFetch('house_share_links?on_conflict=token_hash', {
     method: 'POST',
-    headers: { Prefer: 'return=representation' },
-    body: JSON.stringify([{ house_id: houseId, token_hash: tokenHash(token), created_by: userId }]),
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify([{ house_id: houseId, token_hash: tokenHash(token), expires_at: null, revoked_at: null, created_by: userId }]),
   });
   if (!response.ok) throw new Error(await response.text());
   return token;

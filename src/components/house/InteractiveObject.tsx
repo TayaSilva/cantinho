@@ -24,7 +24,7 @@ const LABEL_POS: Record<LabelPosition, string> = {
 /**
  * Área clicável invisível sobre um objeto da cena.
  * É um <button> de verdade: funciona com mouse, toque e teclado (Tab + Enter).
- * No hover/foco aparece um contorno pixelado; no modo ajuda, o nome do objeto.
+ * No hover/foco aparece uma setinha de pixel em cima; no modo ajuda, o nome do objeto.
  */
 export function InteractiveObject({ id, label, ariaLabel, hitbox, onActivate, showLabel, pressed, labelPosition = 'top' }: InteractiveObjectProps) {
   return (

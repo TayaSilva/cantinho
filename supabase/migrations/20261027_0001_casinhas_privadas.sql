@@ -62,8 +62,9 @@ on conflict (id) do update set
   file_size_limit = 52428800,
   allowed_mime_types = excluded.allowed_mime_types;
 
--- Compartilhamento público fica preparado no banco, mas sem política pública
--- nem endpoint público habilitado nesta versão.
+-- O compartilhamento público usa bearer tokens validados por endpoint server-side.
+-- Não há política pública no banco: o endpoint consulta com a chave de serviço,
+-- valida o token e gera URLs temporárias para as mídias privadas.
 drop policy if exists "published house is public" on public.house_documents;
 
 commit;
