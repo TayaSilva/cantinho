@@ -204,7 +204,7 @@ export const defaultAppearance: HouseAppearance = {
     },
     {
       enabled: false,
-      name: 'Pessoa 3',
+      name: '',
       age: 'adult',
       skinTone: 'skin.1',
       hairStyle: 'hair.chanel',
@@ -216,7 +216,7 @@ export const defaultAppearance: HouseAppearance = {
     },
     {
       enabled: false,
-      name: 'Pessoa 4',
+      name: '',
       age: 'adult',
       skinTone: 'skin.4',
       hairStyle: 'hair.rabo',

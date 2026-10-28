@@ -80,9 +80,16 @@ function migrate(raw: unknown): HouseDocument {
   const base = defaultDocument();
   if (!raw || typeof raw !== 'object') return base;
   const doc = raw as Partial<HouseDocument>;
+  const appearance = mergeDefaults<HouseAppearance>(base.appearance, doc.appearance);
+
+  // Remove os nomes-placeholder usados por versões anteriores no default.
+  // Nomes personalizados continuam preservados.
+  if (appearance.characters[2]?.name === 'Pessoa 3') appearance.characters[2].name = '';
+  if (appearance.characters[3]?.name === 'Pessoa 4') appearance.characters[3].name = '';
+
   return {
     schemaVersion: 1,
-    appearance: mergeDefaults<HouseAppearance>(base.appearance, doc.appearance),
+    appearance,
     content: mergeDefaults<HouseContent>(base.content, doc.content),
     updatedAt: typeof doc.updatedAt === 'string' ? doc.updatedAt : base.updatedAt,
   };
