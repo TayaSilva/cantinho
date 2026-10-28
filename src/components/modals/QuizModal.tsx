@@ -14,11 +14,12 @@ export function QuizModal({ open, onClose, quiz }: { open: boolean; onClose: () 
       setAnswers([]);
       setFinished(false);
     }
-  }, [open, quiz]);
+  }, [open]);
 
   const ready = questions.length > 0 && questions.every((question) => question.prompt.trim() && question.options.length >= 2 && question.options.every((option) => option.text.trim()));
   if (!open || !quiz.published || !ready) return null;
   const question = questions[step];
+  if (!question) return null;
   const answer = answers[step];
   const optionId = (index: number) => question.options[index]?.id?.trim() || `option-${index}`;
   const choose = (id: string) => setAnswers((current) => {

@@ -145,6 +145,15 @@ function notifyServerChange(key: string, doc: HouseDocument) {
   localStorage.setItem('casinha:server-sync', String(Date.now()));
 }
 
+/** Só guarda o cache local. Leituras não avisam ninguém: quem escuta STORE_EVENT recarrega e entraria em loop. */
+function cacheServerDocument(key: string, doc: HouseDocument) {
+  try {
+    localStorage.setItem(key, JSON.stringify(doc));
+  } catch {
+    // Cache é opcional.
+  }
+}
+
 async function bootstrap(houseId: string): Promise<HouseDocument | null> {
   const doc = defaultDocument();
   const response = await request(endpoint('/api/house/bootstrap', houseId), {
@@ -162,7 +171,7 @@ export async function loadPublished(houseId = LEGACY_HOUSE_ID): Promise<HouseDoc
   const response = await request(endpoint('/api/house/bootstrap', houseId));
   const saved = response ? await readApiDocument(response) : null;
   if (saved) {
-    notifyServerChange(storageKey('published', houseId), saved);
+    cacheServerDocument(storageKey('published', houseId), saved);
     return saved;
   }
   if (response?.status === 404) {
@@ -177,7 +186,7 @@ export async function loadDraft(houseId = LEGACY_HOUSE_ID): Promise<HouseDocumen
   const response = await request(endpoint('/api/house/draft', houseId));
   const saved = response ? await readApiDocument(response) : null;
   if (saved) {
-    notifyServerChange(storageKey('draft', houseId), saved);
+    cacheServerDocument(storageKey('draft', houseId), saved);
     return saved;
   }
   return read(storageKey('draft', houseId)) ?? (await loadPublished(houseId));
