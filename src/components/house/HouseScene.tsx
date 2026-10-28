@@ -289,7 +289,7 @@ export function HouseScene({
   const quizReady = content.quiz.published && content.quiz.questions.length > 0 && content.quiz.questions.every((q) => q.prompt.trim() && q.options.length >= 2 && q.options.every((option) => option.text.trim()));
   const sceneWidth = fitWidth * zoom;
   const editor = mode === 'editor';
-  const phrases = [content.phrases.character1, content.phrases.character2, content.phrases.character3, content.phrases.character4];
+  const phrases = [content.phrases.character1, content.phrases.character2, content.phrases.character3, content.phrases.character4].map((phrase) => phrase.slice(0, 20));
 
   return (
     <div ref={viewportRef} className="scene-viewport relative flex size-full overflow-auto overscroll-contain">
