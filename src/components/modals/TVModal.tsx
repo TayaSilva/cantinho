@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMediaUrl } from '../../hooks/useMediaUrl';
+import { MediaLoader } from '../ui/MediaLoader';
 import type { Video } from '../../types/house';
 import { useAudio } from '../ui/AudioControl';
 import { BaseModal } from './BaseModal';
@@ -13,11 +14,18 @@ interface TVModalProps {
 /** TV retrô ampliada com os vídeos do casal. */
 export function TVModal({ open, onClose, videos }: TVModalProps) {
   const [current, setCurrent] = useState(0);
+  // vídeo pronto para mostrar o primeiro quadro (ou o pôster); falso de novo se travar para carregar
+  const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audio = useAudio();
   const video = videos[Math.min(current, Math.max(0, videos.length - 1))];
   const src = useMediaUrl(video?.src);
   const poster = useMediaUrl(video?.poster);
+  useEffect(() => {
+    setFailed(false);
+    setReady((videoRef.current?.readyState ?? 0) >= 1);
+  }, [src]);
 
   // Pausa ao fechar o modal.
   useEffect(() => {
@@ -50,12 +58,25 @@ export function TVModal({ open, onClose, videos }: TVModalProps) {
               playsInline
               preload="metadata"
               onPlay={() => audio.pause()}
+              onLoadStart={() => setReady(false)}
+              onLoadedData={() => setReady(true)}
+              onLoadedMetadata={() => setReady(true)}
+              onWaiting={() => setReady(false)}
+              onPlaying={() => setReady(true)}
+              onCanPlay={() => setReady(true)}
+              onError={() => setFailed(true)}
               className="pixelated block aspect-[16/10] w-full bg-ink-deep object-cover"
               data-autofocus
             >
               Seu navegador não consegue reproduzir este vídeo.
             </video>
             <div aria-hidden="true" className="crt-lines pointer-events-none absolute inset-0" />
+            {!failed && <MediaLoader done={ready && !!src} kind="vídeo" tone="dark" />}
+            {failed && (
+              <p role="alert" className="pointer-events-none absolute inset-0 flex items-center justify-center p-4 text-center font-pixel text-base text-wall-2">
+                Não foi possível carregar este vídeo.
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-2.5 border-[3px] border-ink-deep bg-night-3 p-3 md:w-52">

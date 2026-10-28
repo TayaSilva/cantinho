@@ -441,3 +441,22 @@
   .login-spinner { display: none; }
 }
 .glass-input.has-eye { padding-right: 52px; }
+
+/* Carregamento de foto/vídeo (MediaLoader): troca seca de quadros, como pixel art */
+.media-loader { animation: ml-in 0.2s ease both; }
+@keyframes ml-in { from { opacity: 0 } to { opacity: 1 } }
+.media-loader-out { animation: ml-out 0.22s ease both; }
+@keyframes ml-out { to { opacity: 0 } }
+.ml-fill { fill: var(--off); animation: ml-fill 0.12s steps(1) both; }
+@keyframes ml-fill { 0% { fill: var(--off) } 100% { fill: currentColor; } }
+.ml-ring { transform-box: fill-box; transform-origin: center; }
+.ml-chase { animation: ml-chase 0.9s steps(1) infinite; }
+@keyframes ml-chase { 0% { opacity: 1 } 8.33% { opacity: 0.7 } 16.66% { opacity: 0.45 } 25%, 100% { opacity: 0.3 } }
+.ml-house { transform-box: fill-box; transform-origin: 50% 100%; animation: ml-hop 0.5s steps(4) 0.7s both; }
+@keyframes ml-hop { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-1.5px) } }
+.ml-row { animation: ml-row 0.15s steps(2) both; }
+@keyframes ml-row { from { opacity: 0 } to { opacity: 1 } }
+@media (prefers-reduced-motion: reduce) {
+  .ml-fill, .ml-chase, .ml-house, .ml-row { animation: none !important; }
+  .ml-fill { fill: currentColor; }
+}
