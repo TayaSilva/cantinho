@@ -145,11 +145,13 @@ export async function fetchHousePlan(houseId: string): Promise<HousePlan> {
   return { houseId, planId: 'free', limits: PLANS.free.limits, status: 'active', startedAt: null, expiresAt: null, deletionAt: null, storageUsedBytes: null, payments: [] };
 }
 
-export function canUseFeature(plan: HousePlan, feature: 'character3' | 'character4' | 'pet' | 'radio' | 'tv'): boolean {
+export function canUseFeature(plan: HousePlan, feature: 'character3' | 'character4' | 'pet' | 'radio' | 'tv' | 'quiz' | 'customization'): boolean {
   if (feature === 'character3') return plan.limits.characters >= 3;
   if (feature === 'character4') return plan.limits.characters >= 4;
   if (feature === 'pet') return plan.limits.pets >= 1;
   if (feature === 'radio') return plan.limits.radio;
+  if (feature === 'quiz') return plan.planId === 'mansao';
+  if (feature === 'customization') return plan.planId === 'mansao';
   return plan.limits.tv;
 }
 

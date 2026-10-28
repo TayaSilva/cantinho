@@ -109,4 +109,12 @@ export const defaultContent: HouseContent = {
     { id: 'm4', text: 'Ainda rio sozinha lembrando daquela viagem.' },
     { id: 'm5', text: 'Se eu pudesse guardar um momento, seria qualquer um com você.' },
   ],
+
+  quiz: {
+    title: 'Quiz do nosso cantinho',
+    description: 'Quanto você lembra das nossas histórias?',
+    completionMessage: 'Que delícia lembrar de tudo com você!',
+    questions: [],
+    published: false,
+  },
 };

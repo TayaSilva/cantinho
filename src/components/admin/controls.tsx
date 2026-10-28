@@ -116,9 +116,10 @@ export interface ThumbItem {
   thumb: ReactNode;
   disabled?: boolean;
   disabledReason?: string;
+  locked?: boolean;
 }
 
-export function ThumbGrid({ items, value, onChange, label, columns = 5 }: { items: ThumbItem[]; value: string; onChange: (id: string) => void; label: string; columns?: number }) {
+export function ThumbGrid({ items, value, onChange, onLocked, label, columns = 5 }: { items: ThumbItem[]; value: string; onChange: (id: string) => void; onLocked?: (id: string) => void; label: string; columns?: number }) {
   return (
     <div role="radiogroup" aria-label={label} className="grid gap-2" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
       {items.map((it) => {
@@ -131,13 +132,17 @@ export function ThumbGrid({ items, value, onChange, label, columns = 5 }: { item
             aria-checked={active}
             disabled={it.disabled}
             title={it.disabled ? it.disabledReason : it.name}
-            onClick={() => onChange(it.id)}
+            onClick={() => it.locked ? onLocked?.(it.id) : onChange(it.id)}
             className={cx(
               'flex min-w-0 cursor-pointer flex-col items-center gap-1 rounded-[10px] bg-white px-1 pt-1.5 pb-1.5 text-[11px] leading-tight transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 disabled:cursor-not-allowed disabled:opacity-35',
               active ? 'border-2 border-stone-900 bg-stone-50 font-semibold text-stone-900' : 'border border-stone-200 text-stone-600 hover:border-stone-300',
+              it.locked && 'border-mansao/30 bg-mansao-soft/20 text-mansao-deep',
             )}
           >
-            <span className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-stone-100">{it.thumb}</span>
+            <span className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-stone-100">
+              {it.thumb}
+              {it.locked && <span className="absolute top-1 right-1 rounded-full bg-white/90 px-1 text-[10px] text-mansao-deep" aria-hidden="true">♛</span>}
+            </span>
             <span className="w-full truncate text-center">{it.name}</span>
           </button>
         );
@@ -296,7 +301,7 @@ export function ConfirmDialog({
 
 /* ---------- Ícones de traço (Backoffice) ---------- */
 
-export function AdminIcon({ name, className = 'size-[18px]' }: { name: 'home' | 'sofa' | 'person' | 'paw' | 'star' | 'undo' | 'eye' | 'plus' | 'up' | 'down' | 'trash' | 'upload' | 'external' | 'image' | 'video' | 'music' | 'letter' | 'calendar' | 'gift' | 'text' | 'save' | 'power' | 'link' | 'more' | 'chevron' | 'menu' | 'close' | 'crown' | 'check' | 'clock' | 'alert' | 'card' | 'pix' | 'download' | 'lock'; className?: string }) {
+export function AdminIcon({ name, className = 'size-[18px]' }: { name: 'home' | 'sofa' | 'person' | 'paw' | 'star' | 'computer' | 'undo' | 'eye' | 'plus' | 'up' | 'down' | 'trash' | 'upload' | 'external' | 'image' | 'video' | 'music' | 'letter' | 'calendar' | 'gift' | 'text' | 'save' | 'power' | 'link' | 'more' | 'chevron' | 'menu' | 'close' | 'crown' | 'check' | 'clock' | 'alert' | 'card' | 'pix' | 'download' | 'lock'; className?: string }) {
   const p = { className, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true as const };
   switch (name) {
     case 'home':
@@ -309,6 +314,8 @@ export function AdminIcon({ name, className = 'size-[18px]' }: { name: 'home' | 
       return <svg {...p}><circle cx="6" cy="10" r="2" /><circle cx="10" cy="5.5" r="2" /><circle cx="15" cy="5.5" r="2" /><circle cx="19" cy="10" r="2" /><path d="M8 17c0-3 2-5 4.5-5s4.5 2 4.5 5c0 2-1.5 3-4.5 3S8 19 8 17z" /></svg>;
     case 'star':
       return <svg {...p}><path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z" /></svg>;
+    case 'computer':
+      return <svg {...p}><rect x="3" y="4" width="18" height="13" rx="1.5" /><path d="M8 21h8M12 17v4M7 8h10v6H7z" /></svg>;
     case 'undo':
       return <svg {...p}><path d="M9 14L4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></svg>;
     case 'eye':

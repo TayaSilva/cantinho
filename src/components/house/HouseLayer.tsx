@@ -3,12 +3,12 @@ import { SCENE } from '../../data/houseConfig';
 import type { Rect } from '../../types/house';
 
 /** Converte um retângulo da cena (base 320 × 224) em posição percentual. */
-export function rectStyle(rect: Rect, z?: number): CSSProperties {
+export function rectStyle(rect: Rect, z?: number, scene: { width: number; height: number } = SCENE): CSSProperties {
   return {
-    left: `${(rect.x / SCENE.width) * 100}%`,
-    top: `${(rect.y / SCENE.height) * 100}%`,
-    width: `${(rect.w / SCENE.width) * 100}%`,
-    height: `${(rect.h / SCENE.height) * 100}%`,
+    left: ((rect.x / scene.width) * 100) + '%',
+    top: ((rect.y / scene.height) * 100) + '%',
+    width: ((rect.w / scene.width) * 100) + '%',
+    height: ((rect.h / scene.height) * 100) + '%',
     zIndex: z,
   };
 }
@@ -17,9 +17,9 @@ export function rectStyle(rect: Rect, z?: number): CSSProperties {
  * Camada HTML posicionada sobre a cena (balões, áreas clicáveis, sprites
  * PNG opcionais). A arte em si é desenhada em camadas SVG por SceneSvg.
  */
-export function HouseLayer({ rect, z, children, className = '' }: { rect: Rect; z?: number; children?: ReactNode; className?: string }) {
+export function HouseLayer({ rect, z, scene = SCENE, children, className = '' }: { rect: Rect; z?: number; scene?: { width: number; height: number }; children?: ReactNode; className?: string }) {
   return (
-    <div className={`pointer-events-none absolute ${className}`} style={rectStyle(rect, z)}>
+    <div className={`pointer-events-none absolute ${className}`} style={rectStyle(rect, z, scene)}>
       {children}
     </div>
   );

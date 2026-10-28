@@ -121,9 +121,11 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
   return (
     <div className="min-h-dvh bg-stone-50 font-admin text-sm text-stone-900">
       <header className="flex items-center gap-4 border-b border-stone-200 bg-white px-4 py-3 sm:px-6">
-        <div className="flex flex-1 items-center gap-2.5">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-rose-50">
-            <AdminIcon name="home" className="size-4 text-rose-700" />
+        <div className="flex flex-1 items-center gap-2.5 md:gap-3">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-rose-50 md:size-11">
+            <svg width="18" height="18" viewBox="0 0 12 12" shapeRendering="crispEdges" aria-hidden="true">
+              <path d="M1 3h1v-1h3v1h2v-1h3v1h1v3h-1v1h-1v1h-1v1h-1v1h-2v-1h-1v-1h-1v-1h-1v-1h-1z" fill="#C2577A" />
+            </svg>
           </span>
           <span className="text-[15px] font-bold">Cantinho</span>
         </div>

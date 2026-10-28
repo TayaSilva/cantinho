@@ -859,6 +859,58 @@ export function Table({ opt, items }: { opt: AssetOption; items: boolean }) {
   );
 }
 
+/* ================================================================
+ * Mesa de computador, computador e poltrona da Mini Mansão
+ * ================================================================ */
+
+export function Desk({ opt }: { opt: AssetOption }) {
+  const color = str(opt, 'color');
+  const modern = str(opt, 'variant') === 'modern';
+  return (
+    <g>
+      <IsoBox a={[108, 138]} c={[24, 48]} z={[0, 8]} color={color} side={shade(color, 0.2)} />
+      <IsoBox a={[111, 114]} c={[27, 30]} z={[8, 43]} color={shade(color, 0.1)} outline={false} />
+      <IsoBox a={[132, 135]} c={[42, 45]} z={[8, 43]} color={shade(color, 0.1)} outline={false} />
+      <IsoBox a={[106, 140]} c={[22, 50]} z={[8, modern ? 10 : 11]} color={color} />
+      {!modern && <FaceC a={[109, 137]} c={48.1} z={[2, 7]} fill={shade(color, 0.15)} />}
+      {modern && <FaceA a={108.1} c={[27, 47]} z={[1, 7]} fill={shade(color, 0.12)} />}
+    </g>
+  );
+}
+
+export function Computer({ opt }: { opt: AssetOption }) {
+  const color = str(opt, 'color');
+  const flat = str(opt, 'variant') === 'flat';
+  const screen = flat ? '#BFE3F0' : '#8EC7D6';
+  return (
+    <g>
+      <IsoBox a={[114, 128]} c={[29, 43]} z={[10, 12]} color={shade(color, 0.18)} />
+      <IsoBox a={[118, 125]} c={[31, 41]} z={[12, flat ? 27 : 31]} color={color} />
+      <FaceC a={[118.8, 124.2]} c={41.1} z={[15, flat ? 25 : 29]} fill={screen} />
+      <FaceA a={125.1} c={[31, 40]} z={[15, flat ? 25 : 29]} fill={shade(screen, 0.12)} />
+      <FaceC a={[120, 123]} c={41.2} z={[17, 19]} fill="#F4EDE4" />
+      <IsoBox a={[117, 129]} c={[30, 43]} z={[10, 12]} color={shade(color, -0.12)} />
+      <FaceC a={[118, 126]} c={43.1} z={[10.5, 11.5]} fill="#46353F" />
+    </g>
+  );
+}
+
+export function Armchair({ opt }: { opt: AssetOption }) {
+  const color = str(opt, 'color');
+  const modern = str(opt, 'variant') === 'modern';
+  const side = shade(color, 0.18);
+  return (
+    <g>
+      <IsoBox a={[96, 116]} c={[108, 137]} z={[0, 5]} color={side} outline={false} />
+      <IsoBox a={[94, 118]} c={[108, 119]} z={[5, modern ? 24 : 27]} color={color} />
+      <IsoBox a={[94, 101]} c={[117, 138]} z={[5, 21]} color={color} />
+      <IsoBox a={[111, 118]} c={[117, 138]} z={[5, 21]} color={color} />
+      <IsoBox a={[99, 114]} c={[114, 132]} z={[5, 11]} color={shade(color, -0.08)} />
+      {modern && <FaceA a={101.1} c={[116, 130]} z={[12, 16]} fill={shade(color, 0.12)} />}
+    </g>
+  );
+}
+
 function TableItems({ z }: { z: number }) {
   const [fx, fy] = iso(42.5, 73.5, z + 8.5);
   const [sx, sy] = iso(42.5, 73.5, z + 4.5);

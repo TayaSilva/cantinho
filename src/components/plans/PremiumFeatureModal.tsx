@@ -3,7 +3,7 @@ import { PLANS } from '../../data/plans';
 import { AdminIcon, Button, cx } from '../admin/controls';
 import { mansaoButton, Sheet } from './PlanParts';
 
-export type PremiumFeature = 'videos' | 'pet' | 'characters' | 'photos' | 'audios' | 'letters' | 'chestTexts' | 'storage' | 'customization' | 'radio' | 'tv';
+export type PremiumFeature = 'videos' | 'pet' | 'characters' | 'photos' | 'audios' | 'letters' | 'chestTexts' | 'storage' | 'customization' | 'radio' | 'tv' | 'quiz';
 
 const limits = PLANS.mansao.limits;
 
@@ -19,6 +19,7 @@ export const PREMIUM_FEATURES: Record<PremiumFeature, { label: string; title: st
   customization: { label: 'Personalização', title: 'Personalização completa', body: 'Use todos os modelos, cores e decorações para deixar o cantinho com a cara de vocês.' },
   radio: { label: 'Rádio', title: 'O rádio faz parte da Mini Mansão', body: `Monte uma playlist com até ${limits.audios} áudios e deixe a trilha do cantinho tocando.` },
   tv: { label: 'TV', title: 'A TV faz parte da Mini Mansão', body: `Assista até ${limits.videos} vídeos na TV do cantinho.` },
+  quiz: { label: 'Quiz', title: 'Um quiz só de vocês', body: 'Crie perguntas, alternativas e uma mensagem final para transformar suas lembranças em uma brincadeira.' },
 };
 
 /**

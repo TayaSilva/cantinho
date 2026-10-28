@@ -1,4 +1,4 @@
-import { Z } from '../../data/houseConfig';
+import { SCENE, Z } from '../../data/houseConfig';
 import type { Rect } from '../../types/house';
 
 type LabelPosition = 'top' | 'bottom' | 'inside';
@@ -13,6 +13,7 @@ interface InteractiveObjectProps {
   showLabel?: boolean;
   pressed?: boolean;
   labelPosition?: LabelPosition;
+  scene?: { width: number; height: number };
 }
 
 const LABEL_POS: Record<LabelPosition, string> = {
@@ -26,7 +27,7 @@ const LABEL_POS: Record<LabelPosition, string> = {
  * É um <button> de verdade: funciona com mouse, toque e teclado (Tab + Enter).
  * No hover/foco aparece uma setinha de pixel em cima; no modo ajuda, o nome do objeto.
  */
-export function InteractiveObject({ id, label, ariaLabel, hitbox, onActivate, showLabel, pressed, labelPosition = 'top' }: InteractiveObjectProps) {
+export function InteractiveObject({ id, label, ariaLabel, hitbox, onActivate, showLabel, pressed, labelPosition = 'top', scene = SCENE }: InteractiveObjectProps) {
   return (
     <button
       type="button"
@@ -36,7 +37,7 @@ export function InteractiveObject({ id, label, ariaLabel, hitbox, onActivate, sh
       title={label}
       onClick={onActivate}
       className="hotspot group absolute cursor-pointer border-0 bg-transparent p-0"
-      style={rectStyle(hitbox, Z.hotspots)}
+      style={rectStyle(hitbox, Z.hotspots, scene)}
     >
       {showLabel && (
         <span

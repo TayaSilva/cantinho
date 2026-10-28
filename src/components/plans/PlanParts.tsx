@@ -7,7 +7,7 @@ import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { EXPIRY_WARNINGS_DAYS, formatPrice, GRACE_PERIOD_DAYS, PLANS, type PlanId } from '../../data/plans';
 import { useHousePlan, type HousePlan, type PlanStage } from '../../services/plans';
-import { formatSize, UPLOAD_RULES } from '../../services/uploadRules';
+import { UPLOAD_RULES } from '../../services/uploadRules';
 import { AdminIcon, cx } from '../admin/controls';
 
 const dateFormat = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -123,20 +123,22 @@ export function Sheet({ open, onClose, labelledBy, children }: { open: boolean; 
 export function StorageMeter({ usedBytes, limitMb }: { usedBytes: number | null; limitMb: number }) {
   const limitBytes = limitMb * 1024 * 1024;
   const ratio = usedBytes === null ? 0 : Math.min(1, usedBytes / limitBytes);
+  const usedMb = usedBytes === null ? null : Math.round(usedBytes / (1024 * 1024));
+  const usageLabel = usedMb === null ? `— de ${limitMb} MB` : `${usedMb} MB de ${limitMb} MB`;
   const tone = ratio >= 0.9 ? 'bg-red-500' : ratio >= 0.75 ? 'bg-amber-500' : 'bg-mansao';
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-[13px] font-semibold">Armazenamento</span>
-        <span className="text-xs text-stone-500">{usedBytes === null ? `— de ${limitMb} MB` : `${formatSize(usedBytes)} de ${limitMb} MB`}</span>
+        <span className="text-xs text-stone-500">{usageLabel}</span>
       </div>
       <div
         role="meter"
         aria-label="Armazenamento utilizado"
         aria-valuemin={0}
         aria-valuemax={limitMb}
-        aria-valuenow={usedBytes === null ? undefined : Math.round((usedBytes / 1024 / 1024) * 10) / 10}
-        aria-valuetext={usedBytes === null ? 'Uso ainda não disponível' : `${formatSize(usedBytes)} de ${limitMb} MB`}
+        aria-valuenow={usedMb ?? undefined}
+        aria-valuetext={usedMb === null ? 'Uso ainda não disponível' : usageLabel}
         className="h-2.5 overflow-hidden rounded-full bg-stone-100"
       >
         <div className={cx('h-full rounded-full transition-[width]', tone)} style={{ width: `${ratio * 100}%` }} />

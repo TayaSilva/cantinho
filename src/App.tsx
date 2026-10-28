@@ -7,6 +7,7 @@ import { BookModal } from './components/modals/BookModal';
 import { CalendarModal } from './components/modals/CalendarModal';
 import { MemoryChestModal } from './components/modals/MemoryChestModal';
 import { PhotoModal } from './components/modals/PhotoModal';
+import { QuizModal } from './components/modals/QuizModal';
 import { RadioModal } from './components/modals/RadioModal';
 import { TVModal } from './components/modals/TVModal';
 import { AudioControl, AudioProvider, MiniPlayer, useAudio } from './components/ui/AudioControl';
@@ -255,6 +256,7 @@ function House({ doc, preview, period, demo, houseId, shareUrl }: { doc: HouseDo
       <RadioModal open={modal.isOpen('radio')} onClose={closeModal} playlistName={content.playlist.name} keepPlayingOnClose={content.playlist.keepPlayingOnClose} />
       <TVModal open={modal.isOpen('tv')} onClose={closeModal} videos={content.videos} />
       <PhotoModal open={modal.isOpen('photos')} onClose={closeModal} photos={content.photos} />
+      <QuizModal open={modal.isOpen('quiz')} onClose={closeModal} quiz={content.quiz} />
       <BookModal open={modal.isOpen('book')} onClose={closeModal} letters={content.letters} coverColor={str(getOption('books', appearance.books), 'cover')} />
       <CalendarModal open={modal.isOpen('calendar')} onClose={closeModal} dates={content.specialDates} togetherSince={content.togetherSince} now={now} />
       <MemoryChestModal

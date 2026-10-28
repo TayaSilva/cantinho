@@ -8,7 +8,7 @@ export type Period = 'manha' | 'tarde' | 'noite' | 'madrugada';
 
 export type CharacterAge = 'adult' | 'child';
 
-export type ModalId = 'radio' | 'tv' | 'photos' | 'book' | 'calendar' | 'chest';
+export type ModalId = 'radio' | 'tv' | 'photos' | 'book' | 'calendar' | 'chest' | 'quiz';
 
 /** Retângulo em unidades da cena (base 320 × 224). */
 export interface Rect {
@@ -38,6 +38,7 @@ export interface PeriodTheme {
 
 export type ElementType =
   | 'wallColor'
+  | 'wallPattern'
   | 'floor'
   | 'windowModel'
   | 'curtainStyle'
@@ -56,6 +57,9 @@ export type ElementType =
   | 'chest'
   | 'plants'
   | 'cushions'
+  | 'desk'
+  | 'computer'
+  | 'armchair'
   | 'skinTone'
   | 'hairStyle'
   | 'hairColor'
@@ -78,6 +82,7 @@ export interface AssetOption {
   name: string;
   sortOrder: number;
   isActive: boolean;
+  premium?: boolean;
   /** Parâmetros de desenho (cores, variante do modelo...). */
   value: OptionValue;
 }
@@ -100,7 +105,10 @@ export type FurnitureKey =
   | 'lamp'
   | 'chest'
   | 'plants'
-  | 'cushions';
+  | 'cushions'
+  | 'desk'
+  | 'computer'
+  | 'armchair';
 
 export type DecorationKey = 'stringLights' | 'wallPattern' | 'polaroid' | 'tableItems' | 'backPlant';
 
@@ -136,8 +144,10 @@ export interface PetAppearance {
 export interface HouseAppearance {
   version: 1;
   environment: {
+    layout: 'free' | 'mansao';
     wallColor: string;
     floor: string;
+    wallPattern: string;
     windowModel: string;
     curtainStyle: string;
     curtainColor: string;
@@ -201,6 +211,26 @@ export interface ChestMessage {
   text: string;
 }
 
+export interface QuizOption {
+  id: string;
+  text: string;
+}
+
+export interface QuizQuestion {
+  id: string;
+  prompt: string;
+  options: QuizOption[];
+  correctOptionId: string;
+}
+
+export interface QuizConfig {
+  title: string;
+  description: string;
+  completionMessage: string;
+  questions: QuizQuestion[];
+  published: boolean;
+}
+
 export interface HouseContent {
   houseName: string;
   welcome: { title: string; description: string; button: string; note: string };
@@ -214,6 +244,7 @@ export interface HouseContent {
   togetherSince: { date: string; label: string };
   specialDates: SpecialDate[];
   chestMessages: ChestMessage[];
+  quiz: QuizConfig;
 }
 
 /** Um "pacote" completo da casa — usado tanto no rascunho quanto no publicado. */

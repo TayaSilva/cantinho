@@ -14,14 +14,15 @@ import { useHouseTime } from '../../hooks/useHouseTime';
 import { navigate } from '../../hooks/useRoute';
 import { houseAdminPath } from '../../services/houses';
 import { canUseFeature, useHousePlan } from '../../services/plans';
-import type { CharacterAge, CharacterAppearance, DecorationKey, ElementType, FurnitureKey, HouseAppearance, Period } from '../../types/house';
+import type { CharacterAge, CharacterAppearance, DecorationKey, ElementType, FurnitureKey, HouseAppearance, HouseContent, Period } from '../../types/house';
 import { HouseScene } from '../house/HouseScene';
 import { PlanShortcut } from '../plans/PlanParts';
 import { usePremiumPrompt, type PremiumFeature } from '../plans/PremiumFeatureModal';
 import { AdminIcon, cx, Field, Group, Segmented, Swatches, TextField, ThumbGrid, Toggle } from './controls';
 import { OptionThumb } from './Thumbnails';
+import { QuizPanel } from './QuizPanel';
 
-const CATEGORIES: { id: EditorCategory; label: string; icon: 'home' | 'sofa' | 'person' | 'paw' | 'star' }[] = [
+const CATEGORIES: { id: EditorCategory; label: string; icon: 'home' | 'sofa' | 'person' | 'paw' | 'star' | 'computer' }[] = [
   { id: 'ambiente', label: 'Ambiente', icon: 'home' },
   { id: 'moveis', label: 'Móveis', icon: 'sofa' },
   { id: 'personagem1', label: 'Personagem 1', icon: 'person' },
@@ -29,6 +30,7 @@ const CATEGORIES: { id: EditorCategory; label: string; icon: 'home' | 'sofa' | '
   { id: 'personagem3', label: 'Personagem 3', icon: 'person' },
   { id: 'personagem4', label: 'Personagem 4', icon: 'person' },
   { id: 'animal', label: 'Animalzinho', icon: 'paw' },
+  { id: 'quiz', label: 'Quiz', icon: 'computer' },
   { id: 'decoracoes', label: 'Decorações', icon: 'star' },
 ];
 
@@ -47,6 +49,9 @@ const FURNITURE_TYPE: Record<FurnitureKey, ElementType> = {
   chest: 'chest',
   plants: 'plants',
   cushions: 'cushions',
+  desk: 'desk',
+  computer: 'computer',
+  armchair: 'armchair',
 };
 
 /** O que cada objeto interativo guarda (para avisar que ocultar não apaga nada). */
@@ -78,6 +83,12 @@ export function EditorPage({ draft }: { draft: HouseDraft }) {
   const plan = useHousePlan(draft.houseId);
   const premium = usePremiumPrompt(() => navigate(houseAdminPath(draft.houseId, '/plano')));
 
+  useEffect(() => {
+    if (plan?.planId === 'mansao' && doc?.appearance.environment.layout !== 'mansao') {
+      draft.update((d) => void (d.appearance.environment.layout = 'mansao'), 'mansao-layout');
+    }
+  }, [doc, draft, plan?.planId]);
+
   // Rola o painel até a seção do elemento escolhido na prévia.
   useEffect(() => {
     if (!selected) return;
@@ -88,14 +99,20 @@ export function EditorPage({ draft }: { draft: HouseDraft }) {
   if (!doc) return null;
   const ap = doc.appearance;
   const setAp = (fn: (a: HouseAppearance) => void, key?: string) => draft.update((d) => fn(d.appearance), key);
+  const setContent = (fn: (c: HouseContent) => void, key?: string) => draft.update((d) => fn(d.content), key);
 
-  const featureForCategory = (value: EditorCategory): PremiumFeature | null => value === 'personagem3' || value === 'personagem4' ? 'characters' : value === 'animal' ? 'pet' : null;
-  const featureForFurniture = (value: FurnitureKey): PremiumFeature | null => value === 'radio' ? 'radio' : value === 'tv' ? 'tv' : null;
-  const isLocked = (feature: PremiumFeature | null) => Boolean(plan && feature && !canUseFeature(plan, feature === 'characters' ? 'character3' : feature === 'pet' ? 'pet' : feature === 'radio' ? 'radio' : 'tv'));
+  const featureForCategory = (value: EditorCategory): PremiumFeature | null =>
+    value === 'personagem3' || value === 'personagem4' ? 'characters' : value === 'animal' ? 'pet' : value === 'quiz' ? 'quiz' : null;
+  const featureForFurniture = (value: FurnitureKey): PremiumFeature | null =>
+    value === 'radio' ? 'radio' : value === 'tv' ? 'tv' : value === 'desk' || value === 'computer' || value === 'armchair' ? 'customization' : null;
+  const isLocked = (feature: PremiumFeature | null) => Boolean(plan && feature && !canUseFeature(
+    plan,
+    feature === 'characters' ? 'character3' : feature === 'pet' ? 'pet' : feature === 'radio' ? 'radio' : feature === 'tv' ? 'tv' : feature === 'quiz' ? 'quiz' : 'customization',
+  ));
   const notifyLocked = (feature: PremiumFeature | null) => { if (isLocked(feature)) premium.prompt(feature as PremiumFeature); };
 
   const select = (target: EditorTarget) => {
-    const feature = target === 'character3' || target === 'character4' ? 'characters' : target === 'pet' ? 'pet' : target === 'radio' ? 'radio' : target === 'tv' ? 'tv' : null;
+    const feature = target === 'character3' || target === 'character4' ? 'characters' : target === 'pet' ? 'pet' : target === 'radio' ? 'radio' : target === 'tv' ? 'tv' : target === 'desk' || target === 'computer' || target === 'armchair' ? 'customization' : null;
     if (isLocked(feature)) {
       premium.prompt(feature as PremiumFeature);
       return;
@@ -193,6 +210,7 @@ export function EditorPage({ draft }: { draft: HouseDraft }) {
           <div className="size-full">
             <HouseScene
               mode="editor"
+               variant={plan?.planId === 'mansao' ? 'mansao' : 'free'}
               appearance={ap}
               content={doc.content}
               theme={theme}
@@ -209,7 +227,7 @@ export function EditorPage({ draft }: { draft: HouseDraft }) {
       {/* ---------- Painel de propriedades ---------- */}
       <aside aria-label="Propriedades" className="flex min-h-0 shrink-0 flex-col border-t border-stone-200 bg-white lg:w-[400px] lg:border-t-0 lg:border-l">
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
-          {category === 'ambiente' && <AmbientePanel ap={ap} setAp={setAp} selected={selected} />}
+          {category === 'ambiente' && <AmbientePanel ap={ap} setAp={setAp} selected={selected} isMansao={plan?.planId === 'mansao'} onLocked={() => premium.prompt('customization')} />}
           {category === 'moveis' && (
             <MoveisPanel
               ap={ap}
@@ -224,10 +242,11 @@ export function EditorPage({ draft }: { draft: HouseDraft }) {
             />
           )}
           {(['personagem1', 'personagem2', 'personagem3', 'personagem4'] as EditorCategory[]).includes(category) && (
-            <CharacterPanel ap={ap} setAp={setAp} slot={category === 'personagem1' ? 0 : category === 'personagem2' ? 1 : category === 'personagem3' ? 2 : 3} locked={isLocked(category === 'personagem3' || category === 'personagem4' ? 'characters' : null)} onSwitch={(s) => select(`character${s + 1}` as EditorTarget)} />
+            <CharacterPanel ap={ap} setAp={setAp} slot={category === 'personagem1' ? 0 : category === 'personagem2' ? 1 : category === 'personagem3' ? 2 : 3} locked={isLocked(category === 'personagem3' || category === 'personagem4' ? 'characters' : null)} isMansao={plan?.planId === 'mansao'} onLocked={() => premium.prompt('customization')} onSwitch={(s) => select(`character${s + 1}` as EditorTarget)} />
           )}
           {category === 'animal' && <PetPanel ap={ap} setAp={setAp} locked={isLocked('pet')} onUnlock={() => premium.prompt('pet')} />}
           {category === 'decoracoes' && <DecorPanel ap={ap} setAp={setAp} />}
+          {category === 'quiz' && <QuizPanel quiz={doc.content.quiz} setQuiz={(fn, key) => setContent((c) => fn(c.quiz), key)} />}
         </div>
         <p className="border-t border-stone-100 px-5 py-3 text-xs leading-relaxed text-stone-500">As mudanças aparecem na prévia na hora. Os visitantes só veem depois de publicar.</p>
       </aside>
@@ -246,19 +265,37 @@ function swatchesFor(type: ElementType, key = 'color', group?: string) {
   return optionsFor(type, group).map((o) => ({ id: o.id, name: o.name, color: str(o, key) }));
 }
 
-function thumbsFor(type: ElementType, ap: HouseAppearance, slot?: 0 | 1 | 2 | 3, group?: string) {
-  return optionsFor(type, group).map((o) => ({ id: o.id, name: o.name, thumb: <OptionThumb type={type} optionId={o.id} appearance={ap} slot={slot} /> }));
+function thumbsFor(type: ElementType, ap: HouseAppearance, slot?: 0 | 1 | 2 | 3, group?: string, isMansao = true) {
+  return optionsFor(type, group).map((o) => ({ id: o.id, name: o.name, locked: Boolean(o.premium && !isMansao), thumb: <OptionThumb type={type} optionId={o.id} appearance={ap} slot={slot} /> }));
 }
 
 const nameOf = (type: ElementType, id: string, group?: string) => getOption(type, id, group).name;
 
-function AmbientePanel({ ap, setAp, selected }: { ap: HouseAppearance; setAp: SetAp; selected: EditorTarget | null }) {
+function AmbientePanel({ ap, setAp, selected, isMansao, onLocked }: { ap: HouseAppearance; setAp: SetAp; selected: EditorTarget | null; isMansao: boolean; onLocked: () => void }) {
   const env = ap.environment;
+  const patternItems = optionsFor('wallPattern').map((o) => ({
+    id: o.id,
+    name: o.name,
+    locked: Boolean(o.premium && !isMansao),
+    thumb: <OptionThumb type="wallPattern" optionId={o.id} appearance={ap} />,
+  }));
   return (
     <div className="flex flex-col gap-9">
       <Group title="Paredes" id="sec-walls" highlighted={selected === 'walls'}>
-        <Field title="Cor das paredes" aside={nameOf('wallColor', env.wallColor)} hint="As duas paredes usam a mesma cor.">
+        <Field title="Cores" aside={nameOf('wallColor', env.wallColor)} hint="As duas paredes usam a mesma cor.">
           <Swatches label="Cor das paredes" items={swatchesFor('wallColor')} value={env.wallColor} onChange={(id) => setAp((a) => void (a.environment.wallColor = id))} />
+        </Field>
+      </Group>
+
+      <Group title="Estampas" id="sec-wall-pattern">
+        <Field title="Estampa da parede" aside={nameOf('wallPattern', env.wallPattern)} hint={isMansao ? 'Escolha uma estampa para as duas paredes.' : 'As estampas fazem parte da Mini Mansão.'}>
+          <ThumbGrid
+            label="Estampa da parede"
+            items={patternItems}
+            value={env.wallPattern}
+            onChange={(id) => setAp((a) => void (a.environment.wallPattern = id))}
+            onLocked={() => onLocked()}
+          />
         </Field>
       </Group>
 
@@ -373,7 +410,7 @@ function MoveisPanel({ ap, setAp, current, onPick, isLocked, onLocked }: { ap: H
   );
 }
 
-function CharacterPanel({ ap, setAp, slot, locked, onSwitch }: { ap: HouseAppearance; setAp: SetAp; slot: 0 | 1 | 2 | 3; locked: boolean; onSwitch: (s: 0 | 1 | 2 | 3) => void }) {
+function CharacterPanel({ ap, setAp, slot, locked, isMansao, onLocked, onSwitch }: { ap: HouseAppearance; setAp: SetAp; slot: 0 | 1 | 2 | 3; locked: boolean; isMansao: boolean; onLocked: () => void; onSwitch: (s: 0 | 1 | 2 | 3) => void }) {
   const ch = ap.characters[slot];
   type CharacterOptionKey = Exclude<keyof CharacterAppearance, 'age' | 'enabled'>;
   const enabled = slot === 0 || ch.enabled !== false;
@@ -383,7 +420,7 @@ function CharacterPanel({ ap, setAp, slot, locked, onSwitch }: { ap: HouseAppear
       {kind === 'swatch' ? (
         <Swatches label={title} items={swatchesFor(type)} value={value} onChange={set(k as CharacterOptionKey)} />
       ) : (
-        <ThumbGrid label={title} items={thumbsFor(type, ap, slot)} value={value} onChange={set(k as CharacterOptionKey)} />
+          <ThumbGrid label={title} items={thumbsFor(type, ap, slot, undefined, isMansao)} value={value} onChange={set(k as CharacterOptionKey)} onLocked={onLocked} />
       )}
     </Field>
   );
@@ -499,7 +536,7 @@ function ButtonLike({ children, onClick }: { children: ReactNode; onClick: () =>
 function DecorPanel({ ap, setAp }: { ap: HouseAppearance; setAp: SetAp }) {
   return (
     <Group title="Decorações opcionais">
-      {(Object.keys(decorationLabels) as DecorationKey[]).map((k) => (
+      {(Object.keys(decorationLabels) as DecorationKey[]).filter((k) => k !== 'wallPattern').map((k) => (
         <Toggle key={k} label={decorationLabels[k]} checked={ap.decorations[k]} onChange={(v) => setAp((a) => void (a.decorations[k] = v))} />
       ))}
       <p className="text-xs leading-relaxed text-stone-500">Plantas, almofadas e tapete também podem ser ocultados em Móveis.</p>

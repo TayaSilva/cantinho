@@ -7,12 +7,12 @@ import {
   editorHitboxes,
   MUSIC_NOTES,
   ROOM_OUTLINE,
-  SCENE,
+  sceneFor,
   targetLabels,
   visitorHotspots,
   Z,
 } from '../../data/houseConfig';
-import type { EditorTarget, VisitorAction } from '../../data/houseConfig';
+import type { EditorTarget, SceneVariant, VisitorAction } from '../../data/houseConfig';
 import type { HouseAppearance, HouseContent, ModalId, PeriodTheme, Rect, SceneRuntime } from '../../types/house';
 import { Character, characterAnchor, characterHitbox, CharacterFromBehind } from './Character';
 import { DynamicWindow } from './DynamicWindow';
@@ -21,6 +21,9 @@ import {
   Calendar,
   Chest,
   Cushions,
+  Computer,
+  Desk,
+  Armchair,
   Lamp,
   OppositeSofaBack,
   OppositeSofaSeat,
@@ -53,6 +56,7 @@ const characterSeated = (appearance: HouseAppearance, index: number) =>
 
 interface SceneSvgProps {
   appearance: HouseAppearance;
+  variant?: SceneVariant;
   theme: PeriodTheme;
   runtime: SceneRuntime;
   children?: ReactNode;
@@ -63,7 +67,8 @@ interface SceneSvgProps {
  * piso → paredes → janela e objetos de parede → móveis → personagens → pet →
  * iluminação. Tudo vem da aparência escolhida no catálogo.
  */
-export function SceneSvg({ appearance, theme, runtime, children }: SceneSvgProps) {
+export function SceneSvg({ appearance, variant = appearance.environment.layout, theme, runtime, children }: SceneSvgProps) {
+  const scene = sceneFor(variant);
   const f = appearance.furniture;
   const deco = appearance.decorations;
   const opt = <K extends keyof typeof f>(k: K, type: Parameters<typeof getOption>[0]) => getOption(type, f[k].model);
@@ -75,11 +80,12 @@ export function SceneSvg({ appearance, theme, runtime, children }: SceneSvgProps
   const dim = theme.dim * (lampLit ? 0.55 : 1);
   const night = theme.stars;
   const pet = appearance.pet;
+  const showPet = variant === 'mansao' && pet.enabled;
 
   return (
-    <svg viewBox={`0 0 ${SCENE.width} ${SCENE.height}`} className="absolute inset-0 size-full" shapeRendering="crispEdges" role="img" aria-label="Sala do cantinho em pixel art">
+    <svg viewBox={`0 0 ${scene.width} ${scene.height}`} className="absolute inset-0 size-full" shapeRendering="crispEdges" role="img" aria-label="Sala do cantinho em pixel art">
       {/* 1–2. piso e paredes */}
-      <Room appearance={appearance} />
+      <Room appearance={appearance} variant={variant} />
       {deco.stringLights && <StringLights />}
 
       {/* 3. janela e objetos de parede */}
@@ -97,6 +103,9 @@ export function SceneSvg({ appearance, theme, runtime, children }: SceneSvgProps
       {f.plants.visible && <Plant opt={plantOpt} origin={[108, 3]} size={9} />}
       {f.sofa.visible && <SofaBack opt={opt('sofa', 'sofa')} />}
       {f.cushions.visible && <Cushions opt={opt('cushions', 'cushions')} />}
+      {variant === 'mansao' && f.desk.visible && <Desk opt={opt('desk', 'desk')} />}
+      {variant === 'mansao' && f.computer.visible && <Computer opt={opt('computer', 'computer')} />}
+      {variant === 'mansao' && f.armchair.visible && <Armchair opt={opt('armchair', 'armchair')} />}
 
       {/* 5. personagens */}
       {appearance.characters.slice(0, 2).map((look, i) =>
@@ -107,10 +116,10 @@ export function SceneSvg({ appearance, theme, runtime, children }: SceneSvgProps
       {f.table.visible && <Table opt={opt('table', 'table')} items={deco.tableItems} />}
 
       {/* 6. animal */}
-      {pet.enabled && <Pet pet={pet} happy={runtime.petHappy} sleeping={night && !runtime.petHappy} />}
+      {showPet && <Pet pet={pet} happy={runtime.petHappy} sleeping={night && !runtime.petHappy} />}
 
       {/* sofá 2, de frente para o principal: fica mais perto da câmera que a mesa e o pet */}
-      {f.sofa2.visible && (
+      {variant === 'mansao' && f.sofa2.visible && (
         <g>
           <OppositeSofaSeat opt={opt('sofa2', 'sofa')} backA={OPPOSITE_SOFA_A} />
           {[2, 3].map((i) =>
@@ -129,13 +138,13 @@ export function SceneSvg({ appearance, theme, runtime, children }: SceneSvgProps
           <path className="music-note music-note-late" d={`M${MUSIC_NOTES.x + 7} ${MUSIC_NOTES.y - 4}h1v-4h3v1h-2v4h-2z`} fill="#C98190" />
         </g>
       )}
-      <Lighting dim={dim} lit={lampLit} tint={str(lighting, 'tint')} glowColor={str(lighting, 'glow')} glow={glow} />
+      <Lighting dim={dim} lit={lampLit} tint={str(lighting, 'tint')} glowColor={str(lighting, 'glow')} glow={glow} scene={scene} />
       {children}
     </svg>
   );
 }
 
-function Lighting({ dim, lit, tint, glowColor, glow }: { dim: number; lit: boolean; tint: string; glowColor: string; glow: { x: number; y: number } }) {
+function Lighting({ dim, lit, tint, glowColor, glow, scene }: { dim: number; lit: boolean; tint: string; glowColor: string; glow: { x: number; y: number }; scene: { width: number; height: number } }) {
   return (
     <g pointerEvents="none" shapeRendering="auto">
       <defs>
@@ -144,9 +153,9 @@ function Lighting({ dim, lit, tint, glowColor, glow }: { dim: number; lit: boole
         </clipPath>
       </defs>
       <g clipPath="url(#room-clip)">
-        <rect width={SCENE.width} height={SCENE.height} fill="#1B1430" opacity={dim} className="transition-opacity duration-700" />
+        <rect width={scene.width} height={scene.height} fill="#1B1430" opacity={dim} className="transition-opacity duration-700" />
         <g opacity={lit ? 1 : 0} className="transition-opacity duration-500">
-          <rect width={SCENE.width} height={SCENE.height} fill={tint} opacity={0.08} />
+          <rect width={scene.width} height={scene.height} fill={tint} opacity={0.08} />
           <circle cx={glow.x} cy={glow.y} r={46} fill={glowColor} opacity={0.16} />
           <circle cx={glow.x} cy={glow.y} r={26} fill={glowColor} opacity={0.22} />
         </g>
@@ -170,6 +179,7 @@ interface HouseSceneProps {
   zoom?: number;
   /** Visitante interage com os objetos; no editor, clicar seleciona. */
   mode?: 'visitor' | 'editor';
+  variant?: SceneVariant;
   selected?: EditorTarget | null;
   onSelect?: (target: EditorTarget) => void;
   onOpenModal?: (id: ModalId) => void;
@@ -193,12 +203,14 @@ export function HouseScene({
   showLabels = false,
   zoom = 1,
   mode = 'visitor',
+  variant = appearance.environment.layout,
   selected = null,
   onSelect,
   onOpenModal,
   onToggleLamp,
   onOpenChest,
 }: HouseSceneProps) {
+  const scene = sceneFor(variant);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [fitWidth, setFitWidth] = useState(0);
   const [bubble, setBubble] = useState<Bubble | null>(null);
@@ -209,13 +221,13 @@ export function HouseScene({
     if (!el) return;
     const measure = () => {
       const { clientWidth: w, clientHeight: h } = el;
-      setFitWidth(Math.max(0, Math.min(w, (h * SCENE.width) / SCENE.height)));
+       setFitWidth(Math.max(0, Math.min(w, (h * scene.width) / scene.height)));
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [scene.height, scene.width]);
 
   useEffect(() => {
     const el = viewportRef.current;
@@ -248,21 +260,22 @@ export function HouseScene({
 
   const f = appearance.furniture;
   const pet = appearance.pet;
+  const quizReady = content.quiz.published && content.quiz.questions.length > 0 && content.quiz.questions.every((q) => q.prompt.trim() && q.options.length >= 2 && q.options.every((option) => option.text.trim()));
   const sceneWidth = fitWidth * zoom;
   const editor = mode === 'editor';
   const phrases = [content.phrases.character1, content.phrases.character2, content.phrases.character3, content.phrases.character4];
 
   return (
     <div ref={viewportRef} className="scene-viewport relative flex size-full overflow-auto overscroll-contain">
-      <div className="relative m-auto shrink-0" style={{ width: sceneWidth, aspectRatio: `${SCENE.width} / ${SCENE.height}` }}>
-        <SceneSvg appearance={appearance} theme={theme} runtime={{ ...runtime, petHappy }}>
-          {editor && <EditorRegions appearance={appearance} selected={selected} onSelect={onSelect} />}
+      <div className="relative m-auto shrink-0" style={{ width: sceneWidth, aspectRatio: `${scene.width} / ${scene.height}` }}>
+        <SceneSvg appearance={appearance} variant={variant} theme={theme} runtime={{ ...runtime, petHappy }}>
+          {editor && <EditorRegions appearance={appearance} variant={variant} selected={selected} onSelect={onSelect} />}
         </SceneSvg>
 
         {!editor && (
           <>
             {visitorHotspots
-              .filter((h) => !h.requires || f[h.requires].visible)
+              .filter((h) => (!h.requires || f[h.requires].visible) && (h.id !== 'computer' || (variant === 'mansao' && quizReady)))
               .map((h) => (
                 <InteractiveObject
                   key={h.id}
@@ -271,19 +284,21 @@ export function HouseScene({
                   ariaLabel={h.id === 'lamp' ? (runtime.lampOn ? 'Apagar a luminária' : 'Acender a luminária') : h.ariaLabel}
                   pressed={h.id === 'lamp' ? runtime.lampOn : undefined}
                   hitbox={h.hitbox}
+                  scene={scene}
                   labelPosition={h.labelPosition}
                   showLabel={showLabels}
                   onActivate={() => runAction(h.action, { x: h.hitbox.x + h.hitbox.w / 2, y: h.hitbox.y - 2 })}
                 />
               ))}
             {appearance.characters.map((c, i) =>
-              characterSeated(appearance, i) ? (
+              (variant === 'mansao' || i < 2) && characterSeated(appearance, i) ? (
                 <InteractiveObject
                   key={`char-${i}`}
                   id={`character${i + 1}`}
                   label={c.name}
                   ariaLabel={`Falar com ${c.name}`}
                   hitbox={characterRect(appearance, i)}
+                  scene={scene}
                   showLabel={showLabels}
                   onActivate={() => {
                     const p = characterAnchor(CHARACTER_SEATS[i], c.age ?? 'adult', backAOf(i));
@@ -292,12 +307,13 @@ export function HouseScene({
                 />
               ) : null,
             )}
-            {pet.enabled && (
+            {variant === 'mansao' && pet.enabled && (
               <InteractiveObject
                 id="pet"
                 label={pet.name}
                 ariaLabel={`Fazer carinho em ${pet.name}`}
                 hitbox={petHitbox(pet)}
+                scene={scene}
                 showLabel={showLabels}
                 onActivate={() => {
                   setPetHappy(true);
@@ -314,7 +330,7 @@ export function HouseScene({
             key={bubble.key}
             role="status"
             className="pointer-events-none absolute flex -translate-x-1/2 -translate-y-full flex-col items-center motion-safe:animate-pop-in"
-            style={{ left: `${(bubble.x / SCENE.width) * 100}%`, top: `${(bubble.y / SCENE.height) * 100}%`, zIndex: Z.bubble }}
+            style={{ left: `${(bubble.x / scene.width) * 100}%`, top: `${(bubble.y / scene.height) * 100}%`, zIndex: Z.bubble }}
           >
             <div className="max-w-64 border-[3px] border-ink bg-[#FFF8EE] px-3.5 py-2 text-center font-pixel text-sm text-ink shadow-[4px_4px_0_rgba(30,22,29,.35)] sm:whitespace-nowrap sm:text-[15px]">
               {bubble.text}
@@ -331,9 +347,11 @@ export function HouseScene({
  * Editor: áreas de seleção sobre a cena
  * ================================================================== */
 
-const LEFT_WALL = pts([iso(0, 120, 0), iso(0, 0, 0), iso(0, 0, 80), iso(0, 120, 80)]);
-const RIGHT_WALL = pts([iso(0, 0, 0), iso(120, 0, 0), iso(120, 0, 80), iso(0, 0, 80)]);
-const FLOOR = pts([iso(0, 0), iso(120, 0), iso(120, 120), iso(0, 120)]);
+const editorRegionPoints = (side: number) => ({
+  left: pts([iso(0, side, 0), iso(0, 0, 0), iso(0, 0, 80), iso(0, side, 80)]),
+  right: pts([iso(0, 0, 0), iso(side, 0, 0), iso(side, 0, 80), iso(0, 0, 80)]),
+  floor: pts([iso(0, 0), iso(side, 0), iso(side, side), iso(0, side)]),
+});
 
 /** Retângulos clicáveis de um alvo do editor (considera visibilidade). */
 export function targetRects(appearance: HouseAppearance, target: EditorTarget): Rect[] {
@@ -348,9 +366,10 @@ export function targetRects(appearance: HouseAppearance, target: EditorTarget): 
 }
 
 /** Ordem de empilhamento: o que vem depois fica por cima. */
-const REGION_ORDER: EditorTarget[] = ['rug', 'window', 'frame', 'calendar', 'plants', 'bookshelf', 'tv', 'radio', 'sofa', 'cushions', 'character1', 'character2', 'lamp', 'table', 'pet', 'sofa2', 'character3', 'character4', 'chest'];
+const REGION_ORDER: EditorTarget[] = ['rug', 'window', 'frame', 'calendar', 'plants', 'bookshelf', 'tv', 'radio', 'desk', 'computer', 'armchair', 'sofa', 'cushions', 'character1', 'character2', 'lamp', 'table', 'pet', 'sofa2', 'character3', 'character4', 'chest'];
 
-function EditorRegions({ appearance, selected, onSelect }: { appearance: HouseAppearance; selected: EditorTarget | null; onSelect?: (t: EditorTarget) => void }) {
+function EditorRegions({ appearance, variant, selected, onSelect }: { appearance: HouseAppearance; variant: SceneVariant; selected: EditorTarget | null; onSelect?: (t: EditorTarget) => void }) {
+  const points = editorRegionPoints(variant === 'mansao' ? 150 : 120);
   const props = (target: EditorTarget) => ({
     role: 'button',
     tabIndex: 0,
@@ -368,9 +387,9 @@ function EditorRegions({ appearance, selected, onSelect }: { appearance: HouseAp
 
   return (
     <g shapeRendering="auto">
-      <polygon points={LEFT_WALL} {...props('walls')} />
-      <polygon points={RIGHT_WALL} {...props('walls')} />
-      <polygon points={FLOOR} {...props('floor')} />
+      <polygon points={points.left} {...props('walls')} />
+      <polygon points={points.right} {...props('walls')} />
+      <polygon points={points.floor} {...props('floor')} />
       {REGION_ORDER.flatMap((t) =>
         targetRects(appearance, t).map((r, i) => <rect key={`${t}-${i}`} x={r.x} y={r.y} width={r.w} height={r.h} rx={2} {...props(t)} />),
       )}

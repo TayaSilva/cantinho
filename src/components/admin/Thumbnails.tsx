@@ -9,7 +9,7 @@ import { getOption, str } from '../../data/catalog';
 import type { CharacterAppearance, ElementType, HouseAppearance, PetAppearance } from '../../types/house';
 import { Character } from '../house/Character';
 import { DynamicWindow } from '../house/DynamicWindow';
-import { Bookshelf, Calendar, Chest, Cushions, Lamp, PhotoFrame, Plant, Radio, Rug, SofaBack, SofaFront, Table, TV } from '../house/Furniture';
+import { Armchair, Bookshelf, Calendar, Chest, Computer, Cushions, Desk, Lamp, PhotoFrame, Plant, Radio, Rug, SofaBack, SofaFront, Table, TV } from '../house/Furniture';
 import { boundsOf, boxPoints } from '../house/iso';
 import { Pet, petHitbox } from '../house/Pet';
 import { Room } from '../house/Room';
@@ -42,6 +42,13 @@ export function OptionThumb({ type, optionId, appearance, slot = 0 }: ThumbProps
   const withEnv = (patch: Partial<HouseAppearance['environment']>): HouseAppearance => ({ ...appearance, environment: { ...appearance.environment, ...patch } });
 
   switch (type) {
+    case 'wallPattern':
+      return (
+        <Crop viewBox="0 0 120 80">
+          <rect width="120" height="80" fill={str(getOption('wallColor', appearance.environment.wallColor), 'color')} />
+          <Room appearance={withEnv({ layout: 'mansao', wallPattern: optionId })} variant="mansao" />
+        </Crop>
+      );
     case 'floor':
       return (
         <Crop viewBox="122 128 76 46">
@@ -134,6 +141,24 @@ export function OptionThumb({ type, optionId, appearance, slot = 0 }: ThumbProps
       return (
         <Crop viewBox="248 104 34 58">
           <Plant opt={opt} origin={[108, 3]} size={9} />
+        </Crop>
+      );
+    case 'desk':
+      return (
+        <Crop viewBox="96 8 60 54">
+          <Desk opt={opt} />
+        </Crop>
+      );
+    case 'computer':
+      return (
+        <Crop viewBox="106 4 36 48">
+          <Computer opt={opt} />
+        </Crop>
+      );
+    case 'armchair':
+      return (
+        <Crop viewBox="88 96 58 58">
+          <Armchair opt={opt} />
         </Crop>
       );
     case 'hairStyle':

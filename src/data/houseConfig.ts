@@ -8,6 +8,9 @@
 import type { DecorationKey, FurnitureKey, HouseAppearance, ModalId, Period, PeriodTheme, Rect } from '../types/house';
 
 export const SCENE = { width: 320, height: 224 } as const;
+export const MANSION_SCENE = { width: 320, height: 256 } as const;
+export type SceneVariant = 'free' | 'mansao';
+export const sceneFor = (variant: SceneVariant) => variant === 'mansao' ? MANSION_SCENE : SCENE;
 
 /** Camadas HTML sobre a cena. */
 export const Z = {
@@ -45,13 +48,14 @@ export const visitorHotspots: VisitorHotspot[] = [
   { id: 'tv', label: 'TV', ariaLabel: 'Abrir vídeos na TV', hitbox: { x: 193, y: 79, w: 44, h: 60 }, action: { kind: 'modal', modal: 'tv' }, requires: 'tv' },
   { id: 'radio', label: 'Rádio', ariaLabel: 'Abrir playlist no rádio', hitbox: { x: 238, y: 100, w: 29, h: 50 }, action: { kind: 'modal', modal: 'radio' }, requires: 'radio' },
   { id: 'chest', label: 'Baú de surpresas', ariaLabel: 'Abrir o baú de surpresas', hitbox: { x: 142, y: 170, w: 32, h: 34 }, action: { kind: 'open-chest' }, requires: 'chest', labelPosition: 'bottom' },
+  { id: 'computer', label: 'Computador', ariaLabel: 'Abrir o quiz no computador', hitbox: { x: 222, y: 158, w: 38, h: 42 }, action: { kind: 'modal', modal: 'quiz' }, requires: 'computer', labelPosition: 'inside' },
 ];
 
 /* ------------------------------------------------------------------
  * Elementos selecionáveis no editor visual
  * ------------------------------------------------------------------ */
 
-export type EditorCategory = 'ambiente' | 'moveis' | 'personagem1' | 'personagem2' | 'personagem3' | 'personagem4' | 'animal' | 'decoracoes';
+export type EditorCategory = 'ambiente' | 'moveis' | 'personagem1' | 'personagem2' | 'personagem3' | 'personagem4' | 'animal' | 'decoracoes' | 'quiz';
 
 export type EditorTarget =
   | 'walls'
@@ -93,6 +97,9 @@ export const targetLabels: Record<EditorTarget, string> = {
   chest: 'Baú',
   plants: 'Plantas',
   cushions: 'Almofadas',
+  desk: 'Mesa de computador',
+  computer: 'Computador',
+  armchair: 'Poltrona',
   character1: 'Personagem 1',
   character2: 'Personagem 2',
   character3: 'Personagem 3',
@@ -101,10 +108,10 @@ export const targetLabels: Record<EditorTarget, string> = {
 };
 
 /** Ordem dos móveis no painel. */
-export const furnitureOrder: FurnitureKey[] = ['sofa', 'sofa2', 'cushions', 'table', 'rug', 'bookshelf', 'tv', 'radio', 'frame', 'calendar', 'lamp', 'chest', 'plants'];
+export const furnitureOrder: FurnitureKey[] = ['sofa', 'sofa2', 'cushions', 'table', 'rug', 'bookshelf', 'desk', 'computer', 'armchair', 'tv', 'radio', 'frame', 'calendar', 'lamp', 'chest', 'plants'];
 
 /** Objetos interativos: podem ser ocultados, mas o conteúdo continua salvo. */
-export const interactiveFurniture: FurnitureKey[] = ['bookshelf', 'tv', 'radio', 'frame', 'calendar', 'lamp', 'chest'];
+export const interactiveFurniture: FurnitureKey[] = ['bookshelf', 'tv', 'radio', 'frame', 'calendar', 'lamp', 'chest', 'computer'];
 
 /** Áreas clicáveis de cada móvel no editor (unidades da cena). */
 export const editorHitboxes: Partial<Record<EditorTarget, Rect[]>> = {
@@ -122,6 +129,9 @@ export const editorHitboxes: Partial<Record<EditorTarget, Rect[]>> = {
   lamp: [{ x: 52, y: 92, w: 30, h: 62 }],
   table: [{ x: 108, y: 120, w: 49, h: 37 }],
   chest: [{ x: 140, y: 160, w: 36, h: 45 }],
+  desk: [{ x: 208, y: 150, w: 55, h: 50 }],
+  computer: [{ x: 220, y: 148, w: 42, h: 48 }],
+  armchair: [{ x: 94, y: 176, w: 40, h: 34 }],
 };
 
 /* ------------------------------------------------------------------
@@ -153,8 +163,10 @@ export const decorationLabels: Record<DecorationKey, string> = {
 export const defaultAppearance: HouseAppearance = {
   version: 1,
   environment: {
+    layout: 'free',
     wallColor: 'wall.creme',
     floor: 'floor.madeira-clara',
+    wallPattern: 'pattern.none',
     windowModel: 'window.classica',
     curtainStyle: 'curtain.laterais',
     curtainColor: 'curtainColor.rosa',
@@ -175,6 +187,9 @@ export const defaultAppearance: HouseAppearance = {
     chest: { model: 'chest.madeira', visible: true },
     plants: { model: 'plants.costela', visible: true },
     cushions: { model: 'cushions.creme-salvia', visible: true },
+    desk: { model: 'desk.madeira', visible: true },
+    computer: { model: 'computer.rosa', visible: true },
+    armchair: { model: 'armchair.redonda', visible: true },
   },
   books: 'books.classicos',
   characters: [

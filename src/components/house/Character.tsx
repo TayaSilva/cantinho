@@ -78,7 +78,7 @@ export function Character({ look, seat, index = 0 }: { look: CharacterAppearance
     box('arm-far-up', [8, 12], [cc - 2, cc], [20, 24], shirt);
     box('arm-far-low', [8, 12], [cc - 2, cc], [15, 20], skin, { outline: false });
   }
-  if (outfit === 'dress') {
+  if (outfit === 'dress' || outfit === 'skirt') {
     box('skirt', [11, 21.5], [cc - 0.3, cc + 8.3], [9, 14.5], color);
     box('shin-1', [19, 22], [cc + 0.8, cc + 3.2], [0, 9], skin);
     box('shin-2', [19, 22], [cc + 4.8, cc + 7.2], [0, 9], skin);
@@ -115,7 +115,7 @@ export function Character({ look, seat, index = 0 }: { look: CharacterAppearance
     details.push(<FaceA key="zip" a={13.05} c={[cc + 3.8, cc + 4.8]} z={[12, 25]} fill={shade(color, -0.25)} />);
     details.push(<FaceA key="collar-jacket" a={13.1} c={[cc + 1.5, cc + 6.5]} z={[23, 25]} fill={shade(color, 0.2)} />);
   }
-  if (outfit === 'tshirt' || outfit === 'dress') {
+  if (outfit === 'tshirt' || outfit === 'tank' || outfit === 'dress' || outfit === 'skirt') {
     details.push(<FaceA key="collar" a={13.05} c={[cc + 2.5, cc + 5.5]} z={[24.8, 26]} fill={skin} />);
   }
 

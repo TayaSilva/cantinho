@@ -237,7 +237,7 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
       </header>
 
       {isPlan ? (
-        <PlanPage houseId={house.house_id} houseName={house.house.name} doc={draft.doc} />
+        <PlanPage houseId={house.house_id} houseName={house.house.name} />
       ) : !draft.doc ? (
         <p className="p-10 text-center text-stone-500">Carregando…</p>
       ) : isContent ? (

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { FaceA, FaceC, IsoBox, shade } from './iso';
 
-export type HairStyle = 'short' | 'wavy' | 'curly' | 'coily' | 'long' | 'bob' | 'ponytail';
+export type HairStyle = 'short' | 'wavy' | 'curly' | 'coily' | 'long' | 'bob' | 'ponytail' | 'braids';
 
 export interface HairSpec {
   top: number;
@@ -21,6 +21,7 @@ export const SPECS: Record<HairStyle, HairSpec> = {
   long: { top: 38.6, a: [5.2, 14.6], c: [-1.8, 9.8], back: 15, fringe: [32.5, 33.2, 33.8, 34, 34, 34, 34, 34, 33.8, 33.2, 32.5], side: [16, 16.5, 17, 17.5, 18, 18.5, 19.5, 21, 23] },
   bob: { top: 38.9, a: [5, 14.8], c: [-2.1, 10.1], back: 26.5, fringe: [27.2, 32.6, 32.6, 32.6, 32.6, 32.6, 32.6, 32.6, 32.6, 32.6, 27.2], side: [26.8, 26.8, 26.8, 26.8, 26.8, 27, 27.3, 27.6, 28] },
   ponytail: { top: 38.3, a: [5.3, 14.6], c: [-1.6, 9.6], fringe: [33, 34.6, 35, 35.3, 35.5, 35.5, 35.3, 35, 34.6, 34.2, 33.6], side: [31, 31.5, 32, 32.5, 33, 33.5, 34, 34.2, 34.5] },
+  braids: { top: 39, a: [5.2, 14.7], c: [-1.8, 9.8], back: 16, fringe: [32.5, 33.2, 33.8, 34, 34, 34, 33.8, 33.2, 32.5, 32, 31.5], side: [24, 24.5, 25, 25.5, 26, 27, 28, 29, 30] },
 };
 
 export function normalizeHairStyle(value: string): HairStyle {
@@ -134,6 +135,12 @@ export function HairBack({ style: styleValue, color, cc }: HairProps) {
           <IsoBox a={[2.8, 5.5]} c={[cc - 2.1, cc + 0.5]} z={[24.5, 29]} color={p.base} side={p.side} outlineColor={p.deep} outline={false} />
         </>
       )}
+      {style === 'braids' && (
+        <>
+          <IsoBox a={[2.4, 5.2]} c={[cc - 3, cc + 0.5]} z={[22, 36]} color={p.base} side={p.side} outlineColor={p.deep} />
+          <IsoBox a={[2.4, 5.2]} c={[cc + 8.5, cc + 12]} z={[22, 36]} color={p.base} side={p.side} outlineColor={p.deep} />
+        </>
+      )}
     </g>
   );
 }
@@ -156,6 +163,12 @@ export function HairFront({ style: styleValue, color, cc }: HairProps) {
       {fringeColumns(spec, p, cc)}
       {sideColumns(spec, p, cc)}
       {style === 'ponytail' && <FaceA a={14.3} c={[cc - 0.5, cc + 1.8]} z={[36.5, 37.4]} fill="#C2577A" />}
+      {style === 'braids' && (
+        <>
+          <FaceA a={14.3} c={[cc - 1.2, cc + 0.8]} z={[34.5, 35.5]} fill={p.deep} />
+          <FaceA a={14.3} c={[cc + 9.2, cc + 11.2]} z={[34.5, 35.5]} fill={p.deep} />
+        </>
+      )}
     </g>
   );
 }

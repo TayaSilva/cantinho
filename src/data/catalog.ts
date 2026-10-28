@@ -12,9 +12,9 @@
 import type { AssetOption, ElementType, OptionValue } from '../types/house';
 
 let order = 0;
-function o(elementType: ElementType, id: string, name: string, value: OptionValue, variantGroup?: string): AssetOption {
+function o(elementType: ElementType, id: string, name: string, value: OptionValue, variantGroup?: string, isActive = true, premium = false): AssetOption {
   order += 1;
-  return { id, elementType, name, value, variantGroup, sortOrder: order, isActive: true };
+  return { id, elementType, name, value, variantGroup, sortOrder: order, isActive, premium };
 }
 
 export const catalog: AssetOption[] = [
@@ -24,6 +24,14 @@ export const catalog: AssetOption[] = [
   o('wallColor', 'wall.azul', 'Azul claro', { color: '#C9DCEB' }),
   o('wallColor', 'wall.salvia', 'Verde sálvia', { color: '#C9D8C3' }),
   o('wallColor', 'wall.lilas', 'Lilás', { color: '#DBD0EA' }),
+
+  o('wallPattern', 'pattern.none', 'Sem estampa', { pattern: 'none', color: '#FFFFFF' }),
+  o('wallPattern', 'pattern.coracoes', 'Corações', { pattern: 'hearts', color: '#F2B9C8', accent: '#D98FA6' }, undefined, true, true),
+  o('wallPattern', 'pattern.floral', 'Floral', { pattern: 'floral', color: '#CFE5C6', accent: '#C98190' }, undefined, true, true),
+  o('wallPattern', 'pattern.estrelas', 'Estrelas', { pattern: 'stars', color: '#DBD0EA', accent: '#F8E6B5' }, undefined, true, true),
+  o('wallPattern', 'pattern.nuvens', 'Nuvens', { pattern: 'clouds', color: '#BFE3F0', accent: '#FFFFFF' }, undefined, true, true),
+  o('wallPattern', 'pattern.bolinhas', 'Bolinhas', { pattern: 'dots', color: '#F5E6D3', accent: '#E8C5CE' }, undefined, true, true),
+  o('wallPattern', 'pattern.xadrez', 'Xadrez', { pattern: 'checker', color: '#F4D9C6', accent: '#E8C5CE' }, undefined, true, true),
 
   o('floor', 'floor.madeira-clara', 'Madeira clara', { pattern: 'planks', color: '#C49A76', line: '#AE8463', edge1: '#9A7255', edge2: '#86624A' }),
   o('floor', 'floor.madeira-escura', 'Madeira escura', { pattern: 'planks', color: '#8A5D46', line: '#764E3A', edge1: '#6B4535', edge2: '#5A3A2C' }),
@@ -134,6 +142,15 @@ export const catalog: AssetOption[] = [
   o('cushions', 'cushions.terra', 'Terra', { a: '#C98A6A', b: '#F4EDE4' }),
   o('cushions', 'cushions.coracao', 'Corações', { a: '#C98190', b: '#C98190', heart: true }),
 
+  o('desk', 'desk.madeira', 'Madeira', { variant: 'wood', color: '#A7755B' }, undefined, true, true),
+  o('desk', 'desk.branca', 'Branca', { variant: 'modern', color: '#EDE6DD' }, undefined, true, true),
+  o('desk', 'desk.rosa', 'Rosa', { variant: 'modern', color: '#E7A9B4' }, undefined, true, true),
+  o('computer', 'computer.rosa', 'Rosa', { variant: 'classic', color: '#C98190' }, undefined, true, true),
+  o('computer', 'computer.azul', 'Azul', { variant: 'flat', color: '#8FA7C8' }, undefined, true, true),
+  o('computer', 'computer.creme', 'Creme', { variant: 'classic', color: '#F4EDE4' }, undefined, true, true),
+  o('armchair', 'armchair.redonda', 'Redonda', { variant: 'round', color: '#C98190' }, undefined, true, true),
+  o('armchair', 'armchair.moderno', 'Moderna', { variant: 'modern', color: '#8FA7C8' }, undefined, true, true),
+
   /* ---------------- Personagens ---------------- */
   o('skinTone', 'skin.1', 'Tom 1', { color: '#F6D7C3' }),
   o('skinTone', 'skin.2', 'Tom 2', { color: '#F2C9A6' }),
@@ -148,6 +165,7 @@ export const catalog: AssetOption[] = [
   o('hairStyle', 'hair.longo', 'Longo liso', { style: 'long' }),
   o('hairStyle', 'hair.chanel', 'Chanel', { style: 'bob' }),
   o('hairStyle', 'hair.rabo', 'Rabo de cavalo', { style: 'ponytail' }),
+  o('hairStyle', 'hair.trancas', 'Tranças', { style: 'braids' }, undefined, true, true),
 
   o('hairColor', 'hairColor.preto', 'Preto', { color: '#2B2024' }),
   o('hairColor', 'hairColor.castanho-escuro', 'Castanho escuro', { color: '#4A2E22' }),
@@ -160,10 +178,12 @@ export const catalog: AssetOption[] = [
   o('outfit', 'outfit.camiseta', 'Camiseta', { style: 'tshirt' }),
   o('outfit', 'outfit.moletom', 'Moletom', { style: 'hoodie' }),
   o('outfit', 'outfit.vestido', 'Vestido', { style: 'dress' }),
-  o('outfit', 'outfit.jardineira', 'Jardineira', { style: 'overalls' }),
+  o('outfit', 'outfit.jardineira', 'Jardineira', { style: 'overalls' }, undefined, false),
   o('outfit', 'outfit.sueter', 'Suéter listrado', { style: 'sweater' }),
   o('outfit', 'outfit.jaqueta', 'Jaqueta', { style: 'jacket' }),
   o('outfit', 'outfit.macacao', 'Macacão', { style: 'jumpsuit' }),
+  o('outfit', 'outfit.blusa-saia', 'Blusa e saia', { style: 'skirt' }, undefined, true, true),
+  o('outfit', 'outfit.regata', 'Regata', { style: 'tank' }),
 
   o('outfitColor', 'outfitColor.salvia', 'Sálvia', { color: '#7E9C8E' }),
   o('outfitColor', 'outfitColor.mostarda', 'Mostarda', { color: '#E3A857' }),

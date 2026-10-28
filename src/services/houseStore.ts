@@ -86,6 +86,9 @@ function migrate(raw: unknown): HouseDocument {
   // Nomes personalizados continuam preservados.
   if (appearance.characters[2]?.name === 'Pessoa 3') appearance.characters[2].name = '';
   if (appearance.characters[3]?.name === 'Pessoa 4') appearance.characters[3].name = '';
+  for (const character of appearance.characters) {
+    if (character.outfit === 'outfit.jardineira') character.outfit = 'outfit.camiseta';
+  }
 
   return {
     schemaVersion: 1,

@@ -5,18 +5,15 @@ import { formatPrice, PLANS } from '../../data/plans';
 import { navigate, useRoute } from '../../hooks/useRoute';
 import { houseAdminPath } from '../../services/houses';
 import { getDevScenario, planStage, plansDemoEnabled, setDevScenario, useHousePlan } from '../../services/plans';
-import type { HouseDocument } from '../../types/house';
 import { AdminIcon, Button, cx } from '../admin/controls';
 import { CheckoutSheet, PaymentReturnSheet } from './CheckoutSheet';
 import { formatPlanDate, ExpiryNotice, mansaoButton, PaymentHistory, PlanBadge, PlanComparison, StageBadge, StorageMeter } from './PlanParts';
 import { PREMIUM_FEATURES, usePremiumPrompt, type PremiumFeature } from './PremiumFeatureModal';
 
-type UsageIcon = 'image' | 'video' | 'music' | 'letter' | 'gift' | 'person' | 'paw';
-
 const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
 /** /admin/cantinho/:id/plano — plano atual, vencimento, uso e comparação. */
-export function PlanPage({ houseId, houseName, doc }: { houseId: string; houseName: string; doc: HouseDocument | null }) {
+export function PlanPage({ houseId, houseName }: { houseId: string; houseName: string }) {
   const plan = useHousePlan(houseId);
   const premium = usePremiumPrompt(() => scrollTo('comparar'));
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -41,22 +38,8 @@ export function PlanPage({ houseId, houseName, doc }: { houseId: string; houseNa
   const deletion = formatPlanDate(plan.deletionAt);
   const openCheckout = () => setCheckoutOpen(true);
 
-  const ap = doc?.appearance;
-  const content = doc?.content;
-  const usage: { feature: PremiumFeature; label: string; icon: UsageIcon; used: number; limit: number }[] = ap && content
-    ? [
-        { feature: 'photos', label: 'Fotos', icon: 'image', used: content.photos.length, limit: limits.photos },
-        { feature: 'videos', label: 'Vídeos', icon: 'video', used: content.videos.length, limit: limits.videos },
-        { feature: 'audios', label: 'Áudios', icon: 'music', used: content.playlist.tracks.length, limit: limits.audios },
-        { feature: 'letters', label: 'Cartas', icon: 'letter', used: content.letters.length, limit: limits.letters },
-        { feature: 'chestTexts', label: 'Textos do baú', icon: 'gift', used: content.chestMessages.filter((item) => item.text.trim()).length, limit: limits.chestTexts },
-        { feature: 'characters', label: 'Personagens', icon: 'person', used: ap.characters.filter((c, i) => i === 0 || c.enabled !== false).length, limit: limits.characters },
-        { feature: 'pet', label: 'Pet', icon: 'paw', used: ap.pet.enabled ? 1 : 0, limit: limits.pets },
-      ]
-    : [];
-
   return (
-    <main className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 lg:py-7">
+    <main className={cx('min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 lg:py-7', mansao && 'bg-rose-50')}>
       <div className="mx-auto flex max-w-5xl flex-col gap-8">
         <div className="flex flex-col gap-1">
           <h1 className="text-[22px] font-bold text-stone-900">Meu plano</h1>
@@ -129,49 +112,17 @@ export function PlanPage({ houseId, houseName, doc }: { houseId: string; houseNa
           )}
         </section>
 
-        {usage.length > 0 && (
-          <Section title="Recursos do seu plano" description={`${def.customization} · ${limits.storageMb} MB no total.`}>
-            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {usage.map((item) => {
-                const included = item.limit > 0;
-                const over = included && item.used > item.limit;
-                return (
-                  <li key={item.label} className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white p-4">
-                    <span className={cx('flex size-10 shrink-0 items-center justify-center rounded-xl', included ? 'bg-rose-50 text-rose-700' : 'bg-stone-100 text-stone-400')}>
-                      <AdminIcon name={item.icon} className="size-5" />
-                    </span>
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="font-medium">{item.label}</span>
-                      {included ? (
-                        <span className={cx('text-xs', over ? 'text-amber-700' : 'text-stone-500')}>
-                          {item.used} de {item.limit} {over && '· acima do limite do plano'}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-stone-500">Não incluso no {def.name}</span>
-                      )}
-                    </div>
-                    {!included && (
-                      <button type="button" onClick={() => premium.prompt(item.feature)} className="inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-mansao hover:bg-mansao-soft/60 focus-visible:outline-2 focus-visible:outline-rose-500">
-                        <AdminIcon name="crown" className="size-4" />
-                        Mini Mansão
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </Section>
-        )}
-
         {(mansao || plan.payments.length > 0) && (
           <Section title="Histórico de pagamentos" description="Os pedidos de pagamento deste cantinho.">
             <PaymentHistory plan={plan} />
           </Section>
         )}
 
-        <Section id="comparar" title="Compare os planos" description="Escolha o que combina com o seu cantinho.">
-          <PlanComparison currentPlanId={plan.planId} onChoose={openCheckout} />
-        </Section>
+        {!mansao && (
+          <Section id="comparar" title="Compare os planos" description="Escolha o que combina com o seu cantinho.">
+            <PlanComparison currentPlanId={plan.planId} onChoose={openCheckout} />
+          </Section>
+        )}
 
         <Section id="exportar" title="Exportar memórias" description="Baixe fotos, vídeos, áudios e cartas antes de qualquer exclusão.">
           <div className="flex flex-col gap-3 rounded-2xl border border-dashed border-stone-300 bg-white p-5 sm:flex-row sm:items-center">
