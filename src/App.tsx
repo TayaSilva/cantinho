@@ -17,7 +17,7 @@ import { getOption, str } from './data/catalog';
 import { useHouseModal } from './hooks/useHouseModal';
 import { useHouseTime } from './hooks/useHouseTime';
 import { navigate, useRoute } from './hooks/useRoute';
-import { defaultDocument, loadDraft, loadPublished, STORE_EVENT } from './services/houseStore';
+import { demoDocument, loadDraft, loadPublished, STORE_EVENT } from './services/houseStore';
 import { cloudConfigured, getSession } from './services/auth';
 import type { HouseDocument, Period } from './types/house';
 
@@ -78,7 +78,7 @@ function PublicHouse({ preview, period, shareToken, houseId, demo }: { preview: 
   useEffect(() => {
     let alive = true;
     const load = () => {
-      if (demo) return Promise.resolve(defaultDocument()).then((d) => alive && setDoc(d));
+      if (demo) return Promise.resolve(demoDocument()).then((d) => alive && setDoc(d));
       if (shareToken) return fetch(`/api/public/house/${encodeURIComponent(shareToken)}`, { cache: 'no-store' }).then(async (response) => {
         const data = (await response.json().catch(() => ({}))) as HouseDocument & { error?: string };
         if (!response.ok) throw new Error(data.error || 'Link inválido.');

@@ -694,6 +694,8 @@ export function lampGlowCenter(opt: AssetOption): { x: number; y: number } {
 function SideTable() {
   return (
     <g>
+      <IsoBox a={[3, 5]} c={[94.5, 96]} z={[0, 12]} color={WOOD_DARK} side={WOOD_DEEP} outline={false} />
+      <IsoBox a={[12, 14]} c={[94.5, 96]} z={[0, 12]} color={WOOD_DARK} side={WOOD_DEEP} outline={false} />
       <IsoBox a={[3, 5]} c={[105, 106.5]} z={[0, 12]} color={WOOD_DARK} side={WOOD_DEEP} outline={false} />
       <IsoBox a={[12, 14]} c={[105, 106.5]} z={[0, 12]} color={WOOD_DARK} side={WOOD_DEEP} outline={false} />
       <IsoBox a={[2, 15]} c={[94, 107]} z={[12, 14]} color={WOOD} />

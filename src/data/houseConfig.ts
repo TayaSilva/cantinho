@@ -307,7 +307,7 @@ const MANSION_SHIFT: Record<LayoutKey, [number, number]> = {
   rug: [6, 22],
   table: [6, 22],
   sofa: [0, 20],
-  lamp: [0, -50],
+  lamp: [0, 34],
   tv: [4, 0],
   radio: [-2, 0],
   chest: [36, 4],

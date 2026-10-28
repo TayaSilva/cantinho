@@ -48,6 +48,52 @@ export function defaultDocument(): HouseDocument {
   };
 }
 
+/**
+ * Casinha de exemplo da página inicial: mostra a Mini Mansão com um quiz pronto.
+ * As casinhas reais continuam começando pelo `defaultDocument()`.
+ */
+export function demoDocument(): HouseDocument {
+  const doc = defaultDocument();
+  doc.appearance.environment.layout = 'mansao';
+  doc.content.quiz = {
+    ...doc.content.quiz,
+    published: true,
+    questions: [
+      {
+        id: 'demo-q1',
+        prompt: 'Onde foi o nosso primeiro encontro?',
+        options: [
+          { id: 'demo-q1-a', text: 'Num café' },
+          { id: 'demo-q1-b', text: 'No cinema' },
+          { id: 'demo-q1-c', text: 'Num parque' },
+        ],
+        correctOptionId: 'demo-q1-a',
+      },
+      {
+        id: 'demo-q2',
+        prompt: 'Qual é a nossa comida favorita juntos?',
+        options: [
+          { id: 'demo-q2-a', text: 'Pizza' },
+          { id: 'demo-q2-b', text: 'Sushi' },
+          { id: 'demo-q2-c', text: 'Hambúrguer' },
+        ],
+        correctOptionId: 'demo-q2-a',
+      },
+      {
+        id: 'demo-q3',
+        prompt: 'Qual música lembra a gente?',
+        options: [
+          { id: 'demo-q3-a', text: 'A que tocou na viagem' },
+          { id: 'demo-q3-b', text: 'A do primeiro encontro' },
+          { id: 'demo-q3-c', text: 'A que cantamos no carro' },
+        ],
+        correctOptionId: 'demo-q3-b',
+      },
+    ],
+  };
+  return doc;
+}
+
 /** Completa campos que faltarem (ex.: documento salvo antes de uma atualização do catálogo). */
 function mergeDefaults<T>(base: T, saved: unknown, path = ''): T {
   if (Array.isArray(base)) {

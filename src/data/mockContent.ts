@@ -38,10 +38,10 @@ export const defaultContent: HouseContent = {
   hint: 'Passe o mouse ou toque nos objetos para descobrir lembranças',
 
   phrases: {
-    character1: 'Que bom que você chegou!',
-    character2: 'Senta aqui, o filme já vai começar.',
-    character3: 'Tem espaço para mais uma pessoa!',
-    character4: 'Agora cabem todos no nosso cantinho.',
+    character1: 'Que bom que veio!',
+    character2: 'Senta, vai começar!',
+    character3: 'Cabe mais um aqui!',
+    character4: 'Todos no cantinho!',
     pet: '{nome}: mrrrau!',
   },
 
