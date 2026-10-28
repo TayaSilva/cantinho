@@ -164,6 +164,13 @@ export const catalog: AssetOption[] = [
   o('hairStyle', 'hair.chanel', 'Chanel', { style: 'bob' }),
   o('hairStyle', 'hair.rabo', 'Rabo de cavalo', { style: 'ponytail' }),
   o('hairStyle', 'hair.trancas', 'Tranças', { style: 'braids' }, undefined, true, true),
+  o('hairStyle', 'hair.raspado', 'Raspado', { style: 'buzz' }),
+  o('hairStyle', 'hair.social', 'Social', { style: 'sidepart' }),
+  o('hairStyle', 'hair.topete', 'Topete', { style: 'quiff' }),
+  o('hairStyle', 'hair.espetado', 'Espetado', { style: 'spiky' }),
+  o('hairStyle', 'hair.crespo-curto', 'Crespo curto', { style: 'fade' }),
+  o('hairStyle', 'hair.coque', 'Coque', { style: 'manbun' }),
+  o('hairStyle', 'hair.careca', 'Careca', { style: 'bald' }),
 
   o('hairColor', 'hairColor.preto', 'Preto', { color: '#2B2024' }),
   o('hairColor', 'hairColor.castanho-escuro', 'Castanho escuro', { color: '#4A2E22' }),
