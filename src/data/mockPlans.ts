@@ -3,6 +3,7 @@
  * (import.meta.env.DEV) para revisar as telas. Nada aqui representa
  * cobrança, transação ou data real — a interface marca esses dados como demonstração.
  */
+import { PLANS } from './plans';
 import type { CheckoutResult, HousePlan } from '../services/plans';
 
 export type MockPlanScenario = 'free' | 'free-expiring' | 'mansao' | 'mansao-7d' | 'mansao-1d' | 'grace' | 'deletion';
@@ -33,19 +34,19 @@ export function mockHousePlan(houseId: string, scenario: MockPlanScenario, now =
   const base = { houseId, demo: true, payments: [] };
   switch (scenario) {
     case 'free':
-      return { ...base, planId: 'free', status: 'active', expiresAt: at(23), deletionAt: null, storageUsedBytes: 12.4 * MB };
+      return { ...base, planId: 'free', limits: PLANS.free.limits, status: 'active', expiresAt: at(23), deletionAt: null, storageUsedBytes: 12.4 * MB };
     case 'free-expiring':
-      return { ...base, planId: 'free', status: 'active', expiresAt: at(6.5), deletionAt: null, storageUsedBytes: 18.1 * MB };
+      return { ...base, planId: 'free', limits: PLANS.free.limits, status: 'active', expiresAt: at(6.5), deletionAt: null, storageUsedBytes: 18.1 * MB };
     case 'mansao':
-      return { ...base, planId: 'mansao', status: 'active', expiresAt: at(140), deletionAt: null, storageUsedBytes: 61 * MB };
+      return { ...base, planId: 'mansao', limits: PLANS.mansao.limits, status: 'active', expiresAt: at(140), deletionAt: null, storageUsedBytes: 61 * MB };
     case 'mansao-7d':
-      return { ...base, planId: 'mansao', status: 'active', expiresAt: at(6.5), deletionAt: null, storageUsedBytes: 74 * MB };
+      return { ...base, planId: 'mansao', limits: PLANS.mansao.limits, status: 'active', expiresAt: at(6.5), deletionAt: null, storageUsedBytes: 74 * MB };
     case 'mansao-1d':
-      return { ...base, planId: 'mansao', status: 'active', expiresAt: at(0.6), deletionAt: null, storageUsedBytes: 92 * MB };
+      return { ...base, planId: 'mansao', limits: PLANS.mansao.limits, status: 'active', expiresAt: at(0.6), deletionAt: null, storageUsedBytes: 92 * MB };
     case 'grace':
-      return { ...base, planId: 'mansao', status: 'expired', expiresAt: at(-2), deletionAt: at(5), storageUsedBytes: 88 * MB };
+      return { ...base, planId: 'mansao', limits: PLANS.mansao.limits, status: 'expired', expiresAt: at(-2), deletionAt: at(5), storageUsedBytes: 88 * MB };
     case 'deletion':
-      return { ...base, planId: 'mansao', status: 'deletion_scheduled', expiresAt: at(-6), deletionAt: at(1), storageUsedBytes: 88 * MB };
+      return { ...base, planId: 'mansao', limits: PLANS.mansao.limits, status: 'deletion_scheduled', expiresAt: at(-6), deletionAt: at(1), storageUsedBytes: 88 * MB };
   }
 }
 

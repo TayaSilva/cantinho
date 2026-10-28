@@ -1,24 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { MOCK_PLAN_SCENARIOS, type MockPlanScenario } from '../../data/mockPlans';
 import { formatPrice, PLANS } from '../../data/plans';
-import { navigate } from '../../hooks/useRoute';
-import { houseAdminPath } from '../../services/houses';
 import { getDevScenario, planStage, plansDemoEnabled, setDevScenario, useHousePlan } from '../../services/plans';
 import type { HouseDocument } from '../../types/house';
 import { AdminIcon, Button, cx } from '../admin/controls';
-import { CheckoutSheet } from './CheckoutSheet';
 import { formatPlanDate, ExpiryNotice, LifecycleTimeline, mansaoButton, PaymentHistory, PlanBadge, PlanComparison, StageBadge, StorageMeter } from './PlanParts';
 import { PREMIUM_FEATURES, usePremiumPrompt, type PremiumFeature } from './PremiumFeatureModal';
 
-type UsageIcon = 'image' | 'video' | 'music' | 'letter' | 'person' | 'paw';
+type UsageIcon = 'image' | 'video' | 'music' | 'letter' | 'gift' | 'person' | 'paw';
 
 const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
 /** /admin/cantinho/:id/plano — plano atual, vencimento, uso e comparação. */
 export function PlanPage({ houseId, houseName, doc }: { houseId: string; houseName: string; doc: HouseDocument | null }) {
   const plan = useHousePlan(houseId);
-  const [checkout, setCheckout] = useState<null | 'upgrade' | 'renew'>(null);
   const premium = usePremiumPrompt(() => scrollTo('comparar'));
 
   useEffect(() => {
@@ -28,23 +24,25 @@ export function PlanPage({ houseId, houseName, doc }: { houseId: string; houseNa
   if (!plan) return <p className="p-10 text-center text-stone-500">Carregando plano…</p>;
 
   const def = PLANS[plan.planId];
+  const limits = plan.limits;
   const mansao = plan.planId === 'mansao';
   const { stage } = planStage(plan);
   const expired = stage === 'grace' || stage === 'deletion';
   const expires = formatPlanDate(plan.expiresAt);
   const deletion = formatPlanDate(plan.deletionAt);
-  const openCheckout = () => setCheckout(mansao ? 'renew' : 'upgrade');
+  const openCheckout = () => undefined;
 
   const ap = doc?.appearance;
   const content = doc?.content;
   const usage: { feature: PremiumFeature; label: string; icon: UsageIcon; used: number; limit: number }[] = ap && content
     ? [
-        { feature: 'photos', label: 'Fotos', icon: 'image', used: content.photos.length, limit: def.limits.photos },
-        { feature: 'videos', label: 'Vídeos', icon: 'video', used: content.videos.length, limit: def.limits.videos },
-        { feature: 'audios', label: 'Áudios', icon: 'music', used: content.playlist.tracks.length, limit: def.limits.audios },
-        { feature: 'letters', label: 'Cartas', icon: 'letter', used: content.letters.length, limit: def.limits.letters },
-        { feature: 'characters', label: 'Personagens', icon: 'person', used: ap.characters.filter((c, i) => i === 0 || c.enabled !== false).length, limit: def.limits.characters },
-        { feature: 'pet', label: 'Pet', icon: 'paw', used: ap.pet.enabled ? 1 : 0, limit: def.limits.pets },
+        { feature: 'photos', label: 'Fotos', icon: 'image', used: content.photos.length, limit: limits.photos },
+        { feature: 'videos', label: 'Vídeos', icon: 'video', used: content.videos.length, limit: limits.videos },
+        { feature: 'audios', label: 'Áudios', icon: 'music', used: content.playlist.tracks.length, limit: limits.audios },
+        { feature: 'letters', label: 'Cartas', icon: 'letter', used: content.letters.length, limit: limits.letters },
+        { feature: 'chestTexts', label: 'Textos do baú', icon: 'gift', used: content.chestMessages.filter((item) => item.text.trim()).length, limit: limits.chestTexts },
+        { feature: 'characters', label: 'Personagens', icon: 'person', used: ap.characters.filter((c, i) => i === 0 || c.enabled !== false).length, limit: limits.characters },
+        { feature: 'pet', label: 'Pet', icon: 'paw', used: ap.pet.enabled ? 1 : 0, limit: limits.pets },
       ]
     : [];
 
@@ -82,7 +80,7 @@ export function PlanPage({ houseId, houseName, doc }: { houseId: string; houseNa
               </InfoItem>
               {deletion && <InfoItem label="Exclusão prevista"><span className="text-red-700">{deletion}</span></InfoItem>}
             </dl>
-            <StorageMeter usedBytes={plan.storageUsedBytes} limitMb={def.limits.storageMb} />
+            <StorageMeter usedBytes={plan.storageUsedBytes} limitMb={limits.storageMb} />
           </div>
 
           {mansao ? (
@@ -96,9 +94,9 @@ export function PlanPage({ houseId, houseName, doc }: { houseId: string; houseNa
                   Não há renovação automática. Para mais {def.durationLabel}, renove por {formatPrice(def.priceCents)} quando quiser{expires ? `, antes de ${expires}` : ''}.
                 </p>
               </div>
-              <button type="button" className={cx(mansaoButton, 'mt-auto w-full')} onClick={openCheckout}>
+              <button type="button" className={cx(mansaoButton, 'mt-auto w-full')} onClick={openCheckout} disabled title="Em breve">
                 <AdminIcon name="crown" className="size-[18px]" />
-                Renovar Mini Mansão
+                Em breve
               </button>
             </div>
           ) : (
@@ -114,16 +112,16 @@ export function PlanPage({ houseId, houseName, doc }: { houseId: string; houseNa
                 <span className="text-2xl font-bold">{formatPrice(PLANS.mansao.priceCents)}</span>
                 <span className="text-[13px]">pagamento único</span>
               </p>
-              <button type="button" className={cx(mansaoButton, 'mt-auto w-full')} onClick={openCheckout}>
+              <button type="button" className={cx(mansaoButton, 'mt-auto w-full')} onClick={openCheckout} disabled title="Em breve">
                 <AdminIcon name="crown" className="size-[18px]" />
-                Quero minha Mini Mansão
+                Em breve
               </button>
             </div>
           )}
         </section>
 
         {usage.length > 0 && (
-          <Section title="Recursos do seu plano" description={`${def.customization} · ${def.limits.storageMb} MB no total.`}>
+          <Section title="Recursos do seu plano" description={`${def.customization} · ${limits.storageMb} MB no total.`}>
             <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {usage.map((item) => {
                 const included = item.limit > 0;
@@ -185,17 +183,6 @@ export function PlanPage({ houseId, houseName, doc }: { houseId: string; houseNa
         {plansDemoEnabled && <DemoPanel houseId={houseId} onPreviewFeature={premium.prompt} />}
       </div>
 
-      <CheckoutSheet
-        open={checkout !== null}
-        mode={checkout ?? 'upgrade'}
-        houseId={houseId}
-        houseName={houseName}
-        onClose={() => setCheckout(null)}
-        onBackToHouse={() => {
-          setCheckout(null);
-          navigate(houseAdminPath(houseId));
-        }}
-      />
       {premium.element}
     </main>
   );

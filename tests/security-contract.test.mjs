@@ -58,6 +58,25 @@ test('media authorization is scoped by house and owner, with server-side limits'
   assert.match(media, /house_id=eq\./);
 });
 
+test('SPEC 02 keeps plans and publication quotas server-side', async () => {
+  const migration = await read('supabase/migrations/20261028_0002_planos_cotas.sql');
+  assert.match(migration, /create table if not exists public\.plan_definitions/i);
+  assert.match(migration, /create table if not exists public\.house_plans/i);
+  assert.match(migration, /create table if not exists public\.legacy_entitlements/i);
+  assert.match(migration, /register_house_media/i);
+  assert.match(migration, /pg_advisory_xact_lock/i);
+  assert.match(migration, /revoke all on public\.plan_definitions/i);
+  const planApi = await read('api/houses/plan.mjs');
+  assert.match(planApi, /requireRequestedHouse\(req, 'read'\)/);
+  const publish = await read('api/house/publish.mjs');
+  assert.match(publish, /validatePublication/);
+  assert.match(publish, /PLAN_LIMITS/);
+  assert.match(publish, /preserveDraft/);
+  const local = await read('server.mjs');
+  assert.match(local, /house_plans/);
+  assert.match(local, /PLAN_LIMITS/);
+});
+
 test('private routes redirect to login and next only accepts internal paths', async () => {
   const gate = await read('src/components/admin/AdminGate.tsx');
   const app = await read('src/App.tsx');

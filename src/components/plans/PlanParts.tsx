@@ -160,7 +160,6 @@ export function ExpiryNotice({ plan, stage, onRenew, onExport }: { plan: HousePl
   const mansao = plan.planId === 'mansao';
   const expires = formatPlanDate(plan.expiresAt);
   const deletion = formatPlanDate(plan.deletionAt);
-  const renewLabel = mansao ? 'Renovar Mini Mansão' : 'Quero minha Mini Mansão';
   const urgent = stage === 'grace' || stage === 'deletion';
 
   const copy = {
@@ -192,9 +191,9 @@ export function ExpiryNotice({ plan, stage, onRenew, onExport }: { plan: HousePl
         <p className={cx('leading-relaxed', urgent ? 'text-red-800' : 'text-amber-900')}>{copy.body}</p>
       </div>
       <div className="flex flex-col gap-2 sm:items-end">
-        <button type="button" className={cx(mansaoButton, 'w-full sm:w-auto')} onClick={onRenew}>
+        <button type="button" className={cx(mansaoButton, 'w-full cursor-not-allowed sm:w-auto')} onClick={onRenew} disabled title="Em breve">
           <AdminIcon name="crown" className="size-[18px]" />
-          {renewLabel}
+          Em breve
         </button>
         {urgent && onExport && (
           <button type="button" className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-stone-200 bg-white px-4 text-sm font-medium text-stone-500 sm:w-auto" onClick={onExport}>
@@ -275,11 +274,12 @@ export function PlanComparison({ currentPlanId, onChoose }: { currentPlanId: Pla
           </p>
           <ul className="flex flex-col gap-2.5 text-stone-700">
             <Feature>{free.limits.storageMb} MB de armazenamento total</Feature>
-            <Feature>{free.limits.photos} fotos, {free.limits.audios} áudio e {free.limits.letters} carta</Feature>
+            <Feature>{free.limits.photos} fotos, {free.limits.audios} áudio, {free.limits.letters} carta e {free.limits.chestTexts} texto do baú</Feature>
             <Feature>{free.limits.characters} personagens</Feature>
             <Feature>{free.customization}</Feature>
             <Feature included={false}>Sem vídeos</Feature>
             <Feature included={false}>Sem pet</Feature>
+            <Feature included={false}>Sem rádio e TV</Feature>
           </ul>
           <p className="mt-auto rounded-xl bg-stone-50 p-3 text-xs leading-relaxed text-stone-500">Vence em {free.durationLabel}. {rules}.</p>
         </li>
@@ -302,15 +302,16 @@ export function PlanComparison({ currentPlanId, onChoose }: { currentPlanId: Pla
           </p>
           <ul className="flex flex-col gap-2.5 text-stone-700">
             <Feature>{mansao.limits.storageMb} MB de armazenamento total</Feature>
-            <Feature>{mansao.limits.photos} fotos, {mansao.limits.videos} vídeos, {mansao.limits.audios} áudios e {mansao.limits.letters} cartas</Feature>
+            <Feature>{mansao.limits.photos} fotos, {mansao.limits.videos} vídeos, {mansao.limits.audios} áudios, {mansao.limits.letters} cartas e {mansao.limits.chestTexts} textos do baú</Feature>
             <Feature>Até {mansao.limits.characters} personagens e {mansao.limits.pets} pet</Feature>
+            <Feature>Rádio e TV incluídos</Feature>
             <Feature>{mansao.customization}</Feature>
             <Feature>Renovação manual por {formatPrice(mansao.priceCents)}</Feature>
           </ul>
           <p className="rounded-xl bg-mansao-soft/60 p-3 text-xs leading-relaxed text-mansao-deep">Vence em {mansao.durationLabel}, sem renovação automática. {rules}.</p>
-          <button type="button" className={cx(mansaoButton, 'mt-auto w-full')} onClick={onChoose}>
+          <button type="button" className={cx(mansaoButton, 'mt-auto w-full')} onClick={onChoose} disabled title="Em breve">
             <AdminIcon name="crown" className="size-[18px]" />
-            {currentPlanId === 'mansao' ? 'Renovar Mini Mansão' : 'Quero minha Mini Mansão'}
+            Em breve
           </button>
         </li>
       </ul>

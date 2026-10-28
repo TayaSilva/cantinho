@@ -6,6 +6,9 @@ import { AccountMenu } from '../account/AccountMenu';
 import { ContentPage } from './ContentPage';
 import type { ContentSection } from './ContentPage';
 import { AdminIcon, Button, ConfirmDialog, cx, Toast, useDismiss } from './controls';
+import { PublicationLimitModal } from './PublicationLimitModal';
+import { PublicationLimitError } from '../../services/houseStore';
+import type { PublicationLimitDetails } from '../../services/houseStore';
 import { EditorPage } from './EditorPage';
 import { PlanPage } from '../plans/PlanPage';
 import { sharePublicHouse } from '../../services/share';
@@ -25,6 +28,8 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
   const [pendingHouse, setPendingHouse] = useState<string | null>(null);
   const [shareNotice, setShareNotice] = useState<string | null>(null);
   const [planNotice, setPlanNotice] = useState<string | null>(null);
+  const [publishIssue, setPublishIssue] = useState<PublicationLimitDetails | null>(null);
+  const [publishError, setPublishError] = useState<string | null>(null);
   // Navegação recolhível do celular (no desktop os links ficam sempre à vista).
   const [navOpen, setNavOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
@@ -89,6 +94,17 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
     }
   };
   const clearShareNotice = useCallback(() => setShareNotice(null), []);
+
+  const publish = async (candidate?: Parameters<typeof draft.publish>[0]) => {
+    setPublishError(null);
+    try {
+      await draft.publish(candidate);
+      setPublishIssue(null);
+    } catch (cause) {
+      if (cause instanceof PublicationLimitError && cause.details && Array.isArray(cause.details.issues)) setPublishIssue(cause.details);
+      else setPublishError(cause instanceof Error ? cause.message : 'Não foi possível publicar o cantinho.');
+    }
+  };
 
   const link = (to: string) => (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
@@ -278,10 +294,21 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
         onCancel={() => setConfirm(null)}
         onConfirm={() => {
           setConfirm(null);
-          void draft.publish();
+          void publish();
         }}
       />
-      <Toast message={planNotice ?? shareNotice ?? draft.lastAction} onDone={planNotice ? () => setPlanNotice(null) : shareNotice ? clearShareNotice : draft.clearLastAction} />
+      <PublicationLimitModal
+        open={Boolean(publishIssue)}
+        doc={draft.doc}
+        details={publishIssue}
+        onClose={() => setPublishIssue(null)}
+        onLearnMore={() => {
+          setPublishIssue(null);
+          navigate(houseAdminPath(house.house_id, '/plano'));
+        }}
+        onPublish={async (candidate) => publish(candidate)}
+      />
+      <Toast message={planNotice ?? shareNotice ?? publishError ?? draft.lastAction} onDone={planNotice ? () => setPlanNotice(null) : shareNotice ? clearShareNotice : publishError ? () => setPublishError(null) : draft.clearLastAction} />
     </div>
   );
 }

@@ -64,11 +64,13 @@ rota (já incluídos `vercel.json` e `public/_redirects` para Vercel/Netlify).
 
 ### Casinhas individuais e privacidade
 
-Antes do deploy, aplique `supabase/migrations/20261027_0001_casinhas_privadas.sql`
-no SQL Editor. A migration adiciona `houses.slug`, garante uma casa ativa por
-conta, mantém o bucket `casinha-media` privado e restringe o acesso por membro
-e proprietário. Ela não apaga documentos nem arquivos; casas ativas excedentes
-de instalações antigas ficam suspensas para preservar a regra da primeira versão.
+Antes do deploy, aplique em ordem `supabase/migrations/20261027_0001_casinhas_privadas.sql`
+e `supabase/migrations/20261028_0002_planos_cotas.sql` no SQL Editor. A primeira
+adiciona `houses.slug`, garante uma casa ativa por conta, mantém o bucket
+`casinha-media` privado e restringe o acesso por membro e proprietário. A segunda
+ativa os planos, cotas, direitos adquiridos da migração e validação transacional
+de armazenamento/publicação. As migrations são idempotentes e não apagam
+documentos, mídias ou direitos existentes.
 
 Em produção, configure `VITE_LOCAL_MODE=false`, `VITE_SUPABASE_URL` e
 `VITE_SUPABASE_ANON_KEY` no frontend. Configure `SUPABASE_URL`,
@@ -82,6 +84,24 @@ mas somente a versão publicada é entregue. O token é validado no servidor e a
 mídias continuam privadas no Storage.
 `/meu-cantinho` abre a casa autenticada e `/configuracoes` mostra as opções de
 privacidade da conta.
+
+### Planos, cotas e publicação
+
+O plano Free é inicializado para 30 dias com 20 MB, 5 fotos, nenhum vídeo, 1
+áudio, 1 carta/texto do baú e 2 personagens. O rascunho pode preparar conteúdo
+até os limites da Mini Mansão (20 fotos, 2 vídeos, 5 áudios, 10 cartas/textos,
+4 personagens e 100 MB de staging), mas a publicação valida novamente o plano ativo e só
+publica depois de uma seleção explícita quando o conteúdo excede o Free.
+
+O upload respeita os limites individuais de 10 MB por imagem, 20 MB por áudio e
+50 MB por vídeo. A Mini Mansão (R$ 14,90 por 6 meses) permanece no catálogo e na
+comparação como **Em breve**: não há checkout ou troca automática de plano.
+
+A migration `20261028_0002_planos_cotas.sql` registra um snapshot dos recursos
+existentes em `legacy_entitlements`, preservando conteúdo legado sem conceder
+novos recursos premium automaticamente. O endpoint público por bearer-link
+entrega apenas o documento `published`, usa URLs temporárias para mídias privadas
+e envia `noindex`; não existe política pública direta nas tabelas do Supabase.
 
 ## Backoffice
 

@@ -12,13 +12,32 @@
  */
 import { defaultAppearance } from '../data/houseConfig';
 import { defaultContent } from '../data/mockContent';
-import { authFetch } from './auth';
+import { authFetch, cloudConfigured } from './auth';
 import type { HouseAppearance, HouseContent, HouseDocument } from '../types/house';
 
 const LEGACY_HOUSE_ID = '00000000-0000-0000-0000-000000000001';
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
 export const STORE_EVENT = 'casinha:store-changed';
+
+export interface PublicationLimitDetails {
+  issues: { key: string; label: string; used: number; limit: number }[];
+  usage: Record<string, number>;
+  limits: Record<string, number | boolean>;
+  storage: { usedBytes: number; projectedBytes: number; limitBytes: number };
+}
+
+export class PublicationLimitError extends Error {
+  code: string;
+  details?: PublicationLimitDetails;
+
+  constructor(message: string, code = 'PLAN_LIMITS', details?: PublicationLimitDetails) {
+    super(message);
+    this.name = 'PublicationLimitError';
+    this.code = code;
+    this.details = details;
+  }
+}
 
 export function defaultDocument(): HouseDocument {
   return {
@@ -171,20 +190,25 @@ export async function saveDraft(doc: HouseDocument, houseId = LEGACY_HOUSE_ID): 
 }
 
 /** Publica o rascunho: a partir daqui os visitantes veem esta versão. */
-export async function publish(doc: HouseDocument, houseId = LEGACY_HOUSE_ID): Promise<HouseDocument> {
+export async function publish(doc: HouseDocument, houseId = LEGACY_HOUSE_ID, preserveDraft = false): Promise<HouseDocument> {
   const saved = { ...doc, updatedAt: new Date().toISOString() };
   const response = await request(endpoint('/api/house/publish', houseId), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ document: saved }),
+    body: JSON.stringify({ document: saved, preserveDraft }),
   });
+  if (cloudConfigured && !response) throw new Error('Não foi possível falar com o servidor para publicar. Tente novamente.');
+  if (response && !response.ok) {
+    const data = await response.json().catch(() => ({})) as { error?: string; code?: string; details?: PublicationLimitDetails };
+    throw new PublicationLimitError(data.error || 'Não foi possível publicar o cantinho.', data.code, data.details);
+  }
   const serverSaved = response ? await readApiDocument(response) : null;
   if (serverSaved) {
-    notifyServerChange(storageKey('draft', houseId), serverSaved);
+    if (!preserveDraft) notifyServerChange(storageKey('draft', houseId), serverSaved);
     notifyServerChange(storageKey('published', houseId), serverSaved);
     return serverSaved;
   }
-  write(storageKey('draft', houseId), saved);
+  if (!preserveDraft) write(storageKey('draft', houseId), saved);
   write(storageKey('published', houseId), saved);
   return saved;
 }

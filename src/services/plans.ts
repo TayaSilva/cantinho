@@ -6,7 +6,8 @@
  */
 import { useEffect, useState } from 'react';
 import { mockCheckoutResult, mockHousePlan, type MockPaymentOutcome, type MockPlanScenario } from '../data/mockPlans';
-import type { PlanId } from '../data/plans';
+import { PLANS, type PlanId, type PlanLimits } from '../data/plans';
+import { authFetch } from './auth';
 
 export type PaymentMethod = 'pix' | 'credit' | 'debit';
 export type PaymentStatus = 'pending' | 'approved' | 'declined';
@@ -24,7 +25,9 @@ export interface PaymentRecord {
 export interface HousePlan {
   houseId: string;
   planId: PlanId;
+  limits: PlanLimits;
   status: 'active' | 'expired' | 'deletion_scheduled';
+  startedAt?: string | null;
   /** ISO. null enquanto o backend não informar — a interface não inventa datas. */
   expiresAt: string | null;
   deletionAt: string | null;
@@ -32,6 +35,22 @@ export interface HousePlan {
   payments: PaymentRecord[];
   /** Dados fictícios de desenvolvimento (mostra o aviso de demonstração). */
   demo?: boolean;
+  legacyEntitlements?: LegacyEntitlements;
+}
+
+export interface LegacyEntitlements {
+  isLegacy: boolean;
+  cutoffAt: string | null;
+  preservedStorageBytes: number;
+  preservedPhotos: number;
+  preservedVideos: number;
+  preservedAudios: number;
+  preservedLetters: number;
+  preservedChestTexts: number;
+  preservedCharacters: number;
+  preservedPet: boolean;
+  preservedRadio: boolean;
+  preservedTv: boolean;
 }
 
 export type CheckoutResult =
@@ -89,13 +108,29 @@ export function setDevScenario(houseId: string, scenario: MockPlanScenario | nul
 /* ---------- API (pontos de integração) ---------- */
 
 /**
- * Plano atual do cantinho. Futuro: GET /api/houses/:id/plan.
- * Hoje todo cantinho é grátis e as datas/uso ficam vazios (null).
+ * Plano atual do cantinho. Em cloud e no backend SQLite, a API devolve o plano,
+ * as datas, o uso real e os limites efetivos (incluindo direitos adquiridos).
+ * O fallback mantém a tela utilizável quando o backend ainda não responde.
  */
 export async function fetchHousePlan(houseId: string): Promise<HousePlan> {
   const scenario = getDevScenario(houseId);
   if (scenario) return mockHousePlan(houseId, scenario);
-  return { houseId, planId: 'free', status: 'active', expiresAt: null, deletionAt: null, storageUsedBytes: null, payments: [] };
+  try {
+    const response = await authFetch(`/api/houses/plan?house_id=${encodeURIComponent(houseId)}`, { cache: 'no-store' });
+    const data = (await response.json().catch(() => ({}))) as Partial<HousePlan> & { error?: string };
+    if (response.ok && data.planId && data.limits) return data as HousePlan;
+  } catch {
+    // Mantém a tela utilizável enquanto a API não responde.
+  }
+  return { houseId, planId: 'free', limits: PLANS.free.limits, status: 'active', startedAt: null, expiresAt: null, deletionAt: null, storageUsedBytes: null, payments: [] };
+}
+
+export function canUseFeature(plan: HousePlan, feature: 'character3' | 'character4' | 'pet' | 'radio' | 'tv'): boolean {
+  if (feature === 'character3') return plan.limits.characters >= 3;
+  if (feature === 'character4') return plan.limits.characters >= 4;
+  if (feature === 'pet') return plan.limits.pets >= 1;
+  if (feature === 'radio') return plan.limits.radio;
+  return plan.limits.tv;
 }
 
 /**

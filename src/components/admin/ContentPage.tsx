@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { HouseDraft } from '../../hooks/useHouseDraft';
+import { DRAFT_CONTENT_LIMITS } from '../../data/plans';
 import { useMediaUrl } from '../../hooks/useMediaUrl';
 import { navigate } from '../../hooks/useRoute';
 import { houseAdminPath } from '../../services/houses';
@@ -107,7 +108,7 @@ type Upload = { kind: MediaKind; busy: boolean; pick: () => void; start: (files:
  * válidos e, se algo falhar, abre um modal explicando o motivo com a opção de
  * escolher outro arquivo. Nenhum código HTTP chega à tela.
  */
-function useUpload<T>(kind: MediaKind, make: (file: File) => Promise<T>, commit: (items: T[]) => void, multiple = true): Upload {
+function useUpload<T>(kind: MediaKind, make: (file: File) => Promise<T>, commit: (items: T[]) => void, multiple = true, maxItems = Number.POSITIVE_INFINITY, existingCount = 0): Upload {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [report, setReport] = useState<{ problems: UploadProblem[]; sent: number } | null>(null);
@@ -116,7 +117,10 @@ function useUpload<T>(kind: MediaKind, make: (file: File) => Promise<T>, commit:
     if (!files.length || busy) return;
     setBusy(true);
     const problems: UploadProblem[] = [];
-    const valid = files.filter((file) => {
+    const remaining = Math.max(0, maxItems - existingCount);
+    const selected = files.slice(0, remaining);
+    files.slice(remaining).forEach((file) => problems.push({ name: file.name, message: `O rascunho aceita no máximo ${maxItems} itens desta categoria.` }));
+    const valid = selected.filter((file) => {
       const message = checkFile(file, kind);
       if (message) problems.push({ name: file.name, message });
       return !message;
@@ -308,6 +312,9 @@ function PhotosSection({ content, edit, houseId }: { content: HouseContent; edit
     'image',
     async (f) => ({ id: newId('p'), src: await putMedia(f, houseId), caption: fileTitle(f), alt: '' }),
     (items) => edit((c) => void c.photos.push(...items)),
+    true,
+    DRAFT_CONTENT_LIMITS.photos,
+    content.photos.length,
   );
   return (
     <>
@@ -344,6 +351,9 @@ function VideosSection({ content, edit, houseId }: { content: HouseContent; edit
     'video',
     async (f) => ({ id: newId('v'), src: await putMedia(f, houseId), title: fileTitle(f), description: '' }),
     (items) => edit((c) => void c.videos.push(...items)),
+    true,
+    DRAFT_CONTENT_LIMITS.videos,
+    content.videos.length,
   );
   return (
     <>
@@ -377,7 +387,7 @@ function VideosSection({ content, edit, houseId }: { content: HouseContent; edit
 }
 
 function PosterUpload({ hasPoster, houseId, onPoster }: { hasPoster: boolean; houseId?: string; onPoster: (ref: string) => void }) {
-  const upload = useUpload('image', (f) => putMedia(f, houseId), ([ref]) => onPoster(ref), false);
+  const upload = useUpload('image', (f) => putMedia(f, houseId), ([ref]) => onPoster(ref), false, 1);
   return (
     <div className="mt-2 flex flex-col gap-1">
       <UploadButton upload={upload} variant="secondary" label={hasPoster ? 'Trocar capa' : 'Enviar capa'} />
@@ -400,6 +410,9 @@ function TracksSection({ content, edit, houseId }: { content: HouseContent; edit
     'audio',
     async (f) => ({ id: newId('t'), src: await putMedia(f, houseId), title: fileTitle(f), artist: '', license: '' }),
     (items) => edit((c) => void c.playlist.tracks.push(...items)),
+    true,
+    DRAFT_CONTENT_LIMITS.audios,
+    tracks.length,
   );
   return (
     <>
@@ -442,7 +455,7 @@ function LettersSection({ content, edit }: { content: HouseContent; edit: Edit }
         title="Cartas da estante"
         description="Cada carta vira uma página dupla no livro. A ordem aqui é a ordem das páginas."
         action={
-          <Button variant="primary" onClick={add}>
+          <Button variant="primary" onClick={add} disabled={content.letters.length >= DRAFT_CONTENT_LIMITS.letters}>
             <AdminIcon name="plus" className="size-4" />
             Nova carta
           </Button>
@@ -468,6 +481,7 @@ function LettersSection({ content, edit }: { content: HouseContent; edit: Edit }
           ))}
         </div>
       )}
+      {content.letters.length >= DRAFT_CONTENT_LIMITS.letters && <p className="text-xs text-stone-500">Limite do rascunho: {DRAFT_CONTENT_LIMITS.letters} cartas. O plano Free pode publicar uma carta.</p>}
     </>
   );
 }
@@ -521,7 +535,7 @@ function MessagesSection({ content, edit }: { content: HouseContent; edit: Edit 
         title="Mensagens do baú"
         description="Cada vez que o baú é aberto, uma delas é sorteada."
         action={
-          <Button variant="primary" onClick={add}>
+          <Button variant="primary" onClick={add} disabled={content.chestMessages.length >= DRAFT_CONTENT_LIMITS.chestTexts}>
             <AdminIcon name="plus" className="size-4" />
             Nova mensagem
           </Button>
@@ -551,6 +565,7 @@ function MessagesSection({ content, edit }: { content: HouseContent; edit: Edit 
           ))}
         </ol>
       )}
+      {content.chestMessages.length >= DRAFT_CONTENT_LIMITS.chestTexts && <p className="text-xs text-stone-500">Limite do rascunho: {DRAFT_CONTENT_LIMITS.chestTexts} mensagens do baú.</p>}
     </>
   );
 }

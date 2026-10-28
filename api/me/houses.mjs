@@ -4,6 +4,16 @@ import { randomUUID } from 'node:crypto';
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
+function freeDocument(document) {
+  const next = structuredClone(document);
+  next.appearance.furniture.radio.visible = false;
+  next.appearance.furniture.tv.visible = false;
+  next.appearance.pet.enabled = false;
+  next.appearance.characters[2].enabled = false;
+  next.appearance.characters[3].enabled = false;
+  return next;
+}
+
 function slugify(value) {
   const base = String(value || 'cantinho')
     .normalize('NFD')
@@ -48,12 +58,20 @@ async function createHouse(req, res, user) {
       body: JSON.stringify([{ house_id: house.id, user_id: user.id, role: 'owner', can_add_text: true }]),
     });
     if (!member.ok) throw new Error('Não foi possível associar o cantinho à conta.');
-    // Os dois documentos nascem iguais; published_at continua nulo até a primeira publicação.
+    // O cantinho começa no plano Free. O documento inicial já respeita as
+    // travas visuais do plano, mas published_at continua nulo até publicar.
     const timestamp = new Date().toISOString();
+    const initialDocument = freeDocument(body.document);
     await upsertDocuments([
-      { house_id: house.id, status: 'draft', document: body.document, updated_by: user.id, updated_at: timestamp },
-      { house_id: house.id, status: 'published', document: body.document, updated_by: user.id, updated_at: timestamp },
+      { house_id: house.id, status: 'draft', document: initialDocument, updated_by: user.id, updated_at: timestamp },
+      { house_id: house.id, status: 'published', document: initialDocument, updated_by: user.id, updated_at: timestamp },
     ]);
+    const plan = await dbFetch('house_plans', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify([{ house_id: house.id, plan_type: 'free', status: 'active', started_at: timestamp, expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString() }]),
+    });
+    if (!plan.ok) throw new Error('Não foi possível inicializar o plano do cantinho.');
   } catch (error) {
     await removeHouse(house.id);
     throw error;

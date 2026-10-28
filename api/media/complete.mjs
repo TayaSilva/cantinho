@@ -28,20 +28,31 @@ export default async function handler(req, res) {
       if (path.startsWith(`${context.house.id}/`)) await removeUploaded(path);
       return fail(res, 400, 'Invalid media metadata.');
     }
-    const existing = await dbFetch(`media?house_id=eq.${encodeURIComponent(context.house.id)}&select=size_bytes`);
-    const rows = await existing.json().catch(() => []);
-    const used = rows.reduce((sum, row) => sum + Number(row.size_bytes || 0), 0);
-    if (!existing.ok || used + size > MAX_STORAGE_BYTES) {
+    if (size > MAX_STORAGE_BYTES) {
       await removeUploaded(path);
       return fail(res, 413, 'O limite de armazenamento deste cantinho foi atingido.');
     }
     if (!UUID.test(body.id) || typeof body.storagePath !== 'string' || !body.storagePath.startsWith(`${context.house.id}/`) || Number(body.size) > MAX_BYTES) return fail(res, 400, 'Metadados de mídia inválidos.');
-    const response = await dbFetch('media?on_conflict=id', {
+    const response = await dbFetch('rpc/register_house_media', {
       method: 'POST',
-      headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
-      body: JSON.stringify([{ id: body.id, house_id: context.house.id, storage_path: path, original_name: String(body.name || 'upload').slice(0, 180), mime_type: mime.slice(0, 120), size_bytes: size, created_by: context.user.id }]),
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify({
+        p_house_id: context.house.id,
+        p_id: body.id,
+        p_storage_path: path,
+        p_original_name: String(body.name || 'upload').slice(0, 180),
+        p_mime_type: mime.slice(0, 120),
+        p_size_bytes: size,
+        p_created_by: context.user.id,
+      }),
     });
-    if (!response.ok) return fail(res, 500, 'Não foi possível registrar a mídia.');
+    if (!response.ok) {
+      await removeUploaded(path);
+      const details = await response.text().catch(() => '');
+      if (details.includes('storage_quota_exceeded')) return fail(res, 413, 'O limite de armazenamento deste cantinho foi atingido.');
+      if (details.includes('plan_inactive')) return fail(res, 409, 'O plano deste cantinho não está ativo.');
+      return fail(res, 500, 'Não foi possível registrar a mídia.');
+    }
     return json(res, 201, { ref: `media:${body.id}` });
   } catch (error) {
     return fail(res, 500, error instanceof Error ? error.message : 'Erro interno.');

@@ -86,15 +86,23 @@ export function useHouseDraft(houseId = '00000000-0000-0000-0000-000000000001') 
     setLastAction('Rascunho salvo');
   }, [doc, houseId]);
 
-  const publish = useCallback(async () => {
-    if (!doc) return;
+  const publish = useCallback(async (candidate?: HouseDocument) => {
+    const next = candidate ?? doc;
+    if (!next) return;
+    const preserveDraft = Boolean(candidate && candidate !== doc);
     setBusy('publishing');
-    const saved = await publishDoc(doc, houseId);
-    commit(saved);
-    setSavedJson(JSON.stringify(saved));
-    setPublished(saved);
-    setBusy(null);
-    setLastAction('Alterações publicadas');
+    try {
+      const saved = await publishDoc(next, houseId, preserveDraft);
+      if (!preserveDraft) {
+        commit(saved);
+        setSavedJson(JSON.stringify(saved));
+      }
+      setPublished(saved);
+      setLastAction('Alterações publicadas');
+      return saved;
+    } finally {
+      setBusy(null);
+    }
   }, [doc, houseId]);
 
   /** Volta só a APARÊNCIA ao padrão. Conteúdos (fotos, cartas...) ficam intactos. */

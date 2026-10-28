@@ -15,6 +15,8 @@ const host = process.env.HOST || '127.0.0.1';
 const maxJsonBytes = 100 * 1024 * 1024;
 const LOCAL_USER_ID = 'local-user';
 const LEGACY_HOUSE_ID = '00000000-0000-0000-0000-000000000001';
+const MB = 1024 * 1024;
+const FREE_LIMITS = { storageMb: 20, photos: 5, videos: 0, audios: 1, letters: 1, chestTexts: 1, characters: 2, pets: 0, radio: false, tv: false };
 
 await mkdir(uploadsDir, { recursive: true });
 const db = new DatabaseSync(dbPath);
@@ -58,6 +60,27 @@ db.exec(`
     version INTEGER NOT NULL DEFAULT 1,
     PRIMARY KEY (house_id, status)
   );
+  CREATE TABLE IF NOT EXISTS house_plans (
+    house_id TEXT PRIMARY KEY,
+    plan_type TEXT NOT NULL DEFAULT 'free',
+    status TEXT NOT NULL DEFAULT 'active',
+    started_at TEXT NOT NULL,
+    expires_at TEXT,
+    deletion_at TEXT
+  );
+  CREATE TABLE IF NOT EXISTS legacy_entitlements (
+    house_id TEXT PRIMARY KEY,
+    preserved_storage_bytes INTEGER NOT NULL DEFAULT 0,
+    preserved_photos INTEGER NOT NULL DEFAULT 0,
+    preserved_videos INTEGER NOT NULL DEFAULT 0,
+    preserved_audios INTEGER NOT NULL DEFAULT 0,
+    preserved_letters INTEGER NOT NULL DEFAULT 0,
+    preserved_chest_texts INTEGER NOT NULL DEFAULT 0,
+    preserved_characters INTEGER NOT NULL DEFAULT 2,
+    preserved_pet INTEGER NOT NULL DEFAULT 0,
+    preserved_radio INTEGER NOT NULL DEFAULT 0,
+    preserved_tv INTEGER NOT NULL DEFAULT 0
+  );
 `);
 try { db.exec('ALTER TABLE media ADD COLUMN house_id TEXT'); } catch { /* já migrada */ }
 
@@ -79,6 +102,45 @@ function safeOriginalName(value) { return (typeof value === 'string' ? value : '
 function houseIdFromUrl(url) { return url.searchParams.get('house_id') || LEGACY_HOUSE_ID; }
 function mediaIdFromPath(pathname) { return decodeURIComponent(pathname.slice('/api/media/'.length).split('/')[0]); }
 function documentFromRow(row) { return row ? JSON.parse(row.document) : null; }
+function documentUsage(document) {
+  const appearance = document?.appearance || {}; const content = document?.content || {};
+  return {
+    photos: Array.isArray(content.photos) ? content.photos.length : 0,
+    videos: Array.isArray(content.videos) ? content.videos.length : 0,
+    audios: Array.isArray(content.playlist?.tracks) ? content.playlist.tracks.length : 0,
+    letters: Array.isArray(content.letters) ? content.letters.length : 0,
+    chestTexts: Array.isArray(content.chestMessages) ? content.chestMessages.filter((item) => item?.text?.trim()).length : 0,
+    characters: Array.isArray(appearance.characters) ? appearance.characters.filter((item) => item?.enabled !== false).length : 0,
+    pets: appearance.pet?.enabled ? 1 : 0,
+    radio: appearance.furniture?.radio ? (appearance.furniture.radio.visible === false ? 0 : 1) : 0,
+    tv: appearance.furniture?.tv ? (appearance.furniture.tv.visible === false ? 0 : 1) : 0,
+  };
+}
+function mediaIds(document) {
+  const ids = new Set(); const visit = (value) => {
+    if (typeof value === 'string' && value.startsWith('media:')) { ids.add(value.slice(6).split('@')[0]); return; }
+    if (Array.isArray(value)) value.forEach(visit); else if (value && typeof value === 'object') Object.values(value).forEach(visit);
+  }; visit(document); return ids;
+}
+function localLimits(houseId) {
+  const legacy = db.prepare('SELECT * FROM legacy_entitlements WHERE house_id = ?').get(houseId);
+  return {
+    ...FREE_LIMITS,
+    storageMb: Math.max(FREE_LIMITS.storageMb * MB, Number(legacy?.preserved_storage_bytes || 0)) / MB,
+    photos: Math.max(FREE_LIMITS.photos, Number(legacy?.preserved_photos || 0)),
+    videos: Math.max(FREE_LIMITS.videos, Number(legacy?.preserved_videos || 0)),
+    audios: Math.max(FREE_LIMITS.audios, Number(legacy?.preserved_audios || 0)),
+    letters: Math.max(FREE_LIMITS.letters, Number(legacy?.preserved_letters || 0)),
+    chestTexts: Math.max(FREE_LIMITS.chestTexts, Number(legacy?.preserved_chest_texts || 0)),
+    characters: Math.max(FREE_LIMITS.characters, Number(legacy?.preserved_characters || 0)),
+    pets: FREE_LIMITS.pets || legacy?.preserved_pet ? 1 : 0,
+    radio: FREE_LIMITS.radio || Boolean(legacy?.preserved_radio),
+    tv: FREE_LIMITS.tv || Boolean(legacy?.preserved_tv),
+  };
+}
+function freeDocument(document) {
+  const next = structuredClone(document); next.appearance.furniture.radio.visible = false; next.appearance.furniture.tv.visible = false; next.appearance.pet.enabled = false; next.appearance.characters[2].enabled = false; next.appearance.characters[3].enabled = false; return next;
+}
 
 const oldDocument = db.prepare('SELECT * FROM house_documents WHERE id = 1').get();
 const oldMedia = db.prepare('SELECT COUNT(*) AS count FROM media').get();
@@ -107,6 +169,13 @@ const statements = {
 function ensureHouse(houseId) {
   insertHouse.run(houseId, houseId === LEGACY_HOUSE_ID ? 'Meu cantinho' : 'Meu cantinho', LOCAL_USER_ID, now(), now());
   insertMember.run(houseId, LOCAL_USER_ID);
+  const timestamp = now();
+  db.prepare('INSERT OR IGNORE INTO house_plans (house_id, plan_type, status, started_at, expires_at) VALUES (?, \'free\', \'active\', ?, ?)').run(houseId, timestamp, new Date(Date.now() + 30 * 86_400_000).toISOString());
+  if (!db.prepare('SELECT 1 FROM legacy_entitlements WHERE house_id = ?').get(houseId)) {
+    const published = getDocument(houseId, 'published'); const usage = documentUsage(published ? documentFromRow(published) : null);
+    const storage = db.prepare('SELECT COALESCE(SUM(size_bytes), 0) AS total FROM media WHERE house_id = ?').get(houseId)?.total || 0;
+    db.prepare('INSERT INTO legacy_entitlements (house_id, preserved_storage_bytes, preserved_photos, preserved_videos, preserved_audios, preserved_letters, preserved_chest_texts, preserved_characters, preserved_pet, preserved_radio, preserved_tv) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(houseId, storage, usage.photos, usage.videos, usage.audios, usage.letters, usage.chestTexts, Math.max(2, usage.characters), usage.pets, usage.radio, usage.tv);
+  }
 }
 function getDocument(houseId, status) { return statements.document.get(houseId, status); }
 
@@ -124,9 +193,10 @@ async function route(req, res) {
     if (req.method === 'GET') return fail(res, 404, 'A publicação ainda não foi inicializada.');
     const body = await readJson(req); if (!validDocument(body.document)) return fail(res, 400, 'Documento inicial inválido.');
     const timestamp = now();
-    statements.insertDocument.run(houseId, 'draft', JSON.stringify(body.document), timestamp, houseId, 'draft');
-    statements.insertDocument.run(houseId, 'published', JSON.stringify(body.document), timestamp, houseId, 'published');
-    return json(res, 201, body.document);
+    const initial = freeDocument(body.document);
+    statements.insertDocument.run(houseId, 'draft', JSON.stringify(initial), timestamp, houseId, 'draft');
+    statements.insertDocument.run(houseId, 'published', JSON.stringify(initial), timestamp, houseId, 'published');
+    return json(res, 201, initial);
   }
   if (pathname === '/api/house/draft' && (req.method === 'GET' || req.method === 'PUT')) {
     ensureHouse(houseId);
@@ -140,8 +210,18 @@ async function route(req, res) {
   if (pathname === '/api/house/publish' && req.method === 'POST') {
     ensureHouse(houseId);
     const body = await readJson(req); if (!validDocument(body.document)) return fail(res, 400, 'Documento inválido.');
-    const timestamp = now(); const serialized = JSON.stringify({ ...body.document, updatedAt: timestamp });
-    statements.publish.run(houseId, 'draft', serialized, timestamp, houseId, 'draft');
+    const candidate = body.document; const plan = db.prepare('SELECT * FROM house_plans WHERE house_id = ?').get(houseId); const limits = localLimits(houseId); const usage = documentUsage(candidate);
+    if (plan?.status !== 'active' || (plan?.expires_at && new Date(plan.expires_at) <= new Date())) return json(res, 409, { error: 'O plano deste cantinho não está ativo.', code: 'PLAN_INACTIVE', details: { status: 'expired', limits } });
+    const mediaRows = db.prepare('SELECT id, size_bytes FROM media WHERE house_id = ?').all(houseId); const refs = mediaIds(candidate);
+    const projectedBytes = mediaRows.reduce((sum, row) => sum + (refs.has(row.id) ? row.size_bytes : 0), 0);
+    const issues = Object.entries({ photos: usage.photos, videos: usage.videos, audios: usage.audios, letters: usage.letters, chestTexts: usage.chestTexts, characters: usage.characters }).filter(([key, value]) => value > limits[key]).map(([key, used]) => ({ key, label: key, used, limit: limits[key] }));
+    if (usage.pets > limits.pets) issues.push({ key: 'pet', label: 'Pet', used: usage.pets, limit: limits.pets });
+    if (usage.radio && !limits.radio) issues.push({ key: 'radio', label: 'Rádio', used: 1, limit: 0 });
+    if (usage.tv && !limits.tv) issues.push({ key: 'tv', label: 'TV', used: 1, limit: 0 });
+    if (projectedBytes > limits.storageMb * MB) issues.push({ key: 'storage', label: 'Armazenamento', used: projectedBytes, limit: limits.storageMb * MB });
+    if (issues.length) return json(res, 409, { error: 'A publicação excede os limites do plano.', code: 'PLAN_LIMITS', details: { issues, usage, limits, storage: { usedBytes: mediaRows.reduce((sum, row) => sum + row.size_bytes, 0), projectedBytes, limitBytes: limits.storageMb * MB } } });
+    const timestamp = now(); const serialized = JSON.stringify({ ...candidate, updatedAt: timestamp });
+    if (body.preserveDraft !== true) statements.publish.run(houseId, 'draft', serialized, timestamp, houseId, 'draft');
     statements.publish.run(houseId, 'published', serialized, timestamp, houseId, 'published');
     return json(res, 200, JSON.parse(serialized));
   }
@@ -151,8 +231,16 @@ async function route(req, res) {
     const buffer = Buffer.from(body.data, 'base64'); if (buffer.length > 50 * 1024 * 1024) return fail(res, 413, 'O arquivo excede o limite de 50 MB.');
     const id = randomUUID(); const originalName = safeOriginalName(body.name); const extension = extname(originalName).replace(/[^a-zA-Z0-9.]/g, '').slice(0, 10); const storageName = `${id}${extension}`; const target = join(uploadsDir, storageName);
     await writeFile(target, buffer, { flag: 'wx' });
+    const plan = db.prepare('SELECT * FROM house_plans WHERE house_id = ?').get(houseId);
+    if (plan?.status !== 'active' || (plan?.expires_at && new Date(plan.expires_at) <= new Date())) { await unlink(target).catch(() => undefined); return fail(res, 409, 'O plano deste cantinho não está ativo.'); }
+    const limits = localLimits(houseId); const used = db.prepare('SELECT COALESCE(SUM(size_bytes), 0) AS total FROM media WHERE house_id = ?').get(houseId)?.total || 0;
+    if (used + buffer.length > Math.max(limits.storageMb, 100) * MB) { await unlink(target).catch(() => undefined); return fail(res, 413, 'O limite de armazenamento deste cantinho foi atingido.'); }
     statements.insertMedia.run(id, houseId, storageName, originalName, typeof body.type === 'string' ? body.type : 'application/octet-stream', buffer.length, now());
     return json(res, 201, { ref: `media:${id}@${houseId}` });
+  }
+  if (pathname === '/api/houses/plan' && req.method === 'GET') {
+    ensureHouse(houseId); const plan = db.prepare('SELECT * FROM house_plans WHERE house_id = ?').get(houseId); const status = plan?.status !== 'active' || (plan?.expires_at && new Date(plan.expires_at) <= new Date()) ? 'expired' : 'active'; const limits = localLimits(houseId); const storageUsedBytes = db.prepare('SELECT COALESCE(SUM(size_bytes), 0) AS total FROM media WHERE house_id = ?').get(houseId)?.total || 0;
+    return json(res, 200, { houseId, planId: plan?.plan_type || 'free', status, startedAt: plan?.started_at || null, expiresAt: plan?.expires_at || null, deletionAt: plan?.deletion_at || null, storageUsedBytes, limits, payments: [] });
   }
   if (pathname.startsWith('/api/media/') && (req.method === 'GET' || req.method === 'HEAD')) {
     const id = mediaIdFromPath(pathname); const media = statements.media.get(id, houseId);

@@ -11,9 +11,13 @@ import {
 import type { EditorCategory, EditorTarget } from '../../data/houseConfig';
 import type { HouseDraft } from '../../hooks/useHouseDraft';
 import { useHouseTime } from '../../hooks/useHouseTime';
+import { navigate } from '../../hooks/useRoute';
+import { houseAdminPath } from '../../services/houses';
+import { canUseFeature, useHousePlan } from '../../services/plans';
 import type { CharacterAge, CharacterAppearance, DecorationKey, ElementType, FurnitureKey, HouseAppearance, Period } from '../../types/house';
 import { HouseScene } from '../house/HouseScene';
 import { PlanShortcut } from '../plans/PlanParts';
+import { usePremiumPrompt, type PremiumFeature } from '../plans/PremiumFeatureModal';
 import { AdminIcon, cx, Field, Group, Segmented, Swatches, TextField, ThumbGrid, Toggle } from './controls';
 import { OptionThumb } from './Thumbnails';
 
@@ -71,6 +75,8 @@ export function EditorPage({ draft }: { draft: HouseDraft }) {
   const [lampOn, setLampOn] = useState(true);
   const dynamic = doc?.appearance.environment.dynamicWindow ?? true;
   const { theme, clock } = useHouseTime(periodChoice === 'auto' ? null : periodChoice, dynamic);
+  const plan = useHousePlan(draft.houseId);
+  const premium = usePremiumPrompt(() => navigate(houseAdminPath(draft.houseId, '/plano')));
 
   // Rola o painel até a seção do elemento escolhido na prévia.
   useEffect(() => {
@@ -83,13 +89,28 @@ export function EditorPage({ draft }: { draft: HouseDraft }) {
   const ap = doc.appearance;
   const setAp = (fn: (a: HouseAppearance) => void, key?: string) => draft.update((d) => fn(d.appearance), key);
 
+  const featureForCategory = (value: EditorCategory): PremiumFeature | null => value === 'personagem3' || value === 'personagem4' ? 'characters' : value === 'animal' ? 'pet' : null;
+  const featureForFurniture = (value: FurnitureKey): PremiumFeature | null => value === 'radio' ? 'radio' : value === 'tv' ? 'tv' : null;
+  const isLocked = (feature: PremiumFeature | null) => Boolean(plan && feature && !canUseFeature(plan, feature === 'characters' ? 'character3' : feature === 'pet' ? 'pet' : feature === 'radio' ? 'radio' : 'tv'));
+  const notifyLocked = (feature: PremiumFeature | null) => { if (isLocked(feature)) premium.prompt(feature as PremiumFeature); };
+
   const select = (target: EditorTarget) => {
+    const feature = target === 'character3' || target === 'character4' ? 'characters' : target === 'pet' ? 'pet' : target === 'radio' ? 'radio' : target === 'tv' ? 'tv' : null;
+    if (isLocked(feature)) {
+      premium.prompt(feature as PremiumFeature);
+      return;
+    }
     setSelected(target);
     setCategory(categoryOf(target));
     if (target in ap.furniture) setFurnitureKey(target as FurnitureKey);
   };
 
   const chooseCategory = (c: EditorCategory) => {
+    const feature = featureForCategory(c);
+    if (isLocked(feature)) {
+      premium.prompt(feature as PremiumFeature);
+      return;
+    }
     setCategory(c);
     setSelected(c === 'personagem1' ? 'character1' : c === 'personagem2' ? 'character2' : c === 'animal' ? 'pet' : c === 'moveis' ? furnitureKey : null);
   };
@@ -122,6 +143,7 @@ export function EditorPage({ draft }: { draft: HouseDraft }) {
               >
                 <AdminIcon name={c.icon} />
                 <span className="flex-1">{c.label}</span>
+                {isLocked(featureForCategory(c.id)) && <span aria-label="Bloqueado no plano Free" title="Bloqueado no plano Free">🔒</span>}
                 {sub && <span className={cx('hidden text-xs lg:inline', active ? 'font-medium' : 'text-stone-500')}>{sub}</span>}
               </button>
             );
@@ -187,6 +209,8 @@ export function EditorPage({ draft }: { draft: HouseDraft }) {
               ap={ap}
               setAp={setAp}
               current={furnitureKey}
+              isLocked={(key) => isLocked(featureForFurniture(key))}
+              onLocked={(key) => notifyLocked(featureForFurniture(key))}
               onPick={(k) => {
                 setFurnitureKey(k);
                 setSelected(k);
@@ -194,13 +218,14 @@ export function EditorPage({ draft }: { draft: HouseDraft }) {
             />
           )}
           {(['personagem1', 'personagem2', 'personagem3', 'personagem4'] as EditorCategory[]).includes(category) && (
-            <CharacterPanel ap={ap} setAp={setAp} slot={category === 'personagem1' ? 0 : category === 'personagem2' ? 1 : category === 'personagem3' ? 2 : 3} onSwitch={(s) => select(`character${s + 1}` as EditorTarget)} />
+            <CharacterPanel ap={ap} setAp={setAp} slot={category === 'personagem1' ? 0 : category === 'personagem2' ? 1 : category === 'personagem3' ? 2 : 3} locked={isLocked(category === 'personagem3' || category === 'personagem4' ? 'characters' : null)} onSwitch={(s) => select(`character${s + 1}` as EditorTarget)} />
           )}
-          {category === 'animal' && <PetPanel ap={ap} setAp={setAp} />}
+          {category === 'animal' && <PetPanel ap={ap} setAp={setAp} locked={isLocked('pet')} onUnlock={() => premium.prompt('pet')} />}
           {category === 'decoracoes' && <DecorPanel ap={ap} setAp={setAp} />}
         </div>
         <p className="border-t border-stone-100 px-5 py-3 text-xs leading-relaxed text-stone-500">As mudanças aparecem na prévia na hora. Os visitantes só veem depois de publicar.</p>
       </aside>
+      {premium.element}
     </div>
   );
 }
@@ -272,7 +297,7 @@ function AmbientePanel({ ap, setAp, selected }: { ap: HouseAppearance; setAp: Se
   );
 }
 
-function MoveisPanel({ ap, setAp, current, onPick }: { ap: HouseAppearance; setAp: SetAp; current: FurnitureKey; onPick: (k: FurnitureKey) => void }) {
+function MoveisPanel({ ap, setAp, current, onPick, isLocked, onLocked }: { ap: HouseAppearance; setAp: SetAp; current: FurnitureKey; onPick: (k: FurnitureKey) => void; isLocked: (key: FurnitureKey) => boolean; onLocked: (key: FurnitureKey) => void }) {
   const setting = ap.furniture[current];
   const type = FURNITURE_TYPE[current];
   const linked = LINKED_CONTENT[current];
@@ -288,7 +313,7 @@ function MoveisPanel({ ap, setAp, current, onPick }: { ap: HouseAppearance; setA
               type="button"
               role="tab"
               aria-selected={active}
-              onClick={() => onPick(k)}
+              onClick={() => isLocked(k) ? onLocked(k) : onPick(k)}
               className={cx(
                 'h-8 cursor-pointer rounded-full border px-3 text-[13px] focus-visible:outline-2 focus-visible:outline-rose-500',
                 active ? 'border-stone-900 bg-stone-900 font-medium text-white' : 'border-stone-200 text-stone-700 hover:bg-stone-50',
@@ -302,17 +327,23 @@ function MoveisPanel({ ap, setAp, current, onPick }: { ap: HouseAppearance; setA
       </div>
 
       <Group title={targetLabels[current]} id={`sec-${current}`}>
-        <Field title={current === 'cushions' ? 'Conjunto' : current === 'frame' ? 'Moldura' : current === 'calendar' ? 'Estilo' : current === 'radio' ? 'Aparência' : 'Modelo'} aside={nameOf(type, setting.model)}>
+        {isLocked(current) ? (
+          <div className="flex flex-col gap-3 rounded-xl border border-mansao/30 bg-mansao-soft/40 p-4 text-sm text-mansao-deep">
+            <b>🔒 Recurso da Mini Mansão</b>
+            <span>Este móvel fica disponível quando o plano completo estiver ativo.</span>
+            <ButtonLike onClick={() => onLocked(current)}>Conhecer Mini Mansão</ButtonLike>
+          </div>
+        ) : <Field title={current === 'cushions' ? 'Conjunto' : current === 'frame' ? 'Moldura' : current === 'calendar' ? 'Estilo' : current === 'radio' ? 'Aparência' : 'Modelo'} aside={nameOf(type, setting.model)}>
           <ThumbGrid label={`Modelo de ${targetLabels[current].toLowerCase()}`} items={thumbsFor(type, ap)} value={setting.model} onChange={(id) => setAp((a) => void (a.furniture[current].model = id))} />
-        </Field>
+        </Field>}
 
-        {current === 'bookshelf' && (
+        {!isLocked(current) && current === 'bookshelf' && (
           <Field title="Livro: capa e cor" aside={nameOf('books', ap.books)} hint="Muda os livros da estante e a capa do livro de cartas.">
             <ThumbGrid label="Capa e cor dos livros" items={thumbsFor('books', ap)} value={ap.books} onChange={(id) => setAp((a) => void (a.books = id))} />
           </Field>
         )}
 
-        {isSofa ? (
+        {!isLocked(current) && (isSofa ? (
           <p className="rounded-lg bg-stone-50 p-3 text-xs leading-relaxed text-stone-500">O sofá fica sempre visível porque os personagens estão sentados nele.</p>
         ) : (
           <Toggle
@@ -329,14 +360,14 @@ function MoveisPanel({ ap, setAp, current, onPick }: { ap: HouseAppearance; setA
             checked={setting.visible}
             onChange={(v) => setAp((a) => void (a.furniture[current].visible = v))}
           />
-        )}
-        {interactiveFurniture.includes(current) && setting.visible && <p className="text-xs text-stone-500">Objeto interativo: o visitante pode clicar nele.</p>}
+        ))}
+        {!isLocked(current) && interactiveFurniture.includes(current) && setting.visible && <p className="text-xs text-stone-500">Objeto interativo: o visitante pode clicar nele.</p>}
       </Group>
     </div>
   );
 }
 
-function CharacterPanel({ ap, setAp, slot, onSwitch }: { ap: HouseAppearance; setAp: SetAp; slot: 0 | 1 | 2 | 3; onSwitch: (s: 0 | 1 | 2 | 3) => void }) {
+function CharacterPanel({ ap, setAp, slot, locked, onSwitch }: { ap: HouseAppearance; setAp: SetAp; slot: 0 | 1 | 2 | 3; locked: boolean; onSwitch: (s: 0 | 1 | 2 | 3) => void }) {
   const ch = ap.characters[slot];
   type CharacterOptionKey = Exclude<keyof CharacterAppearance, 'age' | 'enabled'>;
   const enabled = slot === 0 || ch.enabled !== false;
@@ -363,7 +394,12 @@ function CharacterPanel({ ap, setAp, slot, onSwitch }: { ap: HouseAppearance; se
           { id: '3', label: `Personagem 4 · ${ap.characters[3].name || '—'}` },
         ]}
       />
-      {slot >= 1 && (
+      {locked ? (
+        <div className="flex flex-col gap-3 rounded-xl border border-mansao/30 bg-mansao-soft/40 p-4 text-sm text-mansao-deep">
+          <b>🔒 Personagens 3 e 4 são da Mini Mansão</b>
+          <span>As escolhas ficam guardadas no rascunho, mas só podem ser publicadas no plano completo.</span>
+        </div>
+      ) : slot >= 1 && (
         <Toggle
           label="Exibir no cantinho"
           description="Ocultar não apaga as escolhas: ao reativar, tudo volta como estava."
@@ -397,7 +433,7 @@ function CharacterPanel({ ap, setAp, slot, onSwitch }: { ap: HouseAppearance; se
   );
 }
 
-function PetPanel({ ap, setAp }: { ap: HouseAppearance; setAp: SetAp }) {
+function PetPanel({ ap, setAp, locked, onUnlock }: { ap: HouseAppearance; setAp: SetAp; locked: boolean; onUnlock: () => void }) {
   const pet = ap.pet;
   const typeName = nameOf('petType', pet.type);
   const look = pet.appearanceByType[pet.type] ?? optionsFor('petAppearance', pet.type)[0]?.id ?? '';
@@ -408,6 +444,8 @@ function PetPanel({ ap, setAp }: { ap: HouseAppearance; setAp: SetAp }) {
   });
   return (
     <div className="flex flex-col gap-7" id="sec-pet">
+      {locked && <div className="flex flex-col gap-3 rounded-xl border border-mansao/30 bg-mansao-soft/40 p-4 text-sm text-mansao-deep"><b>🔒 Pet da Mini Mansão</b><span>O pet fica disponível no plano completo.</span><ButtonLike onClick={onUnlock}>Conhecer Mini Mansão</ButtonLike></div>}
+      {!locked && <>
       <Toggle
         label="Exibir animal no cantinho"
         description="Ocultar não apaga as escolhas: ao reativar, tudo volta como estava."
@@ -443,8 +481,13 @@ function PetPanel({ ap, setAp }: { ap: HouseAppearance; setAp: SetAp }) {
         </Field>
         <Toggle label="Animação" description="Respirar, piscar, mexer a cauda e pular ao ser clicado." checked={pet.animation} onChange={(v) => setAp((a) => void (a.pet.animation = v))} />
       </div>
+      </>}
     </div>
   );
+}
+
+function ButtonLike({ children, onClick }: { children: ReactNode; onClick: () => void }) {
+  return <button type="button" onClick={onClick} className="inline-flex min-h-9 w-fit cursor-pointer items-center rounded-lg bg-white px-3 text-xs font-semibold text-mansao-deep shadow-sm hover:bg-mansao-soft focus-visible:outline-2 focus-visible:outline-rose-500">{children}</button>;
 }
 
 function DecorPanel({ ap, setAp }: { ap: HouseAppearance; setAp: SetAp }) {
