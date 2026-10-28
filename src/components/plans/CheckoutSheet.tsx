@@ -174,7 +174,7 @@ export function PaymentStatusView({ titleId, result, simulated, onRetry, onBackT
     unavailable: {
       icon: 'clock' as const,
       tone: 'bg-stone-100 text-stone-700',
-      title: 'Pagamentos em breve',
+      title: 'Pagamentos indisponíveis',
       body: 'A contratação da Mini Mansão ainda não está disponível. Nenhuma cobrança foi feita.',
       action: <Button size="lg" variant="primary" onClick={onRetry} className="w-full">Voltar ao resumo</Button>,
     },

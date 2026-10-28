@@ -5,7 +5,7 @@ import { formatPrice, PLANS } from '../../data/plans';
 import { getDevScenario, planStage, plansDemoEnabled, setDevScenario, useHousePlan } from '../../services/plans';
 import type { HouseDocument } from '../../types/house';
 import { AdminIcon, Button, cx } from '../admin/controls';
-import { formatPlanDate, ExpiryNotice, LifecycleTimeline, mansaoButton, PaymentHistory, PlanBadge, PlanComparison, StageBadge, StorageMeter } from './PlanParts';
+import { formatPlanDate, ExpiryNotice, mansaoButton, PaymentHistory, PlanBadge, PlanComparison, StageBadge, StorageMeter } from './PlanParts';
 import { PREMIUM_FEATURES, usePremiumPrompt, type PremiumFeature } from './PremiumFeatureModal';
 
 type UsageIcon = 'image' | 'video' | 'music' | 'letter' | 'gift' | 'person' | 'paw';
@@ -94,9 +94,9 @@ export function PlanPage({ houseId, houseName, doc }: { houseId: string; houseNa
                   Não há renovação automática. Para mais {def.durationLabel}, renove por {formatPrice(def.priceCents)} quando quiser{expires ? `, antes de ${expires}` : ''}.
                 </p>
               </div>
-              <button type="button" className={cx(mansaoButton, 'mt-auto w-full')} onClick={openCheckout} disabled title="Em breve">
+              <button type="button" className={cx(mansaoButton, 'mt-auto w-full')} onClick={openCheckout} disabled>
                 <AdminIcon name="crown" className="size-[18px]" />
-                Em breve
+                Renovar Mini Mansão
               </button>
             </div>
           ) : (
@@ -112,9 +112,9 @@ export function PlanPage({ houseId, houseName, doc }: { houseId: string; houseNa
                 <span className="text-2xl font-bold">{formatPrice(PLANS.mansao.priceCents)}</span>
                 <span className="text-[13px]">pagamento único</span>
               </p>
-              <button type="button" className={cx(mansaoButton, 'mt-auto w-full')} onClick={openCheckout} disabled title="Em breve">
+              <button type="button" className={cx(mansaoButton, 'mt-auto w-full')} onClick={openCheckout} disabled>
                 <AdminIcon name="crown" className="size-[18px]" />
-                Em breve
+                Quero minha Mini Mansão
               </button>
             </div>
           )}
@@ -162,12 +162,6 @@ export function PlanPage({ houseId, houseName, doc }: { houseId: string; houseNa
 
         <Section id="comparar" title="Compare os planos" description="Escolha o que combina com o seu cantinho.">
           <PlanComparison currentPlanId={plan.planId} onChoose={openCheckout} />
-        </Section>
-
-        <Section title="Vencimento e exclusão" description="Como funciona o ciclo de cada plano. Nada é excluído sem aviso.">
-          <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
-            <LifecycleTimeline stage={stage} />
-          </div>
         </Section>
 
         <Section id="exportar" title="Exportar memórias" description="Baixe fotos, vídeos, áudios e cartas antes de qualquer exclusão.">

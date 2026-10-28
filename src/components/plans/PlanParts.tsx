@@ -1,7 +1,7 @@
 /**
  * Peças das telas de plano: selo do plano, folha modal (bottom sheet no celular),
- * medidor de armazenamento, aviso de vencimento, linha do tempo das regras,
- * comparação dos planos e histórico de pagamentos.
+ * medidor de armazenamento, aviso de vencimento, comparação dos planos e
+ * histórico de pagamentos.
  */
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
@@ -55,28 +55,21 @@ export function StageBadge({ stage }: { stage: PlanStage }) {
 
 /**
  * Atalho discreto do editor: "Mini Mansão" para quem está no grátis,
- * selo do plano para quem já é Premium. "Meu plano" ainda não está
- * disponível, então o atalho aparece desativado com o aviso "Em breve".
+ * selo do plano para quem já é Premium.
  */
 export function PlanShortcut({ houseId }: { houseId: string }) {
   const plan = useHousePlan(houseId);
   if (!plan) return null;
   if (plan.planId === 'mansao') return <PlanBadge planId="mansao" className="py-1" />;
   return (
-    <span className="group relative inline-flex">
-      <button
-        type="button"
-        aria-disabled="true"
-        title="Em breve"
-        className="inline-flex h-9 cursor-not-allowed items-center gap-1.5 rounded-lg border border-mansao-soft bg-white px-3 text-[13px] font-medium text-mansao opacity-50 focus-visible:outline-2 focus-visible:outline-rose-500"
-      >
-        <AdminIcon name="crown" className="size-4" />
-        Mini Mansão
-      </button>
-      <span role="status" className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-stone-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg group-hover:block group-focus-within:block">
-        Em breve
-      </span>
-    </span>
+    <button
+      type="button"
+      aria-disabled="true"
+      className="inline-flex h-9 cursor-not-allowed items-center gap-1.5 rounded-lg border border-mansao-soft bg-white px-3 text-[13px] font-medium text-mansao opacity-50 focus-visible:outline-2 focus-visible:outline-rose-500"
+    >
+      <AdminIcon name="crown" className="size-4" />
+      Mini Mansão
+    </button>
   );
 }
 
@@ -191,9 +184,9 @@ export function ExpiryNotice({ plan, stage, onRenew, onExport }: { plan: HousePl
         <p className={cx('leading-relaxed', urgent ? 'text-red-800' : 'text-amber-900')}>{copy.body}</p>
       </div>
       <div className="flex flex-col gap-2 sm:items-end">
-        <button type="button" className={cx(mansaoButton, 'w-full cursor-not-allowed sm:w-auto')} onClick={onRenew} disabled title="Em breve">
+        <button type="button" className={cx(mansaoButton, 'w-full cursor-not-allowed sm:w-auto')} onClick={onRenew} disabled>
           <AdminIcon name="crown" className="size-[18px]" />
-          Em breve
+          {mansao ? 'Renovar Mini Mansão' : 'Quero minha Mini Mansão'}
         </button>
         {urgent && onExport && (
           <button type="button" className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-stone-200 bg-white px-4 text-sm font-medium text-stone-500 sm:w-auto" onClick={onExport}>
@@ -203,42 +196,6 @@ export function ExpiryNotice({ plan, stage, onRenew, onExport }: { plan: HousePl
         )}
       </div>
     </section>
-  );
-}
-
-/* ---------- Regras de vencimento ---------- */
-
-const TIMELINE: { stages: PlanStage[]; title: string; text: string }[] = [
-  { stages: ['active', 'unknown'], title: 'Plano ativo', text: `${PLANS.free.durationLabel} no Grátis · ${PLANS.mansao.durationLabel} na Mini Mansão` },
-  { stages: ['expiring'], title: `Aviso de ${EXPIRY_WARNINGS_DAYS[0]} dias`, text: 'Lembrete para renovar com calma' },
-  { stages: ['last-day'], title: `Aviso de ${EXPIRY_WARNINGS_DAYS[1]} dia`, text: 'Último lembrete antes de vencer' },
-  { stages: ['grace'], title: 'Período de segurança', text: `${GRACE_PERIOD_DAYS} dias com tudo guardado depois do vencimento` },
-  { stages: ['deletion'], title: 'Exclusão', text: 'Sem renovação, a casinha e os arquivos são excluídos' },
-];
-
-export function LifecycleTimeline({ stage }: { stage: PlanStage }) {
-  const current = TIMELINE.findIndex((step) => step.stages.includes(stage));
-  return (
-    <ol className="grid gap-3 md:grid-cols-5 md:gap-2">
-      {TIMELINE.map((step, i) => {
-        const active = i === current;
-        const done = i < current;
-        return (
-          <li key={step.title} className="flex gap-3 md:flex-col md:gap-2" aria-current={active ? 'step' : undefined}>
-            <div className="flex flex-col items-center md:flex-row">
-              <span className={cx('flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold', active ? 'bg-mansao text-white' : done ? 'bg-mansao-soft text-mansao-deep' : 'bg-stone-100 text-stone-500')}>
-                {done ? <AdminIcon name="check" className="size-3.5" /> : i + 1}
-              </span>
-              {i < TIMELINE.length - 1 && <span className={cx('w-px flex-1 md:h-px md:w-auto', done ? 'bg-mansao-soft' : 'bg-stone-200')} aria-hidden="true" />}
-            </div>
-            <div className="flex flex-col gap-0.5 pb-1">
-              <span className={cx('text-[13px] font-semibold', active ? 'text-mansao-deep' : 'text-stone-900')}>{step.title}</span>
-              <span className="text-xs leading-relaxed text-stone-500">{step.text}</span>
-            </div>
-          </li>
-        );
-      })}
-    </ol>
   );
 }
 
@@ -309,9 +266,9 @@ export function PlanComparison({ currentPlanId, onChoose }: { currentPlanId: Pla
             <Feature>Renovação manual por {formatPrice(mansao.priceCents)}</Feature>
           </ul>
           <p className="rounded-xl bg-mansao-soft/60 p-3 text-xs leading-relaxed text-mansao-deep">Vence em {mansao.durationLabel}, sem renovação automática. {rules}.</p>
-          <button type="button" className={cx(mansaoButton, 'mt-auto w-full')} onClick={onChoose} disabled title="Em breve">
+          <button type="button" className={cx(mansaoButton, 'mt-auto w-full')} onClick={onChoose} disabled>
             <AdminIcon name="crown" className="size-[18px]" />
-            Em breve
+            {currentPlanId === 'mansao' ? 'Renovar Mini Mansão' : 'Escolher Mini Mansão'}
           </button>
         </li>
       </ul>

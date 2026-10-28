@@ -95,7 +95,7 @@ publica depois de uma seleção explícita quando o conteúdo excede o Free.
 
 O upload respeita os limites individuais de 10 MB por imagem, 20 MB por áudio e
 50 MB por vídeo. A Mini Mansão (R$ 14,90 por 6 meses) permanece no catálogo e na
-comparação como **Em breve**: não há checkout ou troca automática de plano.
+comparação, mas ainda não há checkout ou troca automática de plano.
 
 A migration `20261028_0002_planos_cotas.sql` registra um snapshot dos recursos
 existentes em `legacy_entitlements`, preservando conteúdo legado sem conceder

@@ -136,7 +136,7 @@ export function PublicationLimitModal({ open, doc, details, onClose, onLearnMore
         <p className="text-xs leading-relaxed text-stone-500">Nada é apagado do rascunho. O servidor valida novamente os limites no momento da publicação.</p>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <button type="button" className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl px-2 text-sm font-semibold text-mansao-deep hover:bg-mansao-soft/60" onClick={onLearnMore}>
-            <AdminIcon name="crown" className="size-4" /> Conhecer Mini Mansão <span className="text-xs font-normal">(em breve)</span>
+            <AdminIcon name="crown" className="size-4" /> Conhecer Mini Mansão
           </button>
           <div className="flex gap-2">
             <Button onClick={onClose}>Cancelar</Button>

@@ -203,7 +203,7 @@ export const defaultAppearance: HouseAppearance = {
       expression: 'face.sorriso',
     },
     {
-      enabled: true,
+      enabled: false,
       name: 'Pessoa 3',
       age: 'adult',
       skinTone: 'skin.1',
@@ -215,7 +215,7 @@ export const defaultAppearance: HouseAppearance = {
       expression: 'face.sorriso',
     },
     {
-      enabled: true,
+      enabled: false,
       name: 'Pessoa 4',
       age: 'adult',
       skinTone: 'skin.4',
