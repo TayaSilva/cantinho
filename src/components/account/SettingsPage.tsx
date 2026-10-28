@@ -21,6 +21,10 @@ export function SettingsPage({ email }: { email?: string }) {
           <p className="mt-1 leading-relaxed text-stone-600">
             Seu cantinho e seus arquivos são privados por padrão. O acesso é protegido pela sua conta e o compartilhamento público permanece desativado.
           </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => navigate('/termos?voltar=/configuracoes')}>Termos de uso</Button>
+            <Button variant="secondary" onClick={() => navigate('/privacidade?voltar=/configuracoes')}>Política de Privacidade</Button>
+          </div>
         </div>
       </section>
     </main>

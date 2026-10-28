@@ -25,6 +25,9 @@ export function LegalPage({ path }: { path: string }) {
   const tab = TABS.find((t) => t.id === active)!;
   const doc = useMemo(() => parse(tab.md), [tab.md]);
   const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>({ privacidade: null, termos: null });
+  // ?voltar=/configuracoes: o botão de voltar retorna para quem abriu a página (só caminhos internos).
+  const backParam = new URLSearchParams(window.location.search).get('voltar');
+  const back = backParam && backParam.startsWith('/') && !backParam.startsWith('//') ? backParam : null;
 
   useEffect(() => {
     document.title = `${tab.title} · Cantinho`;
@@ -37,7 +40,7 @@ export function LegalPage({ path }: { path: string }) {
   }, [active]);
 
   const go = (id: TabId, focus = false) => {
-    if (id !== active) navigate(`/${id}`);
+    if (id !== active) navigate(back ? `/${id}?voltar=${encodeURIComponent(back)}` : `/${id}`);
     if (focus) tabRefs.current[id]?.focus();
   };
   const onTabKey = (e: KeyboardEvent<HTMLButtonElement>) => {
@@ -63,11 +66,11 @@ export function LegalPage({ path }: { path: string }) {
             Cantinho
           </a>
           <a
-            href="/"
-            onClick={(e) => (e.preventDefault(), navigate('/'))}
+            href={back ?? '/'}
+            onClick={(e) => (e.preventDefault(), navigate(back ?? '/'))}
             className="border-[3px] border-ink bg-highlight px-3 py-1.5 font-pixel text-sm font-semibold text-ink no-underline shadow-[0_3px_0_var(--color-ink)] transition-transform hover:-translate-y-px active:translate-y-[2px] active:shadow-none"
           >
-            Voltar ao cantinho
+            {back ? 'Voltar' : 'Voltar ao cantinho'}
           </a>
         </div>
       </header>
