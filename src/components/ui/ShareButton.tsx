@@ -2,8 +2,12 @@ import { sharePublicHouse } from '../../services/share';
 import { errorMessage, notify } from './Notifications';
 import { Icon, PixelButton } from './PixelButton';
 
-export function ShareButton({ disabled = false, published = true, houseId, shareUrl }: { disabled?: boolean; published?: boolean; houseId?: string; shareUrl?: string }) {
+export function ShareButton({ disabled = false, published = true, houseId, shareUrl, demo = false }: { disabled?: boolean; published?: boolean; houseId?: string; shareUrl?: string; demo?: boolean }) {
   const share = async () => {
+    if (demo) {
+      notify.info('Este é um cantinho de exemplo. Para compartilhar, crie o seu próprio cantinho!');
+      return;
+    }
     if (disabled) {
       notify.info('Compartilhamento indisponível.');
       return;

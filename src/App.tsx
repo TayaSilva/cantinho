@@ -204,7 +204,7 @@ function House({ doc, preview, period, demo, houseId, shareUrl }: { doc: HouseDo
           <PixelButton variant="dark" size="icon" onClick={() => setHelp((h) => !h)} aria-label="Mostrar objetos interativos" aria-pressed={help} className={help ? '!bg-rug !text-ink-deep' : ''}>
             <Icon name="help" />
           </PixelButton>
-          <ShareButton published={!preview} houseId={houseId} shareUrl={shareUrl} />
+          <ShareButton published={!preview} houseId={houseId} shareUrl={shareUrl} demo={demo} />
           <AudioControl />
           {canFullscreen && (
             <PixelButton variant="dark" size="icon" onClick={toggleFullscreen} aria-label="Tela cheia">
