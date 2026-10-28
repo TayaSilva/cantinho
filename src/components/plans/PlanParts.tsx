@@ -184,7 +184,7 @@ export function ExpiryNotice({ plan, stage, onRenew, onExport }: { plan: HousePl
         <p className={cx('leading-relaxed', urgent ? 'text-red-800' : 'text-amber-900')}>{copy.body}</p>
       </div>
       <div className="flex flex-col gap-2 sm:items-end">
-        <button type="button" className={cx(mansaoButton, 'w-full cursor-not-allowed sm:w-auto')} onClick={onRenew} disabled>
+        <button type="button" className={cx(mansaoButton, 'w-full sm:w-auto')} onClick={onRenew}>
           <AdminIcon name="crown" className="size-[18px]" />
           {mansao ? 'Renovar Mini Mansão' : 'Quero minha Mini Mansão'}
         </button>
@@ -266,7 +266,7 @@ export function PlanComparison({ currentPlanId, onChoose }: { currentPlanId: Pla
             <Feature>Renovação manual por {formatPrice(mansao.priceCents)}</Feature>
           </ul>
           <p className="rounded-xl bg-mansao-soft/60 p-3 text-xs leading-relaxed text-mansao-deep">Vence em {mansao.durationLabel}, sem renovação automática. {rules}.</p>
-          <button type="button" className={cx(mansaoButton, 'mt-auto w-full')} onClick={onChoose} disabled>
+          <button type="button" className={cx(mansaoButton, 'mt-auto w-full')} onClick={onChoose}>
             <AdminIcon name="crown" className="size-[18px]" />
             {currentPlanId === 'mansao' ? 'Renovar Mini Mansão' : 'Escolher Mini Mansão'}
           </button>
@@ -281,8 +281,17 @@ export function PlanComparison({ currentPlanId, onChoose }: { currentPlanId: Pla
 
 /* ---------- Histórico de pagamentos ---------- */
 
-const methodLabel = { pix: 'Pix', credit: 'Crédito', debit: 'Débito' } as const;
-const paymentStatusLabel = { pending: 'Pendente', approved: 'Aprovado', declined: 'Recusado' } as const;
+const methodLabel = { pix: 'Pix', credit: 'Crédito', debit: 'Débito', other: 'Mercado Pago' } as const;
+const paymentStatusLabel = {
+  pending: 'Pendente',
+  approved: 'Aprovado',
+  declined: 'Recusado',
+  canceled: 'Não concluído',
+  refunded: 'Reembolsado',
+  charged_back: 'Contestado',
+  needs_review: 'Em análise',
+  error: 'Falhou',
+} as const;
 
 /** Lista o que a API devolver; sem pagamentos, mostra só a estrutura vazia. */
 export function PaymentHistory({ plan }: { plan: HousePlan }) {
@@ -307,7 +316,7 @@ export function PaymentHistory({ plan }: { plan: HousePlan }) {
           {plan.payments.map((payment) => (
             <li key={payment.id} className="grid gap-1 border-b border-stone-100 px-5 py-3 last:border-0 sm:grid-cols-[1fr_1.4fr_auto_auto] sm:gap-4">
               <span>{formatPlanDate(payment.createdAt) ?? '—'}</span>
-              <span>{PLANS[payment.planId].name} · {methodLabel[payment.method]}</span>
+              <span>{payment.kind === 'renewal' ? 'Renovação' : PLANS[payment.planId].name} · {methodLabel[payment.method ?? 'other']}</span>
               <span className="font-medium">{formatPrice(payment.amountCents)}</span>
               <span className="text-stone-500">{paymentStatusLabel[payment.status]}</span>
             </li>

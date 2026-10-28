@@ -242,6 +242,8 @@ async function route(req, res) {
     ensureHouse(houseId); const plan = db.prepare('SELECT * FROM house_plans WHERE house_id = ?').get(houseId); const status = plan?.status !== 'active' || (plan?.expires_at && new Date(plan.expires_at) <= new Date()) ? 'expired' : 'active'; const limits = localLimits(houseId); const storageUsedBytes = db.prepare('SELECT COALESCE(SUM(size_bytes), 0) AS total FROM media WHERE house_id = ?').get(houseId)?.total || 0;
     return json(res, 200, { houseId, planId: plan?.plan_type || 'free', status, startedAt: plan?.started_at || null, expiresAt: plan?.expires_at || null, deletionAt: plan?.deletion_at || null, storageUsedBytes, limits, payments: [] });
   }
+  // Pagamentos só existem na API da Vercel (Mercado Pago + Supabase).
+  if (pathname.startsWith('/api/payments/')) return fail(res, 503, 'Pagamentos indisponíveis no backend local.');
   if (pathname.startsWith('/api/media/') && (req.method === 'GET' || req.method === 'HEAD')) {
     const id = mediaIdFromPath(pathname); const media = statements.media.get(id, houseId);
     if (!media) return fail(res, 404, 'Arquivo não encontrado.'); const target = normalize(join(uploadsDir, media.storage_name));

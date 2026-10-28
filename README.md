@@ -74,6 +74,10 @@ terceira troca o limite de "uma casa ativa por conta" por "uma casa **Free** por
 conta" (casinhas Mini Mansão não contam). As migrations são idempotentes e não apagam
 documentos, mídias ou direitos existentes.
 
+Pagamentos da Mini Mansão (Mercado Pago): aplique também
+`supabase/migrations/20261028_0004_pagamentos_mini_mansao.sql` e configure as
+variáveis descritas em [docs/pagamentos-mercado-pago.md](docs/pagamentos-mercado-pago.md).
+
 Em produção, configure `VITE_LOCAL_MODE=false`, `VITE_SUPABASE_URL` e
 `VITE_SUPABASE_ANON_KEY` no frontend. Configure `SUPABASE_URL`,
 `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_BUCKET`,

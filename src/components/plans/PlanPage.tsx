@@ -1,10 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { MOCK_PLAN_SCENARIOS, type MockPlanScenario } from '../../data/mockPlans';
 import { formatPrice, PLANS } from '../../data/plans';
+import { navigate, useRoute } from '../../hooks/useRoute';
+import { houseAdminPath } from '../../services/houses';
 import { getDevScenario, planStage, plansDemoEnabled, setDevScenario, useHousePlan } from '../../services/plans';
 import type { HouseDocument } from '../../types/house';
 import { AdminIcon, Button, cx } from '../admin/controls';
+import { CheckoutSheet, PaymentReturnSheet } from './CheckoutSheet';
 import { formatPlanDate, ExpiryNotice, mansaoButton, PaymentHistory, PlanBadge, PlanComparison, StageBadge, StorageMeter } from './PlanParts';
 import { PREMIUM_FEATURES, usePremiumPrompt, type PremiumFeature } from './PremiumFeatureModal';
 
@@ -16,6 +19,12 @@ const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ b
 export function PlanPage({ houseId, houseName, doc }: { houseId: string; houseName: string; doc: HouseDocument | null }) {
   const plan = useHousePlan(houseId);
   const premium = usePremiumPrompt(() => scrollTo('comparar'));
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  // Retorno do Mercado Pago: só o id do pedido importa; o estado vem da API.
+  const { search } = useRoute();
+  const returnedOrder = search.get('pedido');
+  const planPath = houseAdminPath(houseId, '/plano');
+  const closeReturn = () => navigate(planPath);
 
   useEffect(() => {
     document.title = 'Meu plano · Cantinho Admin';
@@ -30,7 +39,7 @@ export function PlanPage({ houseId, houseName, doc }: { houseId: string; houseNa
   const expired = stage === 'grace' || stage === 'deletion';
   const expires = formatPlanDate(plan.expiresAt);
   const deletion = formatPlanDate(plan.deletionAt);
-  const openCheckout = () => undefined;
+  const openCheckout = () => setCheckoutOpen(true);
 
   const ap = doc?.appearance;
   const content = doc?.content;
@@ -94,7 +103,7 @@ export function PlanPage({ houseId, houseName, doc }: { houseId: string; houseNa
                   Não há renovação automática. Para mais {def.durationLabel}, renove por {formatPrice(def.priceCents)} quando quiser{expires ? `, antes de ${expires}` : ''}.
                 </p>
               </div>
-              <button type="button" className={cx(mansaoButton, 'mt-auto w-full')} onClick={openCheckout} disabled>
+              <button type="button" className={cx(mansaoButton, 'mt-auto w-full')} onClick={openCheckout}>
                 <AdminIcon name="crown" className="size-[18px]" />
                 Renovar Mini Mansão
               </button>
@@ -112,7 +121,7 @@ export function PlanPage({ houseId, houseName, doc }: { houseId: string; houseNa
                 <span className="text-2xl font-bold">{formatPrice(PLANS.mansao.priceCents)}</span>
                 <span className="text-[13px]">pagamento único</span>
               </p>
-              <button type="button" className={cx(mansaoButton, 'mt-auto w-full')} onClick={openCheckout} disabled>
+              <button type="button" className={cx(mansaoButton, 'mt-auto w-full')} onClick={openCheckout}>
                 <AdminIcon name="crown" className="size-[18px]" />
                 Quero minha Mini Mansão
               </button>
@@ -154,8 +163,8 @@ export function PlanPage({ houseId, houseName, doc }: { houseId: string; houseNa
           </Section>
         )}
 
-        {mansao && (
-          <Section title="Histórico de pagamentos" description="Os pagamentos confirmados deste cantinho.">
+        {(mansao || plan.payments.length > 0) && (
+          <Section title="Histórico de pagamentos" description="Os pedidos de pagamento deste cantinho.">
             <PaymentHistory plan={plan} />
           </Section>
         )}
@@ -178,6 +187,25 @@ export function PlanPage({ houseId, houseName, doc }: { houseId: string; houseNa
       </div>
 
       {premium.element}
+      <CheckoutSheet
+        open={checkoutOpen}
+        mode={mansao ? 'renew' : 'upgrade'}
+        houseId={houseId}
+        houseName={houseName}
+        onClose={() => setCheckoutOpen(false)}
+        onBackToHouse={() => navigate(houseAdminPath(houseId))}
+      />
+      {returnedOrder && (
+        <PaymentReturnSheet
+          orderId={returnedOrder}
+          onClose={closeReturn}
+          onBackToHouse={() => navigate(houseAdminPath(houseId))}
+          onRetry={() => {
+            closeReturn();
+            setCheckoutOpen(true);
+          }}
+        />
+      )}
     </main>
   );
 }

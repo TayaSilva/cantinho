@@ -1,25 +1,43 @@
 /**
- * Plano de cada cantinho e fluxo de contratação — por enquanto só o contrato
- * que as telas esperam. Não há backend de cobrança: nenhuma função aqui cobra,
- * muda plano ou exclui algo. Para integrar, troque o corpo de `fetchHousePlan`
- * e `startCheckout` pelas chamadas à API (ver comentários em cada uma).
+ * Plano de cada cantinho e fluxo de contratação. A cobrança acontece no
+ * Mercado Pago (Checkout Pro): aqui só pedimos ao servidor o link de pagamento
+ * e consultamos o estado confirmado. Nada no navegador aprova pagamentos,
+ * define preço ou muda a validade do plano.
  */
 import { useEffect, useState } from 'react';
 import { mockCheckoutResult, mockHousePlan, type MockPaymentOutcome, type MockPlanScenario } from '../data/mockPlans';
 import { PLANS, type PlanId, type PlanLimits } from '../data/plans';
 import { authFetch } from './auth';
 
-export type PaymentMethod = 'pix' | 'credit' | 'debit';
-export type PaymentStatus = 'pending' | 'approved' | 'declined';
+export type PaymentMethod = 'pix' | 'credit' | 'debit' | 'other';
+export type PaymentStatus = 'pending' | 'approved' | 'declined' | 'canceled' | 'refunded' | 'charged_back' | 'needs_review' | 'error';
 
 /** Linha do histórico de pagamentos (nunca guarda dados de cartão ou banco). */
 export interface PaymentRecord {
   id: string;
   createdAt: string;
   planId: PlanId;
+  kind?: 'upgrade' | 'renewal';
   amountCents: number;
-  method: PaymentMethod;
+  /** null enquanto o Mercado Pago não informar o meio usado. */
+  method: PaymentMethod | null;
   status: PaymentStatus;
+  expiresAt?: string | null;
+}
+
+/** Pedido como a API devolve: o estado já conferido no Mercado Pago. */
+export interface PaymentOrder {
+  id: string;
+  houseId: string | null;
+  kind: 'upgrade' | 'renewal';
+  status: PaymentStatus;
+  amountCents: number;
+  currency: string;
+  paymentMethod: PaymentMethod | null;
+  createdAt: string;
+  approvedAt: string | null;
+  expiresAt: string | null;
+  checkoutUrl: string | null;
 }
 
 export interface HousePlan {
@@ -54,9 +72,11 @@ export interface LegacyEntitlements {
 }
 
 export type CheckoutResult =
-  | { status: PaymentStatus }
+  /** Link do Mercado Pago pronto: o navegador segue para lá. */
+  | { status: 'redirect'; checkoutUrl: string; orderId: string }
+  | { status: Exclude<PaymentStatus, 'error'>; order?: PaymentOrder }
   | { status: 'error'; message: string }
-  /** Pagamentos ainda não integrados (produção, nesta etapa). */
+  /** Pagamentos não configurados neste ambiente. */
   | { status: 'unavailable' };
 
 /** Fase do ciclo de vida do plano, usada pelos avisos de vencimento. */
@@ -133,17 +153,53 @@ export function canUseFeature(plan: HousePlan, feature: 'character3' | 'characte
   return plan.limits.tv;
 }
 
+/** Só redireciona para domínios do Mercado Pago. */
+export function isTrustedCheckoutUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && /(^|\.)(mercadopago|mercadolivre|mercadolibre)\.com(\.[a-z]{2})?$/.test(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+/** Avisa as telas para recarregar o plano (ex.: depois de um pagamento aprovado). */
+export function notifyPlanChanged() {
+  window.dispatchEvent(new Event(PLAN_EVENT));
+}
+
 /**
- * Inicia a contratação ou renovação. Futuro: POST /api/houses/:id/checkout,
- * que devolve o link do provedor; a confirmação chega pelo webhook.
- * Em desenvolvimento, `simulate` escolhe o resultado fictício; nada é cobrado.
+ * Inicia a contratação ou renovação: o servidor cria a order no Mercado Pago
+ * (com o valor definido por ele) e devolve o link de pagamento. A confirmação
+ * chega depois pelo webhook. Em desenvolvimento, `simulate` escolhe um
+ * resultado fictício; nada é cobrado.
  */
-export async function startCheckout(_houseId: string, _planId: PlanId, simulate?: MockPaymentOutcome): Promise<CheckoutResult> {
+export async function startCheckout(houseId: string, simulate?: MockPaymentOutcome): Promise<CheckoutResult> {
   if (plansDemoEnabled && simulate) {
     await new Promise((resolve) => window.setTimeout(resolve, 700));
     return mockCheckoutResult(simulate);
   }
-  return { status: 'unavailable' };
+  const response = await authFetch(`/api/payments/checkout?house_id=${encodeURIComponent(houseId)}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: '{}',
+  });
+  const data = (await response.json().catch(() => ({}))) as { error?: string; checkoutUrl?: string; order?: PaymentOrder };
+  if (response.status === 503) return { status: 'unavailable' };
+  if (!response.ok) return { status: 'error', message: data.error || 'Não foi possível iniciar o pagamento.' };
+  if (!data.checkoutUrl || !data.order?.id || !isTrustedCheckoutUrl(data.checkoutUrl)) return { status: 'error', message: 'O link de pagamento recebido não é válido.' };
+  return { status: 'redirect', checkoutUrl: data.checkoutUrl, orderId: data.order.id };
+}
+
+/**
+ * Estado real do pedido. O servidor confere direto no Mercado Pago; os
+ * parâmetros da URL de retorno nunca são usados para liberar nada.
+ */
+export async function fetchPaymentOrder(orderId: string): Promise<PaymentOrder> {
+  const response = await authFetch(`/api/payments/order?id=${encodeURIComponent(orderId)}`, { cache: 'no-store' });
+  const data = (await response.json().catch(() => ({}))) as { error?: string; order?: PaymentOrder };
+  if (!response.ok || !data.order) throw new Error(data.error || 'Não foi possível consultar o pagamento.');
+  return data.order;
 }
 
 /* ---------- Hooks ---------- */
