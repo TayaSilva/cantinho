@@ -405,6 +405,12 @@ function AuthPage({ mode, notice, linkError, onNotice, onWelcome }: { mode: Auth
           {mode === 'signup' && <>Já tem um cantinho? <GlassLink onClick={() => navigate(withNext('/login'))}>Entrar</GlassLink></>}
           {mode === 'recovery' && <>Lembrou a senha? <GlassLink onClick={() => navigate('/login')}>Voltar para o login</GlassLink></>}
         </p>
+        {mode === 'signup' && (
+          <p className="text-center text-xs text-login-muted">
+            Ao criar a conta, você concorda com os <GlassLink onClick={() => navigate('/termos')}>Termos de uso</GlassLink> e a{' '}
+            <GlassLink onClick={() => navigate('/privacidade')}>Política de Privacidade</GlassLink>.
+          </p>
+        )}
       </GlassCard>
     </AuthBackdrop>
   );

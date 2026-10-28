@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { AdminGate, loginPath, Redirect } from './components/admin/AdminGate';
 import { HouseScene } from './components/house/HouseScene';
+import { isLegalPath, LegalPage } from './components/legal/LegalPage';
 import { BookModal } from './components/modals/BookModal';
 import { CalendarModal } from './components/modals/CalendarModal';
 import { MemoryChestModal } from './components/modals/MemoryChestModal';
@@ -35,6 +36,7 @@ export default function App() {
   if (path === '/admin' || path.startsWith('/admin/') || GATE_PATHS.includes(path)) {
     return <AdminGate path={path === '/admin' ? '/admin/editor' : path} />;
   }
+  if (isLegalPath(path)) return <LegalPage path={path} />;
   // Links de e-mail que caíram no Site URL (#error_code=... ou #access_token=...) vão para o login tratar.
   if (/[#&](error_code|access_token)=/.test(window.location.hash)) return <AdminGate path="/login" />;
   const shareToken = path.startsWith('/c/') ? decodeURIComponent(path.slice(3)) : null;
