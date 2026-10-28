@@ -3,6 +3,7 @@ import { dbFetch, getUser, purgeHouseFiles, requestedHouseId, requireHouse, upse
 import { randomUUID } from 'node:crypto';
 
 const UUID = /^[0-9a-f-]{36}$/i;
+const FREE_LIMIT_MESSAGE = 'O plano Free permite apenas um cantinho por conta. Passe seu cantinho para a Mini Mansão para criar outro.';
 
 function freeDocument(document) {
   const next = structuredClone(document);
@@ -31,10 +32,13 @@ async function removeHouse(houseId) {
 }
 
 async function createHouse(req, res, user) {
-  const owned = await dbFetch(`houses?owner_id=eq.${encodeURIComponent(user.id)}&status=neq.deleted&select=id`, { headers: { Prefer: 'count=exact', Range: '0-0' } });
-  const total = Number(owned.headers.get('content-range')?.split('/')[1] || 0);
-  if (!owned.ok) return fail(res, 500, 'Não foi possível verificar seus limites.');
-  if (total >= 1) return fail(res, 409, 'Cada conta pode ter apenas um cantinho ativo nesta primeira versão.');
+  // O plano Free permite um cantinho por conta; os da Mini Mansão não contam.
+  // A trigger house_plans_one_free_per_owner repete a regra no banco.
+  const owned = await dbFetch(`houses?owner_id=eq.${encodeURIComponent(user.id)}&status=neq.deleted&select=id,plan:house_plans(plan_type)`);
+  const ownedRows = await owned.json().catch(() => null);
+  if (!owned.ok || !Array.isArray(ownedRows)) return fail(res, 500, 'Não foi possível verificar seus limites.');
+  const planOf = (row) => (Array.isArray(row.plan) ? row.plan[0] : row.plan)?.plan_type ?? 'free';
+  if (ownedRows.some((row) => planOf(row) === 'free')) return fail(res, 409, FREE_LIMIT_MESSAGE);
 
   const body = await readJson(req, 10_000_000);
   const name = String(body.name || 'Meu cantinho').trim().slice(0, 80) || 'Meu cantinho';
@@ -71,7 +75,10 @@ async function createHouse(req, res, user) {
       headers: { Prefer: 'return=minimal' },
       body: JSON.stringify([{ house_id: house.id, plan_type: 'free', status: 'active', started_at: timestamp, expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString() }]),
     });
-    if (!plan.ok) throw new Error('Não foi possível inicializar o plano do cantinho.');
+    if (!plan.ok) {
+      const detail = await plan.json().catch(() => null);
+      throw new Error(/apenas um cantinho/.test(detail?.message ?? '') ? FREE_LIMIT_MESSAGE : 'Não foi possível inicializar o plano do cantinho.');
+    }
   } catch (error) {
     await removeHouse(house.id);
     throw error;

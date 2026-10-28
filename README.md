@@ -64,12 +64,14 @@ rota (já incluídos `vercel.json` e `public/_redirects` para Vercel/Netlify).
 
 ### Casinhas individuais e privacidade
 
-Antes do deploy, aplique em ordem `supabase/migrations/20261027_0001_casinhas_privadas.sql`
-e `supabase/migrations/20261028_0002_planos_cotas.sql` no SQL Editor. A primeira
-adiciona `houses.slug`, garante uma casa ativa por conta, mantém o bucket
-`casinha-media` privado e restringe o acesso por membro e proprietário. A segunda
-ativa os planos, cotas, direitos adquiridos da migração e validação transacional
-de armazenamento/publicação. As migrations são idempotentes e não apagam
+Antes do deploy, aplique em ordem `supabase/migrations/20261027_0001_casinhas_privadas.sql`,
+`supabase/migrations/20261028_0002_planos_cotas.sql` e
+`supabase/migrations/20261028_0003_uma_casinha_free.sql` no SQL Editor. A primeira
+adiciona `houses.slug`, mantém o bucket `casinha-media` privado e restringe o
+acesso por membro e proprietário. A segunda ativa os planos, cotas, direitos
+adquiridos da migração e validação transacional de armazenamento/publicação. A
+terceira troca o limite de "uma casa ativa por conta" por "uma casa **Free** por
+conta" (casinhas Mini Mansão não contam). As migrations são idempotentes e não apagam
 documentos, mídias ou direitos existentes.
 
 Em produção, configure `VITE_LOCAL_MODE=false`, `VITE_SUPABASE_URL` e

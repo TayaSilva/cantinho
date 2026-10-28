@@ -114,3 +114,13 @@ test('service role key is not referenced by browser source', async () => {
   const source = await read('src/services/auth.ts');
   assert.doesNotMatch(source, /SERVICE_ROLE/i);
 });
+
+test('free plan allows a single house per account, enforced in API and database', async () => {
+  const sql = await read('supabase/migrations/20261028_0003_uma_casinha_free.sql');
+  assert.match(sql, /drop index if exists public\.houses_one_active_per_owner_idx/i);
+  assert.match(sql, /create trigger house_plans_one_free_per_owner/i);
+  assert.match(sql, /pg_advisory_xact_lock/i);
+  const api = await read('api/me/houses.mjs');
+  assert.match(api, /house_plans\(plan_type\)/);
+  assert.match(api, /planOf\(row\) === 'free'/);
+});
