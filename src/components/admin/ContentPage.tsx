@@ -9,6 +9,7 @@ import { mediaApiUrl, putMedia } from '../../services/mediaStore';
 import { acceptFor, checkFile, limitLabel, UPLOAD_RULES, type MediaKind } from '../../services/uploadRules';
 import type { HouseContent, HouseDocument } from '../../types/house';
 import { AdminIcon, Button, ConfirmDialog, cx, TextArea, TextField, Toggle } from './controls';
+import { notify } from '../ui/Notifications';
 
 export type ContentSection = 'textos' | 'fotos' | 'videos' | 'musicas' | 'cartas' | 'datas' | 'mensagens';
 
@@ -132,6 +133,7 @@ function useUpload<T>(kind: MediaKind, make: (file: File) => Promise<T>, commit:
       else problems.push({ name: valid[i].name, message: result.reason instanceof Error ? result.reason.message : 'Não foi possível enviar o arquivo. Tente de novo.' });
     });
     if (items.length) commit(items);
+    if (items.length && !problems.length) notify.success(items.length === 1 ? 'Arquivo enviado! Salve ou publique para guardar.' : `${items.length} arquivos enviados! Salve ou publique para guardar.`);
     if (problems.length) setReport({ problems, sent: items.length });
     setBusy(false);
   };

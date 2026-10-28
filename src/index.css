@@ -54,6 +54,7 @@
   --animate-page-turn: page-turn 0.35s steps(5) both;
   --animate-bob: bob 2.4s ease-in-out infinite;
   --animate-hop: hop 0.6s steps(4) both;
+  --animate-toast-in: toast-in 0.24s steps(4) both;
 
   @keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
   @keyframes reveal { from { opacity: 0; transform: translateY(24px) scale(0.96) } to { opacity: 1; transform: none } }
@@ -63,6 +64,7 @@
   @keyframes page-turn { from { opacity: 0; transform: perspective(900px) rotateY(-8deg) } to { opacity: 1; transform: none } }
   @keyframes bob { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
   @keyframes hop { 0%, 100% { translate: 0 0 } 40% { translate: 0 -2.5% } }
+  @keyframes toast-in { from { opacity: 0; translate: 0 -16px } to { opacity: 1; translate: 0 0 } }
 }
 
 @layer base {

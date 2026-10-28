@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { defaultAppearance } from '../data/houseConfig';
 import { countDifferences, loadDraft, loadPublished, publish as publishDoc, saveDraft as saveDraftDoc } from '../services/houseStore';
+import { errorMessage, notify } from '../components/ui/Notifications';
 import type { HouseDocument } from '../types/house';
 
 const HISTORY_LIMIT = 80;
@@ -19,7 +20,6 @@ export function useHouseDraft(houseId = '00000000-0000-0000-0000-000000000001') 
   const [historySize, setHistorySize] = useState(0);
   const docRef = useRef<HouseDocument | null>(null);
   const [busy, setBusy] = useState<'saving' | 'publishing' | null>(null);
-  const [lastAction, setLastAction] = useState<string | null>(null);
   const coalesce = useRef<{ key: string; at: number } | null>(null);
 
   useEffect(() => {
@@ -73,17 +73,25 @@ export function useHouseDraft(houseId = '00000000-0000-0000-0000-000000000001') 
     setHistorySize(historyRef.current.length);
     coalesce.current = null;
     commit(prev);
-    setLastAction('Alteração desfeita');
+    notify.info('Alteração desfeita.');
   }, []);
 
+  /** Salva o rascunho e avisa o resultado. Devolve `false` se não deu certo. */
   const saveDraft = useCallback(async () => {
-    if (!doc) return;
+    if (!doc) return false;
     setBusy('saving');
-    const saved = await saveDraftDoc(doc, houseId);
-    commit(saved);
-    setSavedJson(JSON.stringify(saved));
-    setBusy(null);
-    setLastAction('Rascunho salvo');
+    try {
+      const saved = await saveDraftDoc(doc, houseId);
+      commit(saved);
+      setSavedJson(JSON.stringify(saved));
+      notify.success('Rascunho salvo.');
+      return true;
+    } catch (cause) {
+      notify.error(errorMessage(cause, 'Não foi possível salvar o rascunho. Tente de novo.'));
+      return false;
+    } finally {
+      setBusy(null);
+    }
   }, [doc, houseId]);
 
   const publish = useCallback(async (candidate?: HouseDocument) => {
@@ -98,7 +106,7 @@ export function useHouseDraft(houseId = '00000000-0000-0000-0000-000000000001') 
         setSavedJson(JSON.stringify(saved));
       }
       setPublished(saved);
-      setLastAction('Alterações publicadas');
+      notify.success('Alterações publicadas! Seu cantinho já está atualizado.');
       return saved;
     } finally {
       setBusy(null);
@@ -110,10 +118,9 @@ export function useHouseDraft(houseId = '00000000-0000-0000-0000-000000000001') 
     update((d) => {
       d.appearance = structuredClone(defaultAppearance);
     });
-    setLastAction('Aparência restaurada para o padrão');
+    notify.success('Aparência restaurada para o padrão.');
   }, [update]);
 
-  const clearLastAction = useCallback(() => setLastAction(null), []);
 
   const dirty = doc ? JSON.stringify(doc) !== savedJson : false;
   const pending = useMemo(() => (doc && published ? countDifferences(doc, published) : 0), [doc, published]);
@@ -131,8 +138,6 @@ export function useHouseDraft(houseId = '00000000-0000-0000-0000-000000000001') 
     dirty,
     pending,
     busy,
-    lastAction,
-    clearLastAction,
   };
 }
 

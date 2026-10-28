@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { houseStatus, type HouseStatus, type HouseSummary } from '../../services/houses';
 import { useHousePlans } from '../../services/plans';
 import { sharePublicHouse } from '../../services/share';
-import { AdminIcon, Button, ConfirmDialog, cx, Toast } from '../admin/controls';
+import { AdminIcon, Button, ConfirmDialog, cx } from '../admin/controls';
+import { errorMessage, notify } from '../ui/Notifications';
 import { PlanBadge } from '../plans/PlanParts';
 import { AccountMenu } from './AccountMenu';
 
@@ -58,21 +59,20 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
   onDeleteAccount?: () => Promise<void>;
 }) {
   const [creating, setCreating] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<HouseSummary | null>(null);
-  const clearToast = useCallback(() => setToast(null), []);
-  const canCreate = !houses.some((item) => item.role === 'owner' && item.house.status === 'active');
 
   useEffect(() => {
     document.title = 'Meus cantinhos · Cantinho';
   }, []);
   useEffect(() => {
-    if (notice) setToast(notice);
+    if (notice) notify.success(notice);
     if (notice) onDismissNotice();
   }, [notice, onDismissNotice]);
 
   const plans = useHousePlans(useMemo(() => houses.map((item) => item.house_id), [houses]));
+  // O plano Free permite um cantinho por conta; os da Mini Mansão não contam.
+  // Enquanto o plano não carrega, a casinha conta como Free.
+  const canCreate = !houses.some((item) => item.role === 'owner' && item.house.status === 'active' && (plans[item.house_id]?.planId ?? 'free') === 'free');
 
   const sorted = useMemo(
     () => [...houses].sort((a, b) => new Date(b.house.updated_at || 0).getTime() - new Date(a.house.updated_at || 0).getTime()),
@@ -81,11 +81,10 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
 
   const create = async () => {
     setCreating(true);
-    setActionError(null);
     try {
       await onCreate();
     } catch (cause) {
-      setActionError(cause instanceof Error ? cause.message : 'Não foi possível criar o cantinho.');
+      notify.error(errorMessage(cause, 'Não foi possível criar o cantinho.'));
       setCreating(false);
     }
   };
@@ -95,14 +94,15 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
   const share = async (id: string) => {
     const item = houses.find((house) => house.house_id === id);
     if (item && houseStatus(item) === 'draft') {
-      setToast('Publique o cantinho antes de compartilhá-lo.');
+      notify.info('Publique o cantinho antes de compartilhá-lo.');
       return;
     }
     try {
       const result = await sharePublicHouse(id);
-      setToast(result === 'shared' ? 'Compartilhado!' : result === 'copied' ? 'Link copiado!' : 'Não foi possível criar o link.');
+      if (result === 'shared') notify.success('Cantinho compartilhado!');
+      else if (result === 'copied') notify.success('Link copiado! É só colar onde quiser.');
     } catch (cause) {
-      setToast(cause instanceof Error ? cause.message : 'Não foi possível criar o link.');
+      notify.error(errorMessage(cause, 'Não foi possível criar o link.'));
     }
   };
 
@@ -112,9 +112,9 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
     if (!target) return;
     try {
       await onDelete(target.house_id);
-      setToast('Cantinho excluído.');
+      notify.success('Cantinho excluído.');
     } catch (cause) {
-      setActionError(cause instanceof Error ? cause.message : 'Não foi possível excluir o cantinho.');
+      notify.error(errorMessage(cause, 'Não foi possível excluir o cantinho.'));
     }
   };
 
@@ -127,7 +127,7 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
           </span>
           <span className="text-[15px] font-bold">Cantinho</span>
         </div>
-        <Button variant="primary" onClick={() => void create()} disabled={creating || !canCreate} title={canCreate ? 'Criar cantinho' : 'Sua conta já possui um cantinho ativo'}>
+        <Button variant="primary" onClick={() => void create()} disabled={creating || !canCreate} title={canCreate ? 'Criar cantinho' : 'O plano Free permite apenas um cantinho por conta'}>
           <AdminIcon name="plus" className="size-4" />
           <span className="hidden sm:inline">{creating ? 'Criando…' : 'Criar novo cantinho'}</span>
           <span className="sm:hidden">{creating ? 'Criando…' : 'Nova'}</span>
@@ -139,9 +139,15 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
         <div>
           <h1 className="text-2xl font-bold">Olá, {firstName}</h1>
           <p className="mt-1 text-stone-600">Estes são os seus cantinhos. Escolha um para editar ou crie um novo.</p>
+          {!canCreate && houses.length > 0 && (
+            <p className="mt-2 inline-flex items-center gap-1.5 text-stone-500">
+              <AdminIcon name="lock" className="size-4 text-stone-400" />
+              O plano Free permite um cantinho por conta. Passe o seu para a Mini Mansão para criar outro.
+            </p>
+          )}
         </div>
 
-        {(actionError || error) && <p role="alert" className="rounded-lg bg-red-50 p-3 text-red-800">{actionError || error}</p>}
+        {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-red-800">{error}</p>}
 
         {sorted.length === 0 ? (
           <div className="flex flex-col items-center rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-14 text-center">
@@ -216,7 +222,6 @@ export function MyHousesPage({ firstName, email, houses, notice, error, onDismis
         onCancel={() => setToDelete(null)}
         onConfirm={() => void confirmDelete()}
       />
-      <Toast message={toast} onDone={clearToast} />
     </div>
   );
 }

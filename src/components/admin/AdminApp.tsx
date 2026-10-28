@@ -5,9 +5,10 @@ import { navigate } from '../../hooks/useRoute';
 import { AccountMenu } from '../account/AccountMenu';
 import { ContentPage } from './ContentPage';
 import type { ContentSection } from './ContentPage';
-import { AdminIcon, Button, ConfirmDialog, cx, Toast, useDismiss } from './controls';
+import { AdminIcon, Button, ConfirmDialog, cx, useDismiss } from './controls';
 import { PublicationLimitModal } from './PublicationLimitModal';
 import { ShareMessageModal } from './ShareMessageModal';
+import { errorMessage, notify } from '../ui/Notifications';
 import { PublicationLimitError } from '../../services/houseStore';
 import type { PublicationLimitDetails } from '../../services/houseStore';
 import { EditorPage } from './EditorPage';
@@ -27,11 +28,8 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
   const draft = useHouseDraft(house.house_id);
   const [confirm, setConfirm] = useState<null | 'reset' | 'publish' | 'switch'>(null);
   const [pendingHouse, setPendingHouse] = useState<string | null>(null);
-  const [shareNotice, setShareNotice] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
-  const [planNotice, setPlanNotice] = useState<string | null>(null);
   const [publishIssue, setPublishIssue] = useState<PublicationLimitDetails | null>(null);
-  const [publishError, setPublishError] = useState<string | null>(null);
   // Navegação recolhível do celular (no desktop os links ficam sempre à vista).
   const [navOpen, setNavOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
@@ -43,6 +41,7 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
   const section = (CONTENT_SECTIONS.find((s) => path === `/conteudos/${s}`) ?? 'fotos') as ContentSection;
   const contentPath = houseAdminPath(house.house_id, '/conteudos/fotos');
   const editorPath = houseAdminPath(house.house_id);
+  const planPath = houseAdminPath(house.house_id, '/plano');
   const publishedHref = `/?house=${encodeURIComponent(house.house_id)}`;
 
   // Avisa antes de sair com alterações não salvas.
@@ -78,32 +77,33 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
 
   const preview = async () => {
     const win = window.open('about:blank', '_blank');
-    if (draft.dirty) await draft.saveDraft();
+    if (draft.dirty && !(await draft.saveDraft())) {
+      win?.close();
+      return;
+    }
     if (win) win.location.href = `/?preview=draft&house=${encodeURIComponent(house.house_id)}`;
   };
 
   const share = async () => {
     if (!house.house.published_at) {
-      setShareNotice('Publique o cantinho antes de compartilhá-lo.');
+      notify.info('Publique o cantinho antes de compartilhá-lo.');
       return;
     }
     try {
       const url = await getPublicHouseUrl(house.house_id);
       setShareUrl(url);
     } catch (cause) {
-      setShareNotice(cause instanceof Error ? cause.message : 'Não foi possível criar o link.');
+      notify.error(errorMessage(cause, 'Não foi possível criar o link.'));
     }
   };
-  const clearShareNotice = useCallback(() => setShareNotice(null), []);
 
   const publish = async (candidate?: Parameters<typeof draft.publish>[0]) => {
-    setPublishError(null);
     try {
       await draft.publish(candidate);
       setPublishIssue(null);
     } catch (cause) {
       if (cause instanceof PublicationLimitError && cause.details && Array.isArray(cause.details.issues)) setPublishIssue(cause.details);
-      else setPublishError(cause instanceof Error ? cause.message : 'Não foi possível publicar o cantinho.');
+      else notify.error(errorMessage(cause, 'Não foi possível publicar o cantinho.'));
     }
   };
 
@@ -156,21 +156,10 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
             <a href="/meus-cantinhos" onClick={link('/meus-cantinhos')} className={navClass(false)}>Meus cantinhos</a>
             <a href={contentPath} onClick={link(contentPath)} aria-current={isContent ? 'page' : undefined} className={navClass(isContent)}>Conteúdos</a>
             <a href={editorPath} onClick={link(editorPath)} aria-current={isEditor ? 'page' : undefined} className={navClass(isEditor)}>Personalizar cantinho</a>
-            <span className="group relative inline-flex">
-              <button
-                type="button"
-                aria-disabled="true"
-                title="Em breve"
-                onClick={() => { setNavOpen(false); setPlanNotice('Meu plano estará disponível em breve.'); }}
-                className={cx(navClass(false), 'inline-flex cursor-not-allowed items-center gap-1.5 opacity-50')}
-              >
-                <AdminIcon name="crown" className="size-4" />
-                Meu plano
-              </button>
-              <span role="status" className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-stone-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg group-hover:block group-focus-within:block">
-                Em breve
-              </span>
-            </span>
+            <a href={planPath} onClick={link(planPath)} aria-current={isPlan ? 'page' : undefined} className={cx(navClass(isPlan), 'inline-flex items-center gap-1.5')}>
+              <AdminIcon name="crown" className="size-4" />
+              Meu plano
+            </a>
           </nav>
           <div className="flex-1" />
           <div className="flex items-center gap-1.5 md:gap-4">
@@ -305,12 +294,11 @@ export function AdminApp({ path, house, houses, firstName, email, onHouseChange,
         onClose={() => setPublishIssue(null)}
         onLearnMore={() => {
           setPublishIssue(null);
-          navigate(houseAdminPath(house.house_id, '/plano'));
+          navigate(planPath);
         }}
         onPublish={async (candidate) => publish(candidate)}
       />
       <ShareMessageModal open={Boolean(shareUrl)} houseUrl={shareUrl} onClose={() => setShareUrl(null)} />
-      <Toast message={planNotice ?? shareNotice ?? publishError ?? draft.lastAction} onDone={planNotice ? () => setPlanNotice(null) : shareNotice ? clearShareNotice : publishError ? () => setPublishError(null) : draft.clearLastAction} />
     </div>
   );
 }

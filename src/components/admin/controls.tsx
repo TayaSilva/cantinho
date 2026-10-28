@@ -294,25 +294,9 @@ export function ConfirmDialog({
   );
 }
 
-/* ---------- Aviso rápido ---------- */
-
-export function Toast({ message, onDone }: { message: string | null; onDone: () => void }) {
-  useEffect(() => {
-    if (!message) return;
-    const id = window.setTimeout(onDone, 2600);
-    return () => window.clearTimeout(id);
-  }, [message, onDone]);
-  if (!message) return null;
-  return (
-    <div role="status" className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white shadow-lg motion-safe:animate-fade-in">
-      {message}
-    </div>
-  );
-}
-
 /* ---------- Ícones de traço (Backoffice) ---------- */
 
-export function AdminIcon({ name, className = 'size-[18px]' }: { name: 'home' | 'sofa' | 'person' | 'paw' | 'star' | 'undo' | 'eye' | 'plus' | 'up' | 'down' | 'trash' | 'upload' | 'external' | 'image' | 'video' | 'music' | 'letter' | 'calendar' | 'gift' | 'text' | 'save' | 'power' | 'link' | 'more' | 'chevron' | 'menu' | 'close' | 'crown' | 'check' | 'clock' | 'alert' | 'card' | 'pix' | 'download'; className?: string }) {
+export function AdminIcon({ name, className = 'size-[18px]' }: { name: 'home' | 'sofa' | 'person' | 'paw' | 'star' | 'undo' | 'eye' | 'plus' | 'up' | 'down' | 'trash' | 'upload' | 'external' | 'image' | 'video' | 'music' | 'letter' | 'calendar' | 'gift' | 'text' | 'save' | 'power' | 'link' | 'more' | 'chevron' | 'menu' | 'close' | 'crown' | 'check' | 'clock' | 'alert' | 'card' | 'pix' | 'download' | 'lock'; className?: string }) {
   const p = { className, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true as const };
   switch (name) {
     case 'home':
@@ -375,6 +359,8 @@ export function AdminIcon({ name, className = 'size-[18px]' }: { name: 'home' | 
       return <svg {...p} strokeWidth={2.2}><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>;
     case 'clock':
       return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>;
+    case 'lock':
+      return <svg {...p}><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>;
     case 'alert':
       return <svg {...p}><path d="M12 3l9.5 17h-19z" /><path d="M12 10v4.5M12 17.5v.01" /></svg>;
     case 'card':

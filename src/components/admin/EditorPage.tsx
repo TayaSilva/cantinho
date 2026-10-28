@@ -129,7 +129,9 @@ export function EditorPage({ draft }: { draft: HouseDraft }) {
         <nav aria-label="Categorias" className="flex gap-1 overflow-x-auto px-3 py-2 lg:flex-col lg:gap-0.5 lg:px-3 lg:py-0">
           {CATEGORIES.map((c) => {
             const active = category === c.id;
-            const sub = categorySub(c.id);
+            const locked = isLocked(featureForCategory(c.id));
+            // Item bloqueado mostra só o cadeado, sem o "Oculto" ao lado.
+            const sub = locked ? undefined : categorySub(c.id);
             return (
               <button
                 key={c.id}
@@ -143,7 +145,11 @@ export function EditorPage({ draft }: { draft: HouseDraft }) {
               >
                 <AdminIcon name={c.icon} />
                 <span className="flex-1">{c.label}</span>
-                {isLocked(featureForCategory(c.id)) && <span aria-label="Bloqueado no plano Free" title="Bloqueado no plano Free">🔒</span>}
+                {locked && (
+                  <span role="img" aria-label="Bloqueado no plano Free" title="Bloqueado no plano Free" className="text-stone-400">
+                    <AdminIcon name="lock" className="size-4" />
+                  </span>
+                )}
                 {sub && <span className={cx('hidden text-xs lg:inline', active ? 'font-medium' : 'text-stone-500')}>{sub}</span>}
               </button>
             );

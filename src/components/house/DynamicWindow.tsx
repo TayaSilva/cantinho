@@ -15,6 +15,14 @@ const GLASS: Record<Shape, { u: [number, number]; v: [number, number] }> = {
   round: { u: [51, 85], v: [33, 67] },
 };
 
+/**
+ * Lua crescente em pixel art, como aparece na tela ("#" = pixel aceso).
+ * A parede esquerda espelha u e inverte v, então cada pixel é convertido
+ * para u = 80 - coluna e v = 60 - linha.
+ */
+const MOON = ['..####..', '.####...', '####....', '###.....', '###.....', '####....', '.####...', '..####..'];
+const MOON_PATH = MOON.flatMap((row, r) => [...row].map((c, col) => (c === '#' ? `M${79 - col} ${59 - r}h1v1h-1z` : ''))).join('');
+
 /** Forma do vidro (ou da moldura, se `grow` > 0). */
 function GlassShape({ shape, grow, fill }: { shape: Shape; grow: number; fill: string }) {
   const g = GLASS[shape];
@@ -66,12 +74,7 @@ export function DynamicWindow({ appearance, theme }: { appearance: HouseAppearan
               <URect u={[56, 64]} v={[53, 57]} fill="#FFE27A" />
             </g>
           )}
-          {theme.moon && (
-            <g>
-              <URect u={[73, 79]} v={[53, 59]} fill="#F8F0D8" />
-              <URect u={[75, 80]} v={[55, 60]} fill={theme.sky} />
-            </g>
-          )}
+          {theme.moon && <path d={MOON_PATH} fill="#F8F0D8" />}
           {theme.stars &&
             [[54, 60], [66, 58], [72, 48], [82, 62], [58, 46], [80, 44], [64, 50], [60, 66], [76, 68]].map(([u, v], i) => (
               <URect key={i} className={`twinkle twinkle-${i % 3}`} u={[u, u + 1]} v={[v, v + 1]} fill="#FFF6D8" />
